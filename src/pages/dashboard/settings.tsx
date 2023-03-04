@@ -26,7 +26,11 @@ const SettingsPage = () => {
     resolver: zodResolver(updateSettingsSchema)
   })
 
-  const { data: settings } = api.settings.list.useQuery()
+  const { data: settings } = api.settings.list.useQuery(undefined, {
+    trpc: {
+      ssr: true
+    }
+  })
 
   const settingsUpdate = api.settings.update.useMutation()
 
