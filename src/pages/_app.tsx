@@ -20,10 +20,10 @@ export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode
 }
 
-const MyApp: AppType<{ session: Session | null }> = ({
+const MyApp /*: AppType<{ session: Session | null }>*/ = ({
   Component,
   pageProps: { session, ...pageProps }
-}) => {
+}: any) => {
   const getLayout =
     (Component as NextPageWithLayout).getLayout || (page => page)
   return getLayout(
@@ -43,4 +43,4 @@ const MyApp: AppType<{ session: Session | null }> = ({
   )
 }
 
-export default api.withTRPC(MyApp)
+export default api.withTRPC(MyApp as AppType)
