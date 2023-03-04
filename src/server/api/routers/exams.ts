@@ -18,6 +18,7 @@ export const examsRouter = createTRPCRouter({
       try {
         exam = await getExamToSolve(input.id)
       } catch (error) {
+        logErrorToLogtail(error)
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
           message: 'حدث خطأ غير متوقع'
@@ -37,6 +38,7 @@ export const examsRouter = createTRPCRouter({
     try {
       exam = await createExam(input.difficulty)
     } catch (error) {
+      logErrorToLogtail(error)
       throw new TRPCError({
         code: 'INTERNAL_SERVER_ERROR',
         message: 'حدث خطأ غير متوقع'
