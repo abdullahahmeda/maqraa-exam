@@ -4,7 +4,7 @@ import Spinner from './spinner'
 
 interface ButtonProps<T extends ElementType> {
   as?: T
-  variant?: 'primary' | 'success' | 'error'
+  variant?: 'primary' | 'success' | 'error' | 'website'
   loading?: boolean
   children?: ReactNode
 }
@@ -15,6 +15,7 @@ export default function Button<T extends ElementType = 'button'> ({
   loading,
   children,
   disabled: _disabled,
+  className,
   ...props
 }: ButtonProps<T> &
   Omit<React.ComponentPropsWithoutRef<T>, keyof ButtonProps<T>>) {
@@ -25,7 +26,7 @@ export default function Button<T extends ElementType = 'button'> ({
   return (
     <Component
       className={clsx(
-        'inline-flex items-center justify-center gap-1 rounded-md border border-transparent px-4 py-2 text-base font-medium shadow-sm transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2',
+        'inline-flex items-center justify-center gap-1 rounded-md border border-transparent px-4 py-2 text-base font-medium shadow-sm transition focus:outline-none focus:ring-2 focus:ring-offset-2',
         {
           'cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-200':
             disabled,
@@ -34,10 +35,12 @@ export default function Button<T extends ElementType = 'button'> ({
           'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500':
             variant === 'primary' && !disabled,
           'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500':
-            variant === 'success' && !disabled
+            variant === 'success' && !disabled,
+          'bg-[#d9b14d] text-white shadow-md hover:bg-[#b79a50] hover:shadow-lg':
+            variant === 'website' && !disabled
         },
 
-        props.className
+        className
       )}
       disabled={disabled}
       {...props}

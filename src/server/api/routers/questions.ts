@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { prisma } from '../../db'
+import { getPaginatedQuestions } from '../../../services/questions'
 
 import { createTRPCRouter, publicProcedure, protectedProcedure } from '../trpc'
 
@@ -14,12 +14,6 @@ export const questionsRouter = createTRPCRouter({
       const pageSize = 50
       const page = input.page || 1
 
-      return {
-        questions: await prisma.question.findMany({
-          skip: (page - 1) * pageSize,
-          take: pageSize
-        }),
-        count: await prisma.question.count()
-      }
+      return await getPaginatedQuestions({ page, pageSize })
     })
 })

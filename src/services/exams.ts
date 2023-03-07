@@ -3,6 +3,25 @@ import { QuestionDifficulty, QuestionType, SettingKey } from '../constants'
 import sampleSize from 'lodash.samplesize'
 import shuffle from 'lodash.shuffle'
 import { prisma } from '../server/db'
+import { PageOptions } from '../types'
+
+export const getPaginatedExams = async ({ page, pageSize }: PageOptions) => {
+  return {
+    exams: await prisma.exam.findMany({
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: {
+        user: true,
+        questions: {
+          select: {
+            id: true
+          }
+        }
+      }
+    }),
+    count: await prisma.exam.count()
+  }
+}
 
 export const getExamToSolve = async (id: string) => {
   const exam = await prisma.exam.findFirst({
@@ -30,6 +49,23 @@ export const getExamToSolve = async (id: string) => {
           }
         }
       }
+    }
+  })
+  return exam
+}
+
+export const getExam = async (id: string) => {
+  const exam = await prisma.exam.findFirst({
+    where: {
+      id
+    },
+    include: {
+      questions: {
+        include: {
+          question: true
+        }
+      },
+      user: true
     }
   })
   return exam
@@ -96,6 +132,9 @@ const getRandomQuestionsForDifficulty = async (
 export const createExam = async (difficulty: QuestionDifficulty) => {
   const _questions = await getRandomQuestionsForDifficulty(difficulty)
   const questions = shuffle(_questions.mcq.concat(_questions.written))
+
+  // if (questions.length === 0) throw new Error('لا يوجد أسئلة')
+
   return await prisma.exam.create({
     data: {
       difficulty,
@@ -120,6 +159,28 @@ export const submitExam = async (
   id: string,
   answers: Record<string, string | null>
 ) => {
+  const questions = await Promise.all(
+    Object.entries(answers).map(async ([id, answer]) => {
+      const examQuestion = await prisma.examQuestion.findFirst({
+        where: {
+          id: Number(id)
+        },
+        include: {
+          question: true
+        }
+      })
+
+      const isCorrect = examQuestion?.question.answer === answer
+      return {
+        where: { id: Number(id) },
+        data: {
+          answer,
+          isCorrect
+        }
+      }
+    })
+  )
+
   await prisma.exam.update({
     where: {
       id
@@ -127,12 +188,30 @@ export const submitExam = async (
     data: {
       submittedAt: new Date(),
       questions: {
-        update: Object.entries(answers).map(([id, answer]) => ({
-          where: { id: Number(id) },
-          data: {
-            answer
-          }
-        }))
+        update: questions
+      }
+    }
+  })
+}
+
+export const saveExam = async (
+  id: string,
+  questions: Record<string, boolean>
+) => {
+  const _questions = Object.entries(questions).map(([id, isCorrect]) => ({
+    where: { id: Number(id) },
+    data: {
+      isCorrect
+    }
+  }))
+  await prisma.exam.update({
+    where: {
+      id
+    },
+    data: {
+      grade: Object.values(questions).filter(isCorrect => isCorrect).length,
+      questions: {
+        update: _questions
       }
     }
   })

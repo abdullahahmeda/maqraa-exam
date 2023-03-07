@@ -41,52 +41,69 @@ const HomePage = () => {
 
   return (
     <>
+      <style global jsx>{`
+        body {
+          background: linear-gradient(
+              to bottom,
+              rgba(92, 77, 66, 0.9) 0%,
+              rgba(92, 77, 66, 0.9) 100%
+            ),
+            url(/bg.jpg);
+          background-position: center;
+          background-repeat: no-repeat;
+          background-attachment: scroll;
+          background-size: cover;
+          height: 100vh;
+        }
+      `}</style>
       <Head>
         <title>بدأ اختبار</title>
       </Head>
-      <div>
-        <label>مستوى الاختبار</label>
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className='flex gap-4'>
-            <div className='flex items-center gap-2'>
-              <input
-                type='radio'
-                {...register('difficulty')}
-                id='easy'
-                value={QuestionDifficulty.EASY}
-              />
-              <label htmlFor='easy'>سهل</label>
+      <div className='container mx-auto pt-40'>
+        <div className='mx-auto max-w-[360px] bg-white p-3 shadow'>
+          <label>مستوى الاختبار</label>
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className='mb-2 flex gap-4'>
+              <div className='flex items-center gap-2'>
+                <input
+                  type='radio'
+                  {...register('difficulty')}
+                  id='easy'
+                  value={QuestionDifficulty.EASY}
+                />
+                <label htmlFor='easy'>سهل</label>
+              </div>
+              <div className='flex items-center gap-2'>
+                <input
+                  type='radio'
+                  {...register('difficulty')}
+                  id='medium'
+                  value={QuestionDifficulty.MEDIUM}
+                />
+                <label htmlFor='medium'>متوسط</label>
+              </div>
+              <div className='flex items-center gap-2'>
+                <input
+                  type='radio'
+                  {...register('difficulty')}
+                  id='hard'
+                  value={QuestionDifficulty.HARD}
+                />
+                <label htmlFor='hard'>صعب</label>
+              </div>
+              <FieldErrorMessage>
+                {fieldsErrors.difficulty?.message}
+              </FieldErrorMessage>
             </div>
-            <div className='flex items-center gap-2'>
-              <input
-                type='radio'
-                {...register('difficulty')}
-                id='medium'
-                value={QuestionDifficulty.MEDIUM}
-              />
-              <label htmlFor='medium'>متوسط</label>
-            </div>
-            <div className='flex items-center gap-2'>
-              <input
-                type='radio'
-                {...register('difficulty')}
-                id='hard'
-                value={QuestionDifficulty.HARD}
-              />
-              <label htmlFor='hard'>صعب</label>
-            </div>
-            <FieldErrorMessage>
-              {fieldsErrors.difficulty?.message}
-            </FieldErrorMessage>
-          </div>
-          <Button
-            variant='primary'
-            type='submit'
-            loading={examCreate.isLoading}
-          >
-            بدأ الاختبار
-          </Button>
-        </form>
+            <Button
+              variant='primary'
+              type='submit'
+              loading={examCreate.isLoading}
+            >
+              بدأ الاختبار
+            </Button>
+          </form>
+        </div>
       </div>
     </>
   )

@@ -19,7 +19,7 @@ const ExamPage = () => {
     isLoading,
     isPaused,
     error: examError
-  } = api.exams.get.useQuery(
+  } = api.exams.getToSolve.useQuery(
     {
       id: router.query.id as string
     },
@@ -55,10 +55,26 @@ const ExamPage = () => {
 
   return (
     <>
+      <style global jsx>{`
+        body {
+          background: linear-gradient(
+              to bottom,
+              rgba(92, 77, 66, 0.9) 0%,
+              rgba(92, 77, 66, 0.9) 100%
+            ),
+            url(/bg.jpg);
+          background-position: center;
+          background-repeat: no-repeat;
+          background-attachment: scroll;
+          background-size: cover;
+          height: 100vh;
+          background-attachment: fixed;
+        }
+      `}</style>
       <Head>
         <title>اختبار</title>
       </Head>
-      <div className='container mx-auto my-4'>
+      <div className='container mx-auto py-4'>
         {(isLoading || isPaused) && (
           <div className='flex items-center gap-2'>
             <Spinner />
@@ -71,9 +87,12 @@ const ExamPage = () => {
           </p>
         )}
         {exam && (
-          <form onSubmit={handleSubmit(onSubmit)}>
+          <form
+            onSubmit={handleSubmit(onSubmit)}
+            className='bg-white p-5 shadow'
+          >
             {exam?.questions.map(({ question, id }, i) => (
-              <div key={id} className='mb-4 bg-[#d9b14d] p-3 shadow'>
+              <div key={id} className='mb-4'>
                 <p className='block'>
                   {i + 1}. <Badge text={enStyleToAr(question.style)} />{' '}
                   {question.text}
@@ -179,7 +198,9 @@ const ExamPage = () => {
                 </div>
               </div>
             ))}
-            <Button>تسليم</Button>
+            <Button loading={examSubmit.isLoading} variant='website'>
+              تسليم
+            </Button>
           </form>
         )}
       </div>

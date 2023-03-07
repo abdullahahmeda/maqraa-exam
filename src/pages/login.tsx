@@ -5,6 +5,7 @@ import { FaEnvelope } from 'react-icons/fa'
 import { useForm } from 'react-hook-form'
 import { loginSchema } from '../validation/loginSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
+import Button from '../components/button'
 
 type FieldValues = {
   email: string
@@ -82,9 +83,9 @@ export default function LoginPage () {
             </div>
           </div>
           <p className='text-[#dc3545]'>{fieldsErrors.email?.message}</p>
-          <button className='mt-4 rounded bg-[#d9b14d] py-[.375rem] px-3 text-white shadow-md transition hover:bg-[#b79a50] hover:shadow-lg'>
+          <Button className='mt-2' variant='website'>
             أرسل الرمز
-          </button>
+          </Button>
         </div>
       </form>
     </>

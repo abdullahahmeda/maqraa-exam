@@ -1,6 +1,13 @@
 import { type ReactNode, useRef, useState } from 'react'
 import styled from '@emotion/styled'
-import { MdHome, MdMenu, MdMessage, MdList, MdSettings } from 'react-icons/md'
+import {
+  MdHome,
+  MdMenu,
+  MdMessage,
+  MdList,
+  MdSettings,
+  MdTextSnippet
+} from 'react-icons/md'
 import useOnClickOutside from '../../hooks/useOnClickOutside'
 import useMediaQuery from '../../hooks/useMediaQuery'
 import { useRouter } from 'next/router'
@@ -127,6 +134,17 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               text='الأسئلة'
               className='mb-2'
               href='/dashboard/questions'
+            />
+            <MenuItem
+              startIcon={
+                <MdTextSnippet
+                  size={24}
+                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
+                />
+              }
+              text='التسليمات'
+              className='mb-2'
+              href='/dashboard/exams'
             />
             <MenuItem
               startIcon={

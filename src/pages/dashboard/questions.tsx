@@ -3,13 +3,18 @@ import DashboardLayout from '../../components/dashboard-layout'
 // import { NextPageWithLayout } from '../../pages/_app'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, ReactNode, useMemo, useState } from 'react'
-import { MdChevronLeft, MdChevronRight, MdClose } from 'react-icons/md'
+import { MdClose } from 'react-icons/md'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { importQuestionsSchema } from '../../validation/importQuestionsSchema'
 import FieldErrorMessage from '../../components/field-error-message'
 import { api } from '../../utils/api'
-import { enDifficultyToAr, enTypeToAr } from '../../utils/questions'
+import {
+  enDifficultyToAr,
+  enStyleToAr,
+  enTypeToAr,
+  getDifficultyVariant
+} from '../../utils/questions'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
@@ -25,9 +30,9 @@ import {
   flexRender,
   PaginationState
 } from '@tanstack/react-table'
-import ReactPaginate from 'react-paginate'
 import { useRouter } from 'next/router'
 import { QuestionDifficulty, QuestionType } from '../../constants'
+import Pagination from '../../components/pagination'
 
 type FieldValues = {
   url: string
@@ -241,19 +246,6 @@ type Props = {
   page: number
 }
 
-const getDifficultyVariant = (difficulty: QuestionDifficulty) => {
-  switch (difficulty) {
-    case QuestionDifficulty.EASY:
-      return 'success'
-    case QuestionDifficulty.MEDIUM:
-      return 'warning'
-    case QuestionDifficulty.HARD:
-      return 'error'
-    default:
-      return undefined
-  }
-}
-
 const columnHelper = createColumnHelper<Question>()
 
 const columns = [
@@ -270,20 +262,20 @@ const columns = [
     header: 'النوع',
     cell: info => (
       <Badge
-        text={enTypeToAr(info.getValue() as QuestionType)}
+        text={enTypeToAr(info.getValue())}
         variant={info.getValue() === QuestionType.MCQ ? 'success' : 'warning'}
       />
     )
   }),
   columnHelper.accessor('style', {
     header: 'الأسلوب',
-    cell: info => <Badge text={info.getValue()} />
+    cell: info => <Badge text={enStyleToAr(info.getValue())} />
   }),
   columnHelper.accessor('difficulty', {
     header: 'المستوى',
     cell: info => (
       <Badge
-        text={enDifficultyToAr(info.getValue() as QuestionDifficulty)}
+        text={enDifficultyToAr(info.getValue())}
         variant={getDifficultyVariant(info.getValue() as QuestionDifficulty)}
       />
     )
@@ -461,24 +453,10 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
       </table>
 
       <nav className='flex justify-center'>
-        <ReactPaginate
-          breakClassName='hidden'
-          nextLabel={<MdChevronLeft />}
-          onPageChange={e => changePageIndex(e.selected)}
-          forcePage={pageIndex}
-          pageRangeDisplayed={5}
-          pageCount={Math.max(pageCount, 0)}
-          previousLabel={<MdChevronRight />}
-          containerClassName='inline-flex -space-x-px my-2'
-          pageClassName='block'
-          previousClassName='block'
-          nextClassName='block'
-          pageLinkClassName='flex items-center justify-center px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700'
-          previousLinkClassName='flex items-center border-l-0 justify-center h-full px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-r-lg hover:bg-gray-100 hover:text-gray-700'
-          nextLinkClassName='flex items-center justify-center h-full px-3 py-2 leading-tight text-gray-500 bg-white border border-gray-300 rounded-l-lg hover:bg-gray-100 hover:text-gray-700'
-          activeLinkClassName='!bg-gray-100'
-          renderOnZeroPageCount={() => null}
-          marginPagesDisplayed={1}
+        <Pagination
+          pageCount={pageCount}
+          pageIndex={pageIndex}
+          changePageIndex={changePageIndex}
         />
       </nav>
     </>
