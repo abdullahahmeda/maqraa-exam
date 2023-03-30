@@ -78,9 +78,13 @@ model Question {
   falseText    String?        @db.Text()
   answer       String         @db.Text()
   exams        ExamQuestion[]
+  courseId     Int
+  course       Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@index([difficulty])
+  @@index([pageNumber])
   @@index([style])
+  @@index([courseId])
 }
 
 model Setting {
@@ -89,16 +93,24 @@ model Setting {
 }
 
 model Exam {
-  id          String         @id @default(cuid())
-  questions   ExamQuestion[]
-  difficulty  String
-  userId      String
-  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  grade       Int?
-  submittedAt DateTime?
-  createdAt   DateTime       @default(now())
+  id           String         @id @default(cuid())
+  questions    ExamQuestion[]
+  difficulty   String
+  userId       String
+  user         User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  grade        Int?
+  submittedAt  DateTime?
+  createdAt    DateTime       @default(now())
+  courseId     Int
+  course       Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  curriculumId Int
+  curriculum   Curriculum     @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
 
+  @@index([grade])
+  @@index([difficulty])
   @@index([userId])
+  @@index([curriculumId])
+  @@index([courseId])
 }
 
 model ExamQuestion {
@@ -112,4 +124,26 @@ model ExamQuestion {
 
   @@index([questionId])
   @@index([examId])
+}
+
+model Course {
+  id        Int          @id @default(autoincrement())
+  name      String
+  curricula Curriculum[]
+  questions Question[]
+  exams     Exam[]
+}
+
+model Curriculum {
+  id       Int    @id @default(autoincrement())
+  name     String
+  courseId Int
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  fromPage Int
+  toPage   Int
+  exams    Exam[]
+
+  @@index([courseId])
+  @@index([fromPage])
+  @@index([toPage])
 }

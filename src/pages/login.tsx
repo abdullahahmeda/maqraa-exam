@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form'
 import { loginSchema } from '../validation/loginSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Button from '../components/button'
+import { customErrorMap } from '../validation/customErrorMap'
 
 type FieldValues = {
   email: string
@@ -22,7 +23,9 @@ export default function LoginPage () {
     formState: { errors: fieldsErrors }
   } = useForm<FieldValues>({
     defaultValues,
-    resolver: zodResolver(loginSchema)
+    resolver: zodResolver(loginSchema, {
+      errorMap: customErrorMap
+    })
   })
 
   const onSubmit = (data: FieldValues) => {
@@ -83,7 +86,7 @@ export default function LoginPage () {
             </div>
           </div>
           <p className='text-[#dc3545]'>{fieldsErrors.email?.message}</p>
-          <Button className='mt-2' variant='website'>
+          <Button className='mt-2' variant='primary'>
             أرسل الرمز
           </Button>
         </div>

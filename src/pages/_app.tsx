@@ -5,16 +5,24 @@ import type { ReactElement, ReactNode } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { Cairo } from '@next/font/google'
 import { Toaster } from 'react-hot-toast'
+import { z } from 'zod'
+import { customErrorMap } from '../validation/customErrorMap'
+import dayjs from 'dayjs'
+import 'dayjs/locale/ar-sa'
 
 import { api } from '../utils/api'
 
 const cairo = Cairo({
   subsets: ['latin', 'arabic'],
-  weight: ['400', '500', '600'],
+  weight: ['400', '500', '600', '700'],
   display: 'auto'
 })
 
 import '../styles/globals.css'
+
+z.setErrorMap(customErrorMap)
+
+dayjs.locale('ar-sa')
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode

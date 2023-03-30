@@ -6,22 +6,13 @@ import { Fragment, useMemo, useState } from 'react'
 import { MdClose } from 'react-icons/md'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { importQuestionsSchema } from '../../validation/importQuestionsSchema'
 import FieldErrorMessage from '../../components/field-error-message'
 import { api } from '../../utils/api'
-import {
-  enDifficultyToAr,
-  enStyleToAr,
-  enTypeToAr,
-  getDifficultyVariant
-} from '../../utils/questions'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
 import DashboardButton from '../../components/dashboard/button'
-import Badge from '../../components/badge'
-import { Question } from '@prisma/client'
-import Select from '../../components/select'
+import { Course, Curriculum } from '@prisma/client'
 import Spinner from '../../components/spinner'
 import {
   createColumnHelper,
@@ -30,95 +21,57 @@ import {
   PaginationState
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
-import { QuestionDifficulty, QuestionType } from '../../constants'
 import Pagination from '../../components/pagination'
 import { customErrorMap } from '../../validation/customErrorMap'
 import DashboardTable from '../../components/dashboard/table'
+import Select from '../../components/select'
+import { newCurriculumSchema } from '../../validation/newCurriculumSchema'
 
 type FieldValues = {
-  url: string
-  sheet: string
   course: null | number
-  removeOldQuestions: boolean
+  name: string
+  pages: {
+    from: number
+    to: number
+  }
 }
 
-const defaultValues: FieldValues = {
-  url: '',
-  sheet: '',
-  course: null,
-  removeOldQuestions: false
-}
-
-const AddQuestionsModal = ({
+const AddCurriculumModal = ({
   open,
   setOpen,
-  refetchQuestions
+  refetch
 }: {
   open: boolean
   setOpen: any
-  refetchQuestions: any
+  refetch: any
 }) => {
   const {
     register,
     handleSubmit,
-    reset: resetForm,
-    trigger,
-    getValues,
-    setError,
-    formState: { errors: fieldsErrors }
+    formState: { errors: fieldsErrors },
+    reset: resetForm
   } = useForm<FieldValues>({
-    defaultValues,
-    resolver: zodResolver(importQuestionsSchema, {
+    resolver: zodResolver(newCurriculumSchema, {
       errorMap: customErrorMap
     })
   })
 
   const closeModal = () => setOpen(false)
 
-  const questionsImport = api.sheets.importQuestions.useMutation()
-
-  const {
-    isFetching: isFetchingSheets,
-    data: sheets,
-    refetch: refetchSheets
-  } = api.sheets.listSheets.useQuery(
-    {
-      url: getValues('url')
-    },
-    {
-      enabled: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-      trpc: {
-        ssr: false
-      },
-      onError: error => {
-        setError('url', {
-          message: error.message
-        })
-      }
-    }
-  )
+  const curriculumCreate = api.curricula.create.useMutation()
 
   const { data: courses } = api.courses.fetchAll.useQuery()
 
-  const updateSpreadsheet = async () => {
-    const isValidUrl = await trigger('url')
-    if (!isValidUrl) return
-
-    refetchSheets()
-  }
-
   const onSubmit = (data: FieldValues) => {
-    const t = toast.loading('جاري إضافة الأسئلة')
-    questionsImport
-      .mutateAsync(data as z.infer<typeof importQuestionsSchema>)
+    const t = toast.loading('جاري إضافة المنهج')
+    curriculumCreate
+      .mutateAsync(data as z.infer<typeof newCurriculumSchema>)
       .then(() => {
         toast.dismiss(t)
         resetForm()
-        toast.success('تم إضافة الأسئلة بنجاح')
+        toast.success('تم إضافة المنهج بنجاح')
         closeModal()
-        refetchQuestions(data.removeOldQuestions)
+        refetch()
       })
       .catch(error => {
         toast.dismiss(t)
@@ -163,7 +116,7 @@ const AddQuestionsModal = ({
                       as='h3'
                       className='text-base font-semibold leading-6 text-gray-900'
                     >
-                      إضافة أسئلة
+                      إضافة منهج
                     </Dialog.Title>
                     <button
                       type='button'
@@ -172,52 +125,6 @@ const AddQuestionsModal = ({
                     >
                       <MdClose size={20} />
                     </button>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='url'>رابط الإكسل الشيت</label>
-                    <div className='flex gap-1'>
-                      <input
-                        type='url'
-                        id='url'
-                        className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-                        {...register('url')}
-                      />
-                      <DashboardButton
-                        type='button'
-                        onClick={updateSpreadsheet}
-                        loading={isFetchingSheets}
-                      >
-                        تحديث
-                      </DashboardButton>
-                    </div>
-                    <FieldErrorMessage>
-                      {fieldsErrors.url?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='sheet'>الورقة</label>
-                    <Select
-                      disabled={!sheets || sheets.length === 0}
-                      className='w-full'
-                      id='sheet'
-                      {...register('sheet')}
-                    >
-                      {!!sheets && sheets?.length > 0 ? (
-                        <>
-                          <option value=''>اختر الورقة</option>
-                          {sheets.map(sheet => (
-                            <option key={sheet} value={sheet}>
-                              {sheet}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option>لا يوجد خيارات</option>
-                      )}
-                    </Select>
-                    <FieldErrorMessage>
-                      {fieldsErrors.sheet?.message}
-                    </FieldErrorMessage>
                   </div>
                   <div className='mb-2'>
                     <label htmlFor='course'>المقرر</label>
@@ -246,22 +153,60 @@ const AddQuestionsModal = ({
                       {fieldsErrors.course?.message}
                     </FieldErrorMessage>
                   </div>
-                  <div className='flex items-center gap-1'>
+                  <div className='mb-2'>
+                    <label htmlFor='name'>الاسم</label>
                     <input
-                      type='checkbox'
-                      id='remove-old-questions'
-                      {...register('removeOldQuestions')}
+                      type='text'
+                      id='name'
+                      {...register('name')}
+                      className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
                     />
-                    <label htmlFor='remove-old-questions'>
-                      حذف الأسئلة القديمة
-                    </label>
+                    <FieldErrorMessage>
+                      {fieldsErrors.name?.message}
+                    </FieldErrorMessage>
+                  </div>
+                  <div className='mb-2'>
+                    <div className='flex gap-1'>
+                      <div>
+                        <label htmlFor='from-page'>من صفحة</label>
+                        <input
+                          type='number'
+                          id='from-page'
+                          min={1}
+                          className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+                          {...register('pages.from', {
+                            valueAsNumber: true
+                          })}
+                        />
+                        <FieldErrorMessage>
+                          {fieldsErrors.pages?.from?.message}
+                        </FieldErrorMessage>
+                      </div>
+                      <div>
+                        <label htmlFor='to-page'>إلى صفحة</label>
+                        <input
+                          type='number'
+                          id='to-page'
+                          className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+                          {...register('pages.to', {
+                            valueAsNumber: true
+                          })}
+                        />
+                        <FieldErrorMessage>
+                          {fieldsErrors.pages?.to?.message}
+                        </FieldErrorMessage>
+                      </div>
+                    </div>
+                    <FieldErrorMessage>
+                      {fieldsErrors.pages?.message}
+                    </FieldErrorMessage>
                   </div>
                 </div>
                 <div className='flex bg-gray-50 py-3 px-4'>
                   <DashboardButton
                     type='submit'
                     variant='success'
-                    loading={questionsImport.isLoading}
+                    loading={curriculumCreate.isLoading}
                   >
                     إضافة
                   </DashboardButton>
@@ -280,7 +225,7 @@ type Props = {
 }
 
 const columnHelper = createColumnHelper<
-  Question & {
+  Curriculum & {
     course: {
       name: string
     }
@@ -294,71 +239,45 @@ const columns = [
       className: 'text-center'
     }
   }),
-  // columnHelper.accessor('number', {
-  //   header: 'رقم السؤال',
-  //   meta: {
-  //     className: 'text-center'
-  //   }
-  // }),
-  columnHelper.accessor('text', {
-    header: 'السؤال'
+  columnHelper.accessor('name', {
+    header: 'الاسم',
+    meta: {
+      className: 'text-center'
+    }
   }),
   columnHelper.accessor('course.name', {
     header: 'المقرر',
     meta: {
-      className: 'text-center min-w-[150px]'
-    }
-  }),
-  columnHelper.accessor('type', {
-    header: 'النوع',
-    cell: info => (
-      <Badge
-        text={enTypeToAr(info.getValue())}
-        variant={info.getValue() === QuestionType.MCQ ? 'success' : 'warning'}
-      />
-    ),
-    meta: {
       className: 'text-center'
     }
   }),
-  columnHelper.accessor('style', {
-    header: 'الأسلوب',
-    cell: info => <Badge text={enStyleToAr(info.getValue())} />,
+  columnHelper.display({
+    id: 'pages',
+    header: 'الصفحات',
+    cell: info =>
+      'من ' + info.row.original.fromPage + ' إلى ' + info.row.original.toPage,
     meta: {
       className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('difficulty', {
-    header: 'المستوى',
-    cell: info => (
-      <Badge
-        text={enDifficultyToAr(info.getValue())}
-        variant={getDifficultyVariant(info.getValue() as QuestionDifficulty)}
-      />
-    ),
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('answer', {
-    header: 'الإجابة',
-    meta: {
-      className: 'min-w-[300px]'
     }
   }),
   columnHelper.display({
     id: 'actions',
+    header: 'الإجراءات',
     cell: () => (
-      <div className='flex justify-center'>
-        <DashboardButton variant='primary'>عرض</DashboardButton>
+      <div className='flex justify-center gap-2'>
+        {/* <DashboardButton variant='primary'>عرض المناهج</DashboardButton> */}
+        <DashboardButton variant='error'>حذف</DashboardButton>
       </div>
-    )
+    ),
+    meta: {
+      className: 'text-center'
+    }
   })
 ]
 
 const PAGE_SIZE = 50
 
-const QuestionsPage = ({ page: initialPage }: Props) => {
+const CurriculaPage = ({ page: initialPage }: Props) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const router = useRouter()
@@ -378,12 +297,12 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
 
   const {
     data,
-    isLoading: isLoadingQuestions,
-    isRefetching: isRefetchingQuestions,
-    refetch: refetchQuestions,
+    isLoading: isLoadingCurricula,
+    isRefetching: isRefetchingCurricula,
+    refetch,
     isLoadingError,
     isRefetchError
-  } = api.questions.list.useQuery(
+  } = api.curricula.list.useQuery(
     {
       page: pageIndex + 1
     },
@@ -398,7 +317,7 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
   const pageCount = data !== undefined ? Math.ceil(data.count / pageSize) : -1
 
   const table = useReactTable({
-    data: data?.questions || [],
+    data: data?.curricula || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
@@ -427,23 +346,20 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
   return (
     <>
       <Head>
-        <title>الأسئلة</title>
+        <title>المناهج</title>
       </Head>
       <div className='mb-2 flex items-center'>
-        <h2 className='ml-2 text-2xl font-bold'>الأسئلة</h2>
+        <h2 className='ml-2 text-2xl font-bold'>المناهج</h2>
         <DashboardButton onClick={openModal} variant='primary'>
-          إضافة أسئلة
+          إضافة منهج
         </DashboardButton>
       </div>
-      <AddQuestionsModal
+      <AddCurriculumModal
         open={isModalOpen}
         setOpen={setIsModalOpen}
-        refetchQuestions={(removeOldQuestions: boolean) => {
-          if (removeOldQuestions) changePageIndex(0)
-          refetchQuestions()
-        }}
+        refetch={refetch}
       />
-      {isRefetchingQuestions && (
+      {isRefetchingCurricula && (
         <span className='mt-2 flex items-center gap-1 rounded bg-blue-200 p-2'>
           <Spinner />
           جاري تحديث البيانات...
@@ -456,9 +372,9 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
       )}
       <DashboardTable
         table={table}
-        isLoading={isLoadingQuestions}
+        isLoading={isLoadingCurricula}
         isLoadingError={isLoadingError}
-        refetch={refetchQuestions}
+        refetch={refetch}
       />
 
       <nav className='flex justify-center'>
@@ -472,7 +388,7 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
   )
 }
 
-QuestionsPage.getLayout = (page: any) => (
+CurriculaPage.getLayout = (page: any) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
 
@@ -487,4 +403,4 @@ export const getServerSideProps: GetServerSideProps = async context => {
   }
 }
 
-export default QuestionsPage
+export default CurriculaPage

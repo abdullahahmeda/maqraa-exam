@@ -67,7 +67,7 @@ export const sheetsRouter = createTRPCRouter({
       }
 
       try {
-        await importQuestions(rows, input.removeOldQuestions)
+        await importQuestions(rows, input.course, input.removeOldQuestions)
       } catch (error: any) {
         if (error instanceof ZodError) {
           const issue = error.issues[0]!

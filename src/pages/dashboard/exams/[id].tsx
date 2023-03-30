@@ -5,17 +5,18 @@ import { ReactNode, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import Badge from '../../../components/badge'
-import Button from '../../../components/button'
-import DashboardLayout from '../../../components/dashboard-layout'
+import DashboardButton from '../../../components/dashboard/button'
+import DashboardLayout from '../../../components/dashboard/layout'
 import Spinner from '../../../components/spinner'
 import { QuestionType } from '../../../constants'
 import { api } from '../../../utils/api'
+import { percentage } from '../../../utils/percentage'
 import { enStyleToAr, enTypeToAr } from '../../../utils/questions'
 
 type FieldValues = Record<string, boolean>
 
 const ExamPage = () => {
-  const { handleSubmit, reset, register } = useForm({})
+  const { handleSubmit, reset, register } = useForm<FieldValues>()
   const router = useRouter()
 
   const {
@@ -38,6 +39,7 @@ const ExamPage = () => {
   )
 
   const examSave = api.exams.save.useMutation()
+  const gradeEmailSend = api.emails.sendGradeEmail.useMutation()
 
   useEffect(() => {
     if (exam) {
@@ -60,9 +62,58 @@ const ExamPage = () => {
         id: exam?.id as string,
         questions: data
       })
-      .then(() => {
-        toast.success('تم حفظ الاختبار بنجاح')
-        router.push('/dashboard/exams')
+      .then(isEmailSent => {
+        if (isEmailSent) {
+          toast.success('تم حفظ الاختبار وارسال الدرجة بنجاح')
+          router.push('/dashboard/exams')
+        } else
+          toast(
+            t => (
+              <div className='flex flex-col items-center justify-between gap-3'>
+                <p>
+                  تم حفظ الدرجة لكن حدث خطأ أثناء ارسال الايميل، هل تريد إعادة
+                  المحاولة؟
+                </p>
+                <div className='flex gap-2'>
+                  <DashboardButton
+                    variant='success'
+                    onClick={() => {
+                      toast.dismiss(t.id)
+                      const newToast = toast.loading('جاري ارسال الإيميل')
+                      gradeEmailSend
+                        .mutateAsync({
+                          id: exam!.id
+                        })
+                        .then(() => {
+                          toast.dismiss(newToast)
+                          toast.success('تم ارسال الإيميل بنجاح!')
+                        })
+                        .catch(() => {
+                          toast.dismiss(newToast)
+                          toast.error(
+                            'فشل ارسال الإيميل، ربما تم تخطي الحد المسموح به من الرسائل. الرجاء المحاولة لاحقاً'
+                          )
+                        })
+                        .finally(() => router.push('/dashboard/exams'))
+                    }}
+                  >
+                    نعم
+                  </DashboardButton>
+                  <DashboardButton
+                    onClick={() => {
+                      toast.dismiss(t.id)
+                      router.push('/dashboard/exams')
+                    }}
+                  >
+                    لا
+                  </DashboardButton>
+                </div>
+              </div>
+            ),
+            {
+              duration: Infinity
+            }
+          )
       })
       .catch(error => {
         if (error.message) toast.error(error.message)
@@ -71,6 +122,13 @@ const ExamPage = () => {
   }
 
   const correctAnswers = exam?.questions.filter(({ isCorrect }) => isCorrect)
+
+  let possibleGrade: null | number = null
+  if (exam && exam.grade === null)
+    possibleGrade = exam.questions.reduce(
+      (acc, { answer, question }) => acc + Number(answer === question.answer),
+      0
+    )
 
   return (
     <>
@@ -88,26 +146,31 @@ const ExamPage = () => {
             <p className='text-red-500'>
               حدث خطأ أثناء تحميل البيانات، يرجى إعادة المحاولة
             </p>
-            <Button onClick={() => refetch()} variant='primary'>
+            <DashboardButton onClick={() => refetch()} variant='primary'>
               إعادة المحاولة
-            </Button>
+            </DashboardButton>
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)}>
-            <div className='flex items-center'>
-              <h3 className='mb-4 text-center text-2xl font-semibold'>
-                الاختبار
-              </h3>
-              <Badge
-                className='relative bottom-2 mr-auto'
-                text={
-                  exam?.grade === null
-                    ? 'لم يتم التصحيح'
-                    : `${correctAnswers?.length} من ${exam?.questions.length}`
-                }
-                variant={exam?.grade !== null ? 'primary' : 'warning'}
-              />
-            </div>
+            <h3 className='mb-4 inline-block text-center text-2xl font-semibold'>
+              الاختبار
+            </h3>
+            <Badge
+              className='sticky top-3 float-left mr-auto mt-1 shadow'
+              text={
+                exam?.grade === null
+                  ? `لم يتم التصحيح - ${possibleGrade} من ${
+                      exam?.questions.length
+                    } (${percentage(possibleGrade!, exam?.questions.length)}%)`
+                  : `${correctAnswers?.length} من ${
+                      exam?.questions.length
+                    } (${percentage(
+                      correctAnswers!.length,
+                      exam!.questions.length
+                    )}%)`
+              }
+              variant={exam?.grade !== null ? 'primary' : 'warning'}
+            />
             {exam?.questions.map(({ id, question, isCorrect, answer }) => (
               <div
                 key={id}
@@ -149,9 +212,14 @@ const ExamPage = () => {
                 </div>
               </div>
             ))}
-            <Button variant='success' className='mt-2' type='submit'>
+            <DashboardButton
+              variant='success'
+              className='mt-2'
+              type='submit'
+              loading={examSave.isLoading}
+            >
               حفظ
-            </Button>
+            </DashboardButton>
           </form>
         )}
       </div>

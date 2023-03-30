@@ -4,9 +4,10 @@ import {
   MdHome,
   MdMenu,
   MdMessage,
-  MdList,
+  MdMenuBook,
   MdSettings,
-  MdTextSnippet
+  MdTextSnippet,
+  MdAssignment
 } from 'react-icons/md'
 import useOnClickOutside from '../../hooks/useOnClickOutside'
 import useMediaQuery from '../../hooks/useMediaQuery'
@@ -145,6 +146,28 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               text='التسليمات'
               className='mb-2'
               href='/dashboard/exams'
+            />
+            <MenuItem
+              startIcon={
+                <MdMenuBook
+                  size={24}
+                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
+                />
+              }
+              text='المقررات'
+              className='mb-2'
+              href='/dashboard/courses'
+            />
+            <MenuItem
+              startIcon={
+                <MdAssignment
+                  size={24}
+                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
+                />
+              }
+              text='المناهج'
+              className='mb-2'
+              href='/dashboard/curricula'
             />
             <MenuItem
               startIcon={

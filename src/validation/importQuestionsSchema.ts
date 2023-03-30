@@ -9,5 +9,11 @@ export const spreadsheetUrlSchema = z
 export const importQuestionsSchema = z.object({
   url: spreadsheetUrlSchema,
   sheet: z.string().min(1),
+  course: z
+    .number({
+      invalid_type_error: 'يجب اختيار مقرر'
+    })
+    .positive()
+    .int(),
   removeOldQuestions: z.boolean()
 })

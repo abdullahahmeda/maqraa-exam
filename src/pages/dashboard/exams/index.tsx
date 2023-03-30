@@ -1,10 +1,11 @@
-import { Exam, User } from '@prisma/client'
+import { Course, Curriculum, Exam, User } from '@prisma/client'
 import {
+  ColumnFilter,
+  ColumnFiltersState,
   createColumnHelper,
   getCoreRowModel,
   PaginationState,
-  useReactTable,
-  flexRender
+  useReactTable
 } from '@tanstack/react-table'
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
@@ -13,16 +14,19 @@ import { useRouter } from 'next/router'
 import { ReactNode, useMemo, useState } from 'react'
 import { z } from 'zod'
 import Badge from '../../../components/badge'
-import Button from '../../../components/button'
-import DashboardLayout from '../../../components/dashboard-layout'
+import DashboardButton from '../../../components/dashboard/button'
+import DashboardLayout from '../../../components/dashboard/layout'
 import Pagination from '../../../components/pagination'
-import Spinner from '../../../components/spinner'
 import { QuestionDifficulty } from '../../../constants'
 import { api } from '../../../utils/api'
 import {
   enDifficultyToAr,
   getDifficultyVariant
 } from '../../../utils/questions'
+import DashboardTable from '../../../components/dashboard/table'
+import dayjs from 'dayjs'
+import { percentage } from '../../../utils/percentage'
+import Select from '../../../components/select'
 
 const columnHelper = createColumnHelper<
   Exam & {
@@ -30,6 +34,8 @@ const columnHelper = createColumnHelper<
     questions: {
       id: number
     }[]
+    course: Course
+    curriculum: Curriculum
   }
 >()
 
@@ -38,25 +44,50 @@ const columns = [
     header: 'ID'
   }),
   columnHelper.accessor('user.email', {
-    header: 'المستخدم'
+    header: 'المستخدم',
+    meta: {
+      className: 'text-center'
+    }
+  }),
+  columnHelper.accessor('course.name', {
+    header: 'المقرر',
+    meta: {
+      className: 'text-center'
+    }
+  }),
+  columnHelper.accessor('curriculum.name', {
+    header: 'المنهج',
+    meta: {
+      className: 'text-center'
+    }
   }),
   columnHelper.accessor('grade', {
     header: 'الدرجة',
     cell: info => (
       <Badge
-        className='relative bottom-2 mr-auto'
         text={
           info.getValue() === null
             ? 'لم يتم التصحيح'
-            : `${info.getValue()} من ${info.row.original.questions.length}`
+            : `${info.getValue()} من ${
+                info.row.original.questions.length
+              } (${percentage(
+                info.getValue() as number,
+                info.row.original.questions.length
+              )}%)`
         }
         variant={info.getValue() !== null ? 'primary' : 'warning'}
       />
-    )
+    ),
+    meta: {
+      className: 'text-center'
+    }
   }),
   columnHelper.accessor('createdAt', {
     header: 'وقت البدأ',
-    cell: info => info.getValue().toString()
+    cell: info => dayjs(info.getValue()).format('DD MMMM YYYY hh:mm A'),
+    meta: {
+      className: 'text-center'
+    }
   }),
   columnHelper.accessor('difficulty', {
     header: 'المستوى',
@@ -65,23 +96,42 @@ const columns = [
         text={enDifficultyToAr(info.getValue())}
         variant={getDifficultyVariant(info.getValue() as QuestionDifficulty)}
       />
-    )
+    ),
+    meta: {
+      className: 'text-center'
+    }
   }),
   columnHelper.accessor('submittedAt', {
     header: 'وقت التسليم',
     cell: info =>
-      info.getValue()?.toString() ?? (
+      info.getValue() ? (
+        dayjs(info.getValue()).format('DD MMMM YYYY hh:mm A')
+      ) : (
         <Badge text='لم يتم التسليم' variant='error' />
-      )
+      ),
+    meta: {
+      className: 'text-center'
+    }
   }),
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
     cell: info => (
-      <Button as={Link} href={`/dashboard/exams/${info.row.original.id}`}>
-        تصحيح
-      </Button>
-    )
+      <div className='flex justify-center gap-2'>
+        <DashboardButton
+          as={Link}
+          href={`/dashboard/exams/${info.row.original.id}`}
+        >
+          تصحيح
+        </DashboardButton>
+        <DashboardButton variant='error' onClick={() => null}>
+          حذف
+        </DashboardButton>
+      </div>
+    ),
+    meta: {
+      className: 'text-center'
+    }
   })
 ]
 
@@ -99,6 +149,21 @@ const ExamsPage = ({ page: initialPage }: Props) => {
     pageSize: PAGE_SIZE
   })
 
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
+    {
+      id: 'difficulty',
+      value: ''
+    },
+    {
+      id: 'grade',
+      value: ''
+    },
+    {
+      id: 'graded',
+      value: ''
+    }
+  ])
+
   const pagination = useMemo(
     () => ({
       pageIndex,
@@ -109,12 +174,16 @@ const ExamsPage = ({ page: initialPage }: Props) => {
 
   const {
     data,
-    isLoading: isLoadingQuestions,
-    refetch: refetchQuestions,
+    isLoading: isLoading,
+    refetch: refetch,
     isLoadingError
   } = api.exams.list.useQuery(
     {
-      page: pageIndex + 1
+      page: pageIndex + 1,
+      filters: columnFilters.reduce(
+        (obj, column) => ({ ...obj, [column.id]: column.value }),
+        {}
+      )
     },
     {
       networkMode: 'always',
@@ -132,10 +201,13 @@ const ExamsPage = ({ page: initialPage }: Props) => {
     getCoreRowModel: getCoreRowModel(),
     pageCount,
     manualPagination: true,
+    manualFiltering: true,
     state: {
-      pagination
+      pagination,
+      columnFilters
     },
-    onPaginationChange: setPagination
+    onPaginationChange: setPagination,
+    onColumnFiltersChange: setColumnFilters
   })
 
   const changePageIndex = (pageIndex: number) => {
@@ -151,54 +223,14 @@ const ExamsPage = ({ page: initialPage }: Props) => {
     )
   }
 
-  const renderTableBody = (): ReactNode => {
-    if (isLoadingQuestions) {
-      return (
-        <tr>
-          <td colSpan={99}>
-            <span className='flex items-center justify-center gap-2 text-center'>
-              <Spinner variant='primary' />
-              جاري التحميل..
-            </span>
-          </td>
-        </tr>
-      )
-    }
-
-    if (isLoadingError) {
-      return (
-        <tr>
-          <td colSpan={99}>
-            <div className='flex flex-col items-center justify-center gap-2 text-center'>
-              <p className='text-red-500'>
-                حدث خطأ أثناء تحميل البيانات، يرجى إعادة المحاولة
-              </p>
-              <Button onClick={() => refetchQuestions()} variant='primary'>
-                إعادة المحاولة
-              </Button>
-            </div>
-          </td>
-        </tr>
-      )
-    }
-
-    if (table.getRowModel().rows.length === 0)
-      return (
-        <tr>
-          <td colSpan={99} className='text-center'>
-            لا يوجد بيانات
-          </td>
-        </tr>
-      )
-    return table.getRowModel().rows.map(row => (
-      <tr key={row.id}>
-        {row.getVisibleCells().map(cell => (
-          <td key={cell.id} className='text-sm'>
-            {flexRender(cell.column.columnDef.cell, cell.getContext())}
-          </td>
-        ))}
-      </tr>
-    ))
+  const changeColumnFilterValue = (newValue: ColumnFilter) => {
+    const newColumnFilters = columnFilters.slice()
+    const index = newColumnFilters.findIndex(
+      column => column.id === newValue.id
+    )
+    if (index === -1) newColumnFilters.push(newValue)
+    else newColumnFilters[index] = newValue
+    table.setColumnFilters(newColumnFilters)
   }
 
   return (
@@ -207,25 +239,66 @@ const ExamsPage = ({ page: initialPage }: Props) => {
         <title>التسليمات</title>
       </Head>
       <div>
-        <table className='w-full'>
-          <thead>
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody>{renderTableBody()}</tbody>
-        </table>
+        <h2 className='mb-2 text-2xl font-bold'>التسليمات</h2>
+        <div className='mb-2 flex flex-wrap items-center gap-2'>
+          <div>
+            <label htmlFor='graded'>التصحيح</label>
+            <Select
+              id='graded'
+              className='block'
+              onChange={e =>
+                changeColumnFilterValue({
+                  id: 'graded',
+                  value: e.target.value
+                })
+              }
+            >
+              <option value=''>الكل</option>
+              <option value='yes'>تم التصحيح</option>
+              <option value='no'>لم يتم التصحيح</option>
+            </Select>
+          </div>
+          <div>
+            <label htmlFor='grade'>الدرجة</label>
+            <input
+              type='number'
+              id='grade'
+              className='block'
+              onChange={e =>
+                changeColumnFilterValue({
+                  id: 'grade',
+                  value: isNaN(e.currentTarget.valueAsNumber)
+                    ? ''
+                    : e.currentTarget.valueAsNumber
+                })
+              }
+            />
+          </div>
+          <div>
+            <label htmlFor='difficulty'>المستوى</label>
+            <Select
+              id='difficulty'
+              className='block'
+              onChange={e =>
+                changeColumnFilterValue({
+                  id: 'difficulty',
+                  value: e.target.value
+                })
+              }
+            >
+              <option value=''>الكل</option>
+              <option value={QuestionDifficulty.EASY}>سهل</option>
+              <option value={QuestionDifficulty.MEDIUM}>متوسط</option>
+              <option value={QuestionDifficulty.HARD}>صعب</option>
+            </Select>
+          </div>
+        </div>
+        <DashboardTable
+          table={table}
+          isLoading={isLoading}
+          isLoadingError={isLoadingError}
+          refetch={refetch}
+        />
 
         <nav className='flex justify-center'>
           <Pagination

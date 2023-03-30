@@ -198,7 +198,7 @@ const ExamPage = () => {
                 </div>
               </div>
             ))}
-            <Button loading={examSubmit.isLoading} variant='website'>
+            <Button loading={examSubmit.isLoading} variant='primary'>
               تسليم
             </Button>
           </form>

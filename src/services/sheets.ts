@@ -39,6 +39,7 @@ import { questionSchema } from '../validation/questionSchema'
 
 export const importQuestions = async (
   rows: string[][],
+  course: number,
   removeOldQuestions: boolean
 ) => {
   const questions: z.infer<typeof questionSchema>[] = []
@@ -59,7 +60,8 @@ export const importQuestions = async (
       option2: row[11],
       option3: row[12],
       option4: row[13],
-      answer: row[14]
+      answer: row[14],
+      courseId: course
     }
 
     const question = questionSchema.parse(_question, {

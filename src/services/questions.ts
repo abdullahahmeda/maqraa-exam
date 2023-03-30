@@ -8,7 +8,14 @@ export const getPaginatedQuestions = async ({
   return {
     questions: await prisma.question.findMany({
       skip: (page - 1) * pageSize,
-      take: pageSize
+      take: pageSize,
+      include: {
+        course: {
+          select: {
+            name: true
+          }
+        }
+      }
     }),
     count: await prisma.question.count()
   }

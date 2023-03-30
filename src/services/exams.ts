@@ -4,8 +4,24 @@ import sampleSize from 'lodash.samplesize'
 import shuffle from 'lodash.shuffle'
 import { prisma } from '../server/db'
 import { PageOptions } from '../types'
+import { sendMail } from '../utils/email'
+import { arDifficultyToEn } from '../utils/questions'
+import { FilterSchema } from '../server/api/routers/exams'
 
-export const getPaginatedExams = async ({ page, pageSize }: PageOptions) => {
+export const getPaginatedExams = async ({
+  page,
+  pageSize,
+  filters
+}: PageOptions & {
+  filters: Required<FilterSchema>
+}) => {
+  filters = filters!
+  let grade
+  if (filters.graded === 'no') grade = null
+  else if (filters.graded === 'yes')
+    grade = filters.grade === '' ? { not: null } : filters.grade
+  else grade = filters.grade === '' ? undefined : filters.grade
+  // console.log(filters)
   return {
     exams: await prisma.exam.findMany({
       skip: (page - 1) * pageSize,
@@ -16,7 +32,25 @@ export const getPaginatedExams = async ({ page, pageSize }: PageOptions) => {
           select: {
             id: true
           }
+        },
+        course: true,
+        curriculum: true
+      },
+      orderBy: [
+        {
+          submittedAt: 'desc'
+        },
+        {
+          createdAt: 'desc'
         }
+      ],
+      where: {
+        AND: [
+          {
+            difficulty: arDifficultyToEn(filters.difficulty || '') || undefined,
+            grade
+          }
+        ]
       }
     }),
     count: await prisma.exam.count()
@@ -72,7 +106,9 @@ export const getExam = async (id: string) => {
 }
 
 const getRandomQuestionsForDifficulty = async (
-  difficulty: QuestionDifficulty
+  difficulty: QuestionDifficulty,
+  courseId: number,
+  range: [x1: number, x2: number]
 ) => {
   const numberOfMcqQuestions = Number(
     (
@@ -110,7 +146,9 @@ const getRandomQuestionsForDifficulty = async (
   const mcqQuestions = await prisma.question.findMany({
     where: {
       difficulty,
-      type: QuestionType.MCQ
+      type: QuestionType.MCQ,
+      courseId,
+      pageNumber: { gte: range[0], lte: range[1] }
     },
     select
   })
@@ -118,7 +156,9 @@ const getRandomQuestionsForDifficulty = async (
   const writtenQuestions = await prisma.question.findMany({
     where: {
       difficulty,
-      type: QuestionType.WRITTEN
+      type: QuestionType.WRITTEN,
+      courseId,
+      pageNumber: { gte: range[0], lte: range[1] }
     },
     select
   })
@@ -129,11 +169,22 @@ const getRandomQuestionsForDifficulty = async (
   }
 }
 
-export const createExam = async (difficulty: QuestionDifficulty) => {
-  const _questions = await getRandomQuestionsForDifficulty(difficulty)
+export const createExam = async (
+  difficulty: QuestionDifficulty,
+  courseId: number,
+  curriculumId: number
+) => {
+  const curriculum = await prisma.curriculum.findFirstOrThrow({
+    where: { id: curriculumId, courseId }
+  })
+  const _questions = await getRandomQuestionsForDifficulty(
+    difficulty,
+    courseId,
+    [curriculum.fromPage, curriculum.toPage]
+  )
   const questions = shuffle(_questions.mcq.concat(_questions.written))
 
-  // if (questions.length === 0) throw new Error('لا يوجد أسئلة')
+  if (questions.length === 0) throw new Error('لا يوجد أسئلة')
 
   return await prisma.exam.create({
     data: {
@@ -150,7 +201,9 @@ export const createExam = async (difficulty: QuestionDifficulty) => {
             email: 'testuser@test.com'
           }
         }
-      }
+      },
+      course: { connect: { id: courseId } },
+      curriculum: { connect: { id: curriculumId } }
     }
   })
 }
@@ -214,5 +267,32 @@ export const saveExam = async (
         update: _questions
       }
     }
+  })
+}
+
+export const deleteExam = (id: string) => prisma.exam.delete({ where: { id } })
+
+export const sendGradeEmail = async (examId: string) => {
+  const exam = await prisma.exam.findFirstOrThrow({
+    where: { id: examId },
+    select: {
+      grade: true,
+      questions: true,
+      user: {
+        select: {
+          email: true
+        }
+      }
+    }
+  })
+  return sendMail({
+    to: [
+      {
+        email: 'elmagicabdulah@gmail.com'
+        // email: exam.user.email
+      }
+    ],
+    subject: 'تم تصحيح الاختبار الخاص بك',
+    textContent: `الدرجة الخاصة بك هي ${exam.grade} من ${exam.questions.length}`
   })
 }

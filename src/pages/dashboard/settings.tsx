@@ -1,10 +1,10 @@
 import Head from 'next/head'
 import { useEffect } from 'react'
-import DashboardLayout from '../../components/dashboard-layout'
+import DashboardLayout from '../../components/dashboard/layout'
 import { api } from '../../utils/api'
 import { enSettingToAr } from '../../utils/settings'
 import { useForm } from 'react-hook-form'
-import Button from '../../components/button'
+import DashboardButton from '../../components/dashboard/button'
 import FieldErrorMessage from '../../components/field-error-message'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -13,6 +13,7 @@ import {
 } from '../../validation/updateSettingsSchema'
 import { toast } from 'react-hot-toast'
 import { SettingKey } from '../../constants'
+import { customErrorMap } from '../../validation/customErrorMap'
 
 type FieldValues = Record<SettingKey, string | number>
 
@@ -23,7 +24,9 @@ const SettingsPage = () => {
     reset,
     formState: { errors: fieldsErrors }
   } = useForm<FieldValues>({
-    resolver: zodResolver(updateSettingsSchema)
+    resolver: zodResolver(updateSettingsSchema, {
+      errorMap: customErrorMap
+    })
   })
 
   const { data: settings } = api.settings.list.useQuery(undefined, {
@@ -66,27 +69,29 @@ const SettingsPage = () => {
         <form onSubmit={handleSubmit(onSubmit)}>
           {settings?.map(setting => (
             <div key={setting.key} className='mb-2'>
-              <label htmlFor={setting.key}>
+              <label htmlFor={setting.key} className='mb-1'>
                 {enSettingToAr(setting.key as SettingKey)}
               </label>
               <input
                 type='text'
+                className='block w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
                 {...register(setting.key as SettingKey, {
                   valueAsNumber: true
                 })}
+                id={setting.key}
               />
               <FieldErrorMessage>
                 {fieldsErrors?.[setting.key as SettingKey]?.message}
               </FieldErrorMessage>
             </div>
           ))}
-          <Button
+          <DashboardButton
             type='submit'
             variant='primary'
             loading={settingsUpdate.isLoading}
           >
             حفظ
-          </Button>
+          </DashboardButton>
         </form>
       </div>
     </>

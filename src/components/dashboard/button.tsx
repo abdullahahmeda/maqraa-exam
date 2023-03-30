@@ -1,6 +1,6 @@
 import clsx from 'clsx'
 import type { ElementType, ReactNode } from 'react'
-import Spinner from './spinner'
+import Spinner from '../spinner'
 
 interface ButtonProps<T extends ElementType> {
   as?: T
@@ -9,7 +9,7 @@ interface ButtonProps<T extends ElementType> {
   children?: ReactNode
 }
 
-export default function Button<T extends ElementType = 'button'> ({
+export default function DashboardButton<T extends ElementType = 'button'> ({
   as,
   variant,
   loading,
@@ -30,8 +30,14 @@ export default function Button<T extends ElementType = 'button'> ({
         {
           'cursor-not-allowed bg-gray-100 text-gray-400 hover:bg-gray-200':
             disabled,
-          'bg-[#d9b14d] text-white shadow-md hover:bg-[#b79a50] hover:shadow-lg':
-            variant === 'primary' && !disabled
+          'bg-gray-200 text-black hover:bg-gray-300 focus:ring-gray-200':
+            !variant && !disabled,
+          'bg-blue-500 text-white hover:bg-blue-600 focus:ring-blue-500':
+            variant === 'primary' && !disabled,
+          'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500':
+            variant === 'success' && !disabled,
+          'bg-red-600 text-white hover:bg-red-700 focus:ring-red-600':
+            variant === 'error' && !disabled
         },
 
         className

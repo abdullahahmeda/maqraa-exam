@@ -15,14 +15,18 @@ export const questionSchema = z
     difficulty: z
       .union([z.literal('سهل'), z.literal('متوسط'), z.literal('صعب')])
       .transform(val => arDifficultyToEn(val)),
-    text: z.string().min(1),
-    trueText: z.string(),
-    falseText: z.string(),
-    option1: z.string(),
-    option2: z.string(),
-    option3: z.string(),
-    option4: z.string(),
-    answer: z.string()
+    text: z
+      .string()
+      .min(1)
+      .transform(str => str.trim()),
+    trueText: z.string().transform(str => str.trim()),
+    falseText: z.string().transform(str => str.trim()),
+    option1: z.string().transform(str => str.trim()),
+    option2: z.string().transform(str => str.trim()),
+    option3: z.string().transform(str => str.trim()),
+    option4: z.string().transform(str => str.trim()),
+    answer: z.string().transform(str => str.trim()),
+    courseId: z.number().positive().int()
   })
   .refine(
     data => {
