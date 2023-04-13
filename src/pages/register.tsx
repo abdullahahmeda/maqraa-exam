@@ -22,7 +22,7 @@ type FieldValues = {
 }
 
 export default function RegisterPage () {
-  const studentCreate = api.students.create.useMutation()
+  const studentCreate = api.users.createStudent.useMutation()
   const router = useRouter()
 
   const {
@@ -37,7 +37,6 @@ export default function RegisterPage () {
   })
 
   const onSubmit = (data: FieldValues) => {
-    // signIn('email', { email: data.email })
     studentCreate
       .mutateAsync(data)
       .then(() => {
