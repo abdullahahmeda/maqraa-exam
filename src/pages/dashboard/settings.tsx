@@ -1,23 +1,27 @@
 import Head from 'next/head'
 import { useEffect } from 'react'
-import DashboardLayout from '../../components/dashboard/layout'
-import { api } from '../../utils/api'
-import { enSettingToAr } from '../../utils/settings'
+import DashboardLayout from '~/components/dashboard/layout'
+import { api } from '~/utils/api'
+import { enSettingToAr } from '~/utils/settings'
 import { useForm } from 'react-hook-form'
-import DashboardButton from '../../components/dashboard/button'
-import FieldErrorMessage from '../../components/field-error-message'
+import DashboardButton from '~/components/dashboard/button'
+import FieldErrorMessage from '~/components/field-error-message'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   updateSettingsSchema,
   ValidSchema
-} from '../../validation/updateSettingsSchema'
+} from '~/validation/updateSettingsSchema'
 import { toast } from 'react-hot-toast'
-import { SettingKey } from '../../constants'
-import { customErrorMap } from '../../validation/customErrorMap'
+import { SettingKey } from '~/constants'
+import { customErrorMap } from '~/validation/customErrorMap'
+import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
+import { getSettings } from '~/services/settings'
 
 type FieldValues = Record<SettingKey, string | number>
 
-const SettingsPage = () => {
+const SettingsPage = ({
+  settings
+}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   const {
     register,
     handleSubmit,
@@ -27,12 +31,6 @@ const SettingsPage = () => {
     resolver: zodResolver(updateSettingsSchema, {
       errorMap: customErrorMap
     })
-  })
-
-  const { data: settings } = api.settings.list.useQuery(undefined, {
-    trpc: {
-      ssr: true
-    }
   })
 
   const settingsUpdate = api.settings.update.useMutation()
@@ -101,5 +99,14 @@ const SettingsPage = () => {
 SettingsPage.getLayout = (page: any) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
+
+async function getServerSideProps (context: GetServerSidePropsContext) {
+  const settings = await getSettings()
+  return {
+    props: {
+      settings
+    }
+  }
+}
 
 export default SettingsPage

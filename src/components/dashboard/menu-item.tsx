@@ -4,7 +4,6 @@ import { useRouter } from 'next/router'
 import { MouseEventHandler, ReactNode, useReducer, useRef } from 'react'
 import { UrlObject } from 'url'
 import clsx from 'clsx'
-import { useTheme } from '../../lib/theme'
 import { MdOutlineExpandMore } from 'react-icons/md'
 
 const DropdownContent = styled('div', {

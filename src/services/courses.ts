@@ -29,3 +29,6 @@ export const createCourse = (data: z.infer<typeof newCourseSchema>) => {
     data
   })
 }
+
+export const deleteCourse = (id: number) =>
+  prisma.course.delete({ where: { id } })

@@ -13,20 +13,17 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { ReactNode, useMemo, useState } from 'react'
 import { z } from 'zod'
-import Badge from '../../../components/badge'
-import DashboardButton from '../../../components/dashboard/button'
-import DashboardLayout from '../../../components/dashboard/layout'
-import Pagination from '../../../components/pagination'
-import { QuestionDifficulty } from '../../../constants'
-import { api } from '../../../utils/api'
-import {
-  enDifficultyToAr,
-  getDifficultyVariant
-} from '../../../utils/questions'
-import DashboardTable from '../../../components/dashboard/table'
+import Badge from '~/components/badge'
+import DashboardButton from '~/components/dashboard/button'
+import DashboardLayout from '~/components/dashboard/layout'
+import Pagination from '~/components/pagination'
+import { QuestionDifficulty } from '~/constants'
+import { api } from '~/utils/api'
+import { enDifficultyToAr, getDifficultyVariant } from '~/utils/questions'
+import DashboardTable from '~/components/dashboard/table'
 import dayjs from 'dayjs'
-import { percentage } from '../../../utils/percentage'
-import Select from '../../../components/select'
+import { percentage } from '~/utils/percentage'
+import Select from '~/components/select'
 
 const columnHelper = createColumnHelper<
   Exam & {
@@ -186,10 +183,7 @@ const ExamsPage = ({ page: initialPage }: Props) => {
       )
     },
     {
-      networkMode: 'always',
-      trpc: {
-        ssr: false
-      }
+      networkMode: 'always'
     }
   )
 

@@ -1,6 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { QuestionDifficulty } from '../../../constants'
+import { QuestionDifficulty } from '~/constants'
 import {
   createExam,
   deleteExam,
@@ -10,12 +10,17 @@ import {
   saveExam,
   sendGradeEmail,
   submitExam
-} from '../../../services/exams'
-import { sendMail } from '../../../utils/email'
-import { logErrorToLogtail } from '../../../utils/logtail'
-import { newExamSchema } from '../../../validation/newExamSchema'
-import { prisma } from '../../db'
-import { createTRPCRouter, publicProcedure } from '../trpc'
+} from '~/services/exams'
+import { sendMail } from '~/utils/email'
+import { logErrorToLogtail } from '~/utils/logtail'
+import { newExamSchema } from '~/validation/newExamSchema'
+import { prisma } from '~/server/db'
+import {
+  adminOnlyProcedure,
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure
+} from '../trpc'
 
 const filtersSchema = z
   .object({
@@ -32,7 +37,7 @@ const filtersSchema = z
 export type FilterSchema = z.infer<typeof filtersSchema>
 
 export const examsRouter = createTRPCRouter({
-  list: publicProcedure
+  list: adminOnlyProcedure
     .input(
       z.object({
         page: z.number().positive().int().optional(),
@@ -51,7 +56,7 @@ export const examsRouter = createTRPCRouter({
 
       return await getPaginatedExams({ page, pageSize, filters })
     }),
-  get: publicProcedure
+  get: adminOnlyProcedure
     .input(
       z.object({
         id: z.string().cuid().min(1)
@@ -70,13 +75,13 @@ export const examsRouter = createTRPCRouter({
       }
       return exam
     }),
-  getToSolve: publicProcedure
+  getToSolve: protectedProcedure
     .input(
       z.object({
         id: z.string().cuid().min(1)
       })
     )
-    .query(async ({ input }) => {
+    .query(async ({ input, ctx }) => {
       let exam
       try {
         exam = await getExamToSolve(input.id)
@@ -94,30 +99,42 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الاختبار غير موجود'
         })
 
+      if (exam.userId !== ctx.session.user.id)
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'هذا الاختبار ليس خاصاً بك'
+        })
       return exam
     }),
-  create: publicProcedure.input(newExamSchema).mutation(async ({ input }) => {
-    let exam
-    try {
-      exam = await createExam(input.difficulty, input.course, input.curriculum)
-    } catch (error) {
-      logErrorToLogtail(error)
-      throw new TRPCError({
-        code: 'INTERNAL_SERVER_ERROR',
-        message: 'حدث خطأ غير متوقع'
-      })
-    }
-    return exam
-  }),
+  create: protectedProcedure
+    .input(newExamSchema)
+    .mutation(async ({ input, ctx }) => {
+      let exam
+      try {
+        exam = await createExam(
+          input.difficulty,
+          input.course,
+          input.curriculum,
+          ctx.session.user
+        )
+      } catch (error) {
+        logErrorToLogtail(error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'حدث خطأ غير متوقع'
+        })
+      }
+      return exam
+    }),
 
-  submit: publicProcedure
+  submit: protectedProcedure
     .input(
       z.object({
         id: z.string().cuid().min(1),
         answers: z.record(z.string().nullable())
       })
     )
-    .mutation(async ({ input }) => {
+    .mutation(async ({ input, ctx }) => {
       const exam = await prisma.exam.findFirst({
         where: {
           id: input.id
@@ -136,6 +153,12 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الاختبار تم تسليمه من قبل'
         })
 
+      if (exam.userId !== ctx.session.user.id)
+        throw new TRPCError({
+          code: 'UNAUTHORIZED',
+          message: 'هذا الاختبار ليس خاصاً بك'
+        })
+
       try {
         await submitExam(input.id, input.answers)
       } catch (error: any) {
@@ -147,7 +170,7 @@ export const examsRouter = createTRPCRouter({
       }
       return true
     }),
-  save: publicProcedure
+  save: adminOnlyProcedure
     .input(
       z.object({
         id: z.string().cuid().min(1),
@@ -173,7 +196,7 @@ export const examsRouter = createTRPCRouter({
       }
       return isEmailSent
     }),
-  delete: publicProcedure
+  delete: adminOnlyProcedure
     .input(
       z.object({
         id: z.string().cuid().min(1)

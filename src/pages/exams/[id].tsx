@@ -1,13 +1,14 @@
 import Head from 'next/head'
-import { api } from '../../utils/api'
+import { api } from '~/utils/api'
 import { useForm } from 'react-hook-form'
-import Badge from '../../components/badge'
-import { enStyleToAr } from '../../utils/questions'
-import { QuestionStyle, QuestionType } from '../../constants'
+import Badge from '~/components/badge'
+import { enStyleToAr } from '~/utils/questions'
+import { QuestionStyle, QuestionType } from '~/constants'
 import { useRouter } from 'next/router'
-import Spinner from '../../components/spinner'
-import Button from '../../components/button'
+import Spinner from '~/components/spinner'
+import Button from '~/components/button'
 import { toast } from 'react-hot-toast'
+import WebsiteLayout from '~/components/layout'
 
 type FieldValues = Record<string, string>
 
@@ -25,9 +26,6 @@ const ExamPage = () => {
     },
     {
       enabled: typeof router.query.id === 'string',
-      trpc: {
-        ssr: false
-      },
       refetchOnReconnect: false
     }
   )
@@ -75,138 +73,140 @@ const ExamPage = () => {
         <title>اختبار</title>
       </Head>
       <div className='container mx-auto py-4'>
-        {(isLoading || isPaused) && (
-          <div className='flex items-center gap-2'>
-            <Spinner />
-            جاري التحميل
-          </div>
-        )}
-        {isLoadingError && (
-          <p className='text-red-600'>
-            {examError.message || 'حدث خطأ غير متوفع'}
-          </p>
-        )}
-        {exam && (
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            className='bg-white p-5 shadow'
-          >
-            {exam?.questions.map(({ question, id }, i) => (
-              <div key={id} className='mb-4'>
-                <p className='block'>
-                  {i + 1}. <Badge text={enStyleToAr(question.style)} />{' '}
-                  {question.text}
-                </p>
-                <div className='mt-2'>
-                  {question.type === QuestionType.WRITTEN ? (
-                    <>
-                      <label htmlFor={`question-${id}-answer`}>الإجابة</label>
-                      <textarea
-                        className='block w-full'
-                        id={`question-${id}-answer`}
-                        {...register('' + id)}
-                      />
-                    </>
-                  ) : (
-                    <>
-                      <h3>اختر الإجابة</h3>
-                      <div className='flex flex-col'>
-                        {question.style === QuestionStyle.CHOOSE ? (
-                          <>
-                            {question.option1 && (
+        <div className='bg-white p-5 shadow'>
+          {(isLoading || isPaused) && (
+            <div className='flex items-center gap-2'>
+              <Spinner />
+              جاري التحميل
+            </div>
+          )}
+          {isLoadingError && (
+            <p className='text-red-600'>
+              {examError.message || 'حدث خطأ غير متوفع'}
+            </p>
+          )}
+          {exam && (
+            <form onSubmit={handleSubmit(onSubmit)}>
+              {exam?.questions.map(({ question, id }, i) => (
+                <div key={id} className='mb-4'>
+                  <p className='block'>
+                    {i + 1}. <Badge text={enStyleToAr(question.style)} />{' '}
+                    {question.text}
+                  </p>
+                  <div className='mt-2'>
+                    {question.type === QuestionType.WRITTEN ? (
+                      <>
+                        <label htmlFor={`question-${id}-answer`}>الإجابة</label>
+                        <textarea
+                          className='block w-full'
+                          id={`question-${id}-answer`}
+                          {...register('' + id)}
+                        />
+                      </>
+                    ) : (
+                      <>
+                        <h3>اختر الإجابة</h3>
+                        <div className='flex flex-col'>
+                          {question.style === QuestionStyle.CHOOSE ? (
+                            <>
+                              {question.option1 && (
+                                <div className='flex gap-2'>
+                                  <input
+                                    type='radio'
+                                    id={`quesion-${id}-option-1`}
+                                    {...register('' + id)}
+                                    value={question.option1}
+                                  />
+                                  <label htmlFor={`quesion-${id}-option-1`}>
+                                    {question.option1}
+                                  </label>
+                                </div>
+                              )}
+                              {question.option2 && (
+                                <div className='flex gap-2'>
+                                  <input
+                                    type='radio'
+                                    id={`quesion-${id}-option-2`}
+                                    {...register('' + id)}
+                                    value={question.option2}
+                                  />
+                                  <label htmlFor={`quesion-${id}-option-2`}>
+                                    {question.option2}
+                                  </label>
+                                </div>
+                              )}
+                              {question.option3 && (
+                                <div className='flex gap-2'>
+                                  <input
+                                    type='radio'
+                                    id={`quesion-${id}-option-3`}
+                                    {...register('' + id)}
+                                    value={question.option3}
+                                  />
+                                  <label htmlFor={`quesion-${id}-option-3`}>
+                                    {question.option3}
+                                  </label>
+                                </div>
+                              )}
+                              {question.option4 && (
+                                <div className='flex gap-2'>
+                                  <input
+                                    type='radio'
+                                    id={`quesion-${id}-option-4`}
+                                    {...register('' + id)}
+                                    value={question.option4}
+                                  />
+                                  <label htmlFor={`quesion-${id}-option-4`}>
+                                    {question.option4}
+                                  </label>
+                                </div>
+                              )}
+                            </>
+                          ) : (
+                            <>
                               <div className='flex gap-2'>
                                 <input
                                   type='radio'
-                                  id={`quesion-${id}-option-1`}
+                                  id={`quesion-${i + 1}-option-true`}
                                   {...register('' + id)}
-                                  value={question.option1}
+                                  value={question.trueText!}
                                 />
-                                <label htmlFor={`quesion-${id}-option-1`}>
-                                  {question.option1}
+                                <label htmlFor={`quesion-${i + 1}-option-true`}>
+                                  {question.trueText}
                                 </label>
                               </div>
-                            )}
-                            {question.option2 && (
                               <div className='flex gap-2'>
                                 <input
                                   type='radio'
-                                  id={`quesion-${id}-option-2`}
+                                  id={`quesion-${i + 1}-option-false`}
                                   {...register('' + id)}
-                                  value={question.option2}
+                                  value={question.falseText!}
                                 />
-                                <label htmlFor={`quesion-${id}-option-2`}>
-                                  {question.option2}
+                                <label
+                                  htmlFor={`quesion-${i + 1}-option-false`}
+                                >
+                                  {question.falseText}
                                 </label>
                               </div>
-                            )}
-                            {question.option3 && (
-                              <div className='flex gap-2'>
-                                <input
-                                  type='radio'
-                                  id={`quesion-${id}-option-3`}
-                                  {...register('' + id)}
-                                  value={question.option3}
-                                />
-                                <label htmlFor={`quesion-${id}-option-3`}>
-                                  {question.option3}
-                                </label>
-                              </div>
-                            )}
-                            {question.option4 && (
-                              <div className='flex gap-2'>
-                                <input
-                                  type='radio'
-                                  id={`quesion-${id}-option-4`}
-                                  {...register('' + id)}
-                                  value={question.option4}
-                                />
-                                <label htmlFor={`quesion-${id}-option-4`}>
-                                  {question.option4}
-                                </label>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <div className='flex gap-2'>
-                              <input
-                                type='radio'
-                                id={`quesion-${i + 1}-option-true`}
-                                {...register('' + id)}
-                                value={question.trueText!}
-                              />
-                              <label htmlFor={`quesion-${i + 1}-option-true`}>
-                                {question.trueText}
-                              </label>
-                            </div>
-                            <div className='flex gap-2'>
-                              <input
-                                type='radio'
-                                id={`quesion-${i + 1}-option-false`}
-                                {...register('' + id)}
-                                value={question.falseText!}
-                              />
-                              <label htmlFor={`quesion-${i + 1}-option-false`}>
-                                {question.falseText}
-                              </label>
-                            </div>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  )}
+                            </>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
-            <Button loading={examSubmit.isLoading} variant='primary'>
-              تسليم
-            </Button>
-          </form>
-        )}
+              ))}
+              <Button loading={examSubmit.isLoading} variant='primary'>
+                تسليم
+              </Button>
+            </form>
+          )}
+        </div>
       </div>
     </>
   )
 }
+ExamPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
 
 // export const getServerSideProps: GetServerSideProps = async context => {
 //   if (!context.params?.id)

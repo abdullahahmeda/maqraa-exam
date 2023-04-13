@@ -24,6 +24,8 @@ const server = z.object({
   SENDINBLUE_API_KEY: z.string(),
   DEFAULT_SENDER_NAME: z.string().optional(),
   DEFAULT_SENDER_EMAIL: z.string()
+  // EMAIL_SERVER: z.string(),
+  // EMAIL_FROM: z.string().email()
 })
 
 /**
@@ -50,6 +52,8 @@ const processEnv = {
   SENDINBLUE_API_KEY: process.env.SENDINBLUE_API_KEY,
   DEFAULT_SENDER_NAME: process.env.DEFAULT_SENDER_NAME,
   DEFAULT_SENDER_EMAIL: process.env.DEFAULT_SENDER_EMAIL
+  // EMAIL_SERVER: process.env.EMAIL_SERVER,
+  // EMAIL_FROM: process.env.EMAIL_FROM
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 }
 

@@ -7,15 +7,15 @@ import {
   MdMenuBook,
   MdSettings,
   MdTextSnippet,
-  MdAssignment
+  MdAssignment,
+  MdGroups
 } from 'react-icons/md'
-import useOnClickOutside from '../../hooks/useOnClickOutside'
-import useMediaQuery from '../../hooks/useMediaQuery'
+import useOnClickOutside from '~/hooks/useOnClickOutside'
+import useMediaQuery from '~/hooks/useMediaQuery'
 import { useRouter } from 'next/router'
 import MenuItem from './menu-item'
 import clsx from 'clsx'
-// import axios from 'axios'
-// import { toast } from 'react-hot-toast'
+import { signOut } from 'next-auth/react'
 
 const sidebarMiniVariantWidth = 80
 const sidebarWidth = 300
@@ -89,18 +89,6 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
     if (!isDesktop) closeSidebar()
   })
 
-  // const logout = () => {
-  //   axios
-  //     .post('/api/logout')
-  //     .then(() => {
-  //       toast.success('تم تسجيل الخروج.')
-  //       push('/login')
-  //     })
-  //     .catch(() => {
-  //       toast.error('حدث خطأ أثناء تسجيل الخروج.')
-  //     })
-  // }
-
   return (
     <>
       <Sidebar
@@ -127,28 +115,6 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
             />
             <MenuItem
               startIcon={
-                <MdMessage
-                  size={24}
-                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
-                />
-              }
-              text='الأسئلة'
-              className='mb-2'
-              href='/dashboard/questions'
-            />
-            <MenuItem
-              startIcon={
-                <MdTextSnippet
-                  size={24}
-                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
-                />
-              }
-              text='التسليمات'
-              className='mb-2'
-              href='/dashboard/exams'
-            />
-            <MenuItem
-              startIcon={
                 <MdMenuBook
                   size={24}
                   className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
@@ -169,6 +135,41 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               className='mb-2'
               href='/dashboard/curricula'
             />
+            <MenuItem
+              startIcon={
+                <MdGroups
+                  size={24}
+                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
+                />
+              }
+              text='المستخدمون'
+              className='mb-2'
+              href='/dashboard/users'
+            />
+
+            <MenuItem
+              startIcon={
+                <MdMessage
+                  size={24}
+                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
+                />
+              }
+              text='الأسئلة'
+              className='mb-2'
+              href='/dashboard/questions'
+            />
+            <MenuItem
+              startIcon={
+                <MdTextSnippet
+                  size={24}
+                  className='ml-3 w-[calc(80px-1.5rem)] flex-shrink-0'
+                />
+              }
+              text='التسليمات'
+              className='mb-2'
+              href='/dashboard/exams'
+            />
+
             <MenuItem
               startIcon={
                 <MdSettings
@@ -198,7 +199,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               <h1>لوحة التحكم</h1>
               <button
                 className='mr-auto rounded px-3 py-2 transition-colors hover:bg-zinc-900/10'
-                // onClick={logout}
+                onClick={() => signOut()}
               >
                 تسجيل الخروج
               </button>

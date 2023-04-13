@@ -1,10 +1,15 @@
 import { z } from 'zod'
-import { getPaginatedQuestions } from '../../../services/questions'
+import { getPaginatedQuestions } from '~/services/questions'
 
-import { createTRPCRouter, publicProcedure, protectedProcedure } from '../trpc'
+import {
+  createTRPCRouter,
+  publicProcedure,
+  protectedProcedure,
+  adminOnlyProcedure
+} from '../trpc'
 
 export const questionsRouter = createTRPCRouter({
-  list: publicProcedure
+  list: adminOnlyProcedure
     .input(
       z.object({
         page: z.number().positive().int().optional()

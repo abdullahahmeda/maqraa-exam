@@ -47,3 +47,6 @@ export const createCurriculum = (
     data
   })
 }
+
+export const deleteCurriculum = (id: number) =>
+  prisma.curriculum.delete({ where: { id } })

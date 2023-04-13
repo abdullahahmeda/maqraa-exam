@@ -1,15 +1,15 @@
 import { TRPCError } from '@trpc/server'
-import { getSettings, updateSettings } from '../../../services/settings'
-import { logErrorToLogtail } from '../../../utils/logtail'
-import { updateSettingsSchema } from '../../../validation/updateSettingsSchema'
-import { createTRPCRouter, publicProcedure } from '../trpc'
+import { getSettings, updateSettings } from '~/services/settings'
+import { logErrorToLogtail } from '~/utils/logtail'
+import { updateSettingsSchema } from '~/validation/updateSettingsSchema'
+import { adminOnlyProcedure, createTRPCRouter, publicProcedure } from '../trpc'
 
 export const settingsRouter = createTRPCRouter({
-  list: publicProcedure.query(async () => {
+  fetchAll: adminOnlyProcedure.query(async () => {
     return await getSettings()
   }),
 
-  update: publicProcedure
+  update: adminOnlyProcedure
     .input(updateSettingsSchema)
     .mutation(async ({ input }) => {
       try {

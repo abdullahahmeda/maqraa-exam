@@ -4,14 +4,14 @@ import { useRouter } from 'next/router'
 import { ReactNode, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
-import Badge from '../../../components/badge'
-import DashboardButton from '../../../components/dashboard/button'
-import DashboardLayout from '../../../components/dashboard/layout'
-import Spinner from '../../../components/spinner'
-import { QuestionType } from '../../../constants'
-import { api } from '../../../utils/api'
-import { percentage } from '../../../utils/percentage'
-import { enStyleToAr, enTypeToAr } from '../../../utils/questions'
+import Badge from '~/components/badge'
+import DashboardButton from '~/components/dashboard/button'
+import DashboardLayout from '~/components/dashboard/layout'
+import Spinner from '~/components/spinner'
+import { QuestionType } from '~/constants'
+import { api } from '~/utils/api'
+import { percentage } from '~/utils/percentage'
+import { enStyleToAr, enTypeToAr } from '~/utils/questions'
 
 type FieldValues = Record<string, boolean>
 
@@ -31,10 +31,7 @@ const ExamPage = () => {
       id: router.query.id as string
     },
     {
-      enabled: router.isReady,
-      trpc: {
-        ssr: false
-      }
+      enabled: router.isReady
     }
   )
 

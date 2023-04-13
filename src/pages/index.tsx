@@ -8,8 +8,11 @@ import FieldErrorMessage from '../components/field-error-message'
 import { api } from '../utils/api'
 import { newExamSchema } from '../validation/newExamSchema'
 import { useRouter } from 'next/router'
-import { customErrorMap } from '../validation/customErrorMap'
 import Select from '../components/select'
+import WebsiteLayout from '../components/layout'
+import { GetServerSideProps } from 'next'
+import { getServerAuthSession } from '../server/auth'
+import { getBaseUrl } from '../utils/api'
 
 type FieldValues = {
   difficulty: QuestionDifficulty
@@ -24,9 +27,7 @@ const HomePage = () => {
     formState: { errors: fieldsErrors },
     watch
   } = useForm<FieldValues>({
-    resolver: zodResolver(newExamSchema, {
-      errorMap: customErrorMap
-    })
+    resolver: zodResolver(newExamSchema)
   })
 
   const examCreate = api.exams.create.useMutation()
@@ -48,10 +49,7 @@ const HomePage = () => {
     {
       enabled: !!selectedCourse,
       refetchOnMount: false,
-      refetchOnReconnect: false,
-      trpc: {
-        ssr: false
-      }
+      refetchOnReconnect: false
     }
   )
 
@@ -72,21 +70,6 @@ const HomePage = () => {
 
   return (
     <>
-      <style global jsx>{`
-        body {
-          background: linear-gradient(
-              to bottom,
-              rgba(92, 77, 66, 0.9) 0%,
-              rgba(92, 77, 66, 0.9) 100%
-            ),
-            url(/bg.jpg);
-          background-position: center;
-          background-repeat: no-repeat;
-          background-attachment: scroll;
-          background-size: cover;
-          height: 100vh;
-        }
-      `}</style>
       <Head>
         <title>بدأ اختبار</title>
       </Head>
@@ -123,10 +106,10 @@ const HomePage = () => {
                   />
                   <label htmlFor='hard'>صعب</label>
                 </div>
-                <FieldErrorMessage>
-                  {fieldsErrors.difficulty?.message}
-                </FieldErrorMessage>
               </div>
+              <FieldErrorMessage>
+                {fieldsErrors.difficulty?.message}
+              </FieldErrorMessage>
             </div>
             <div className='mb-2'>
               <label htmlFor='course'>المقرر</label>
@@ -194,6 +177,26 @@ const HomePage = () => {
       </div>
     </>
   )
+}
+
+HomePage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
+
+export const getServerSideProps: GetServerSideProps = async context => {
+  const { req, res } = context
+  const session = await getServerAuthSession({ req, res })
+
+  if (!session)
+    return {
+      redirect: {
+        destination: `/login?callbackUrl=${getBaseUrl()}`,
+        permanent: false
+      }
+    }
+  return {
+    props: {
+      session
+    }
+  }
 }
 
 export default HomePage

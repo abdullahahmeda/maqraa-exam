@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client'
-import { SettingKey } from '../src/constants'
+import { SettingKey, UserRole } from '../src/constants'
 const prisma = new PrismaClient()
+
+const adminEmail = 'abdullah.ahmed.a2000@gmail.com'
 
 async function main () {
   for (const key of [
@@ -22,7 +24,15 @@ async function main () {
       }
     })
   }
-  console.log('Seeding has finished successfully.')
+
+  await prisma.user.create({
+    data: {
+      id: adminEmail,
+      email: adminEmail,
+      role: UserRole.ADMIN,
+      name: 'الأدمن'
+    }
+  })
 }
 main()
   .then(async () => {

@@ -34,19 +34,23 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
 }: any) => {
   const getLayout =
     (Component as NextPageWithLayout).getLayout || (page => page)
-  return getLayout(
+  return (
     <>
-      <style jsx global>
-        {`
-          * {
-            font-family: ${cairo.style.fontFamily};
-          }
-        `}
-      </style>
       <SessionProvider session={session}>
-        <Component {...pageProps} />
+        {getLayout(
+          <>
+            <style jsx global>
+              {`
+                * {
+                  font-family: ${cairo.style.fontFamily};
+                }
+              `}
+            </style>
+            <Component {...pageProps} />
+            <Toaster position='bottom-center' />
+          </>
+        )}
       </SessionProvider>
-      <Toaster position='bottom-center' />
     </>
   )
 }

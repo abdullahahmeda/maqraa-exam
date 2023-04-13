@@ -1,19 +1,18 @@
 import Head from 'next/head'
-import DashboardLayout from '../../components/dashboard/layout'
-// import { NextPageWithLayout } from '../../pages/_app'
-import { Dialog, Transition } from '@headlessui/react'
+import DashboardLayout from '~/components/dashboard/layout'
+// import { NextPageWithLayout } from '~/pages/_app'
 import { Fragment, useMemo, useState } from 'react'
 import { MdClose } from 'react-icons/md'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import FieldErrorMessage from '../../components/field-error-message'
-import { api } from '../../utils/api'
+import FieldErrorMessage from '~/components/field-error-message'
+import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import DashboardButton from '../../components/dashboard/button'
+import DashboardButton from '~/components/dashboard/button'
 import { Course, Curriculum } from '@prisma/client'
-import Spinner from '../../components/spinner'
+import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
   useReactTable,
@@ -21,11 +20,12 @@ import {
   PaginationState
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
-import Pagination from '../../components/pagination'
-import { customErrorMap } from '../../validation/customErrorMap'
-import DashboardTable from '../../components/dashboard/table'
-import Select from '../../components/select'
-import { newCurriculumSchema } from '../../validation/newCurriculumSchema'
+import Pagination from '~/components/pagination'
+import { customErrorMap } from '~/validation/customErrorMap'
+import DashboardTable from '~/components/dashboard/table'
+import Select from '~/components/select'
+import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
+import Dialog, { DialogActions } from '~/components/dialog'
 
 type FieldValues = {
   course: null | number
@@ -36,7 +36,7 @@ type FieldValues = {
   }
 }
 
-const AddCurriculumModal = ({
+const AddCurriculumDialog = ({
   open,
   setOpen,
   refetch
@@ -55,12 +55,10 @@ const AddCurriculumModal = ({
       errorMap: customErrorMap
     })
   })
-
-  const closeModal = () => setOpen(false)
-
   const curriculumCreate = api.curricula.create.useMutation()
 
   const { data: courses } = api.courses.fetchAll.useQuery()
+  const closeModal = () => setOpen(false)
 
   const onSubmit = (data: FieldValues) => {
     const t = toast.loading('جاري إضافة المنهج')
@@ -78,145 +76,138 @@ const AddCurriculumModal = ({
         toast.error(error.message)
       })
   }
+  return (
+    <Dialog open={open} setOpen={setOpen} title='إضافة منهج'>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className='mb-2'>
+          <label htmlFor='course'>المقرر</label>
+          <Select
+            disabled={!courses || courses.length === 0}
+            className='w-full'
+            id='course'
+            {...register('course', {
+              valueAsNumber: true
+            })}
+          >
+            {!!courses && courses?.length > 0 ? (
+              <>
+                <option value={undefined}>اختر المقرر</option>
+                {courses?.map(course => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <option>لا يوجد خيارات</option>
+            )}
+          </Select>
+          <FieldErrorMessage>{fieldsErrors.course?.message}</FieldErrorMessage>
+        </div>
+        <div className='mb-2'>
+          <label htmlFor='name'>الاسم</label>
+          <input
+            type='text'
+            id='name'
+            {...register('name')}
+            className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+          />
+          <FieldErrorMessage>{fieldsErrors.name?.message}</FieldErrorMessage>
+        </div>
+        <div className='mb-2'>
+          <div className='flex gap-1'>
+            <div>
+              <label htmlFor='from-page'>من صفحة</label>
+              <input
+                type='number'
+                id='from-page'
+                min={1}
+                className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+                {...register('pages.from', {
+                  valueAsNumber: true
+                })}
+              />
+              <FieldErrorMessage>
+                {fieldsErrors.pages?.from?.message}
+              </FieldErrorMessage>
+            </div>
+            <div>
+              <label htmlFor='to-page'>إلى صفحة</label>
+              <input
+                type='number'
+                id='to-page'
+                className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+                {...register('pages.to', {
+                  valueAsNumber: true
+                })}
+              />
+              <FieldErrorMessage>
+                {fieldsErrors.pages?.to?.message}
+              </FieldErrorMessage>
+            </div>
+          </div>
+          <FieldErrorMessage>{fieldsErrors.pages?.message}</FieldErrorMessage>
+        </div>
+        <DialogActions>
+          <DashboardButton
+            type='submit'
+            variant='success'
+            loading={curriculumCreate.isLoading}
+          >
+            إضافة
+          </DashboardButton>
+        </DialogActions>
+      </form>
+    </Dialog>
+  )
+}
+
+const DeleteCurriculumDialog = ({
+  open,
+  setOpen,
+  refetch,
+  id
+}: {
+  open: boolean
+  setOpen: any
+  refetch: any
+  id: number | null
+}) => {
+  const curriculumDelete = api.curricula.delete.useMutation()
+  const closeModal = () => setOpen(false)
+
+  const deleteCurriculum = () => {
+    const t = toast.loading('جاري حذف المنهج')
+    curriculumDelete
+      .mutateAsync({
+        id: id!
+      })
+      .then(() => {
+        toast.dismiss(t)
+        toast.success('تم حذف المنهج بنجاح')
+        closeModal()
+        refetch()
+      })
+      .catch(error => {
+        toast.dismiss(t)
+        toast.error(error.message)
+      })
+  }
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as='div' className='relative z-10' onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter='ease-out duration-300'
-          enterFrom='opacity-0'
-          enterTo='opacity-100'
-          leave='ease-in duration-200'
-          leaveFrom='opacity-100'
-          leaveTo='opacity-0'
-        >
-          <div className='fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity' />
-        </Transition.Child>
-
-        <div className='fixed inset-0 z-[100] overflow-y-auto'>
-          <div className='flex min-h-full items-center justify-center p-4 text-center sm:p-0'>
-            <Transition.Child
-              as={Fragment}
-              enter='ease-out duration-300'
-              enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
-              enterTo='opacity-100 translate-y-0 sm:scale-100'
-              leave='ease-in duration-200'
-              leaveFrom='opacity-100 translate-y-0 sm:scale-100'
-              leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
-            >
-              <Dialog.Panel
-                as='form'
-                onSubmit={handleSubmit(onSubmit)}
-                className='relative w-full transform overflow-hidden rounded-lg bg-white text-right shadow-xl transition-all sm:my-8 sm:max-w-lg'
-              >
-                <div className='bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4'>
-                  <div className='mb-4 flex items-center justify-between'>
-                    <Dialog.Title
-                      as='h3'
-                      className='text-base font-semibold leading-6 text-gray-900'
-                    >
-                      إضافة منهج
-                    </Dialog.Title>
-                    <button
-                      type='button'
-                      onClick={closeModal}
-                      className='text-gray-600 hover:text-gray-700'
-                    >
-                      <MdClose size={20} />
-                    </button>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='course'>المقرر</label>
-                    <Select
-                      disabled={!courses || courses.length === 0}
-                      className='w-full'
-                      id='course'
-                      {...register('course', {
-                        valueAsNumber: true
-                      })}
-                    >
-                      {!!courses && courses?.length > 0 ? (
-                        <>
-                          <option value={undefined}>اختر المقرر</option>
-                          {courses?.map(course => (
-                            <option key={course.id} value={course.id}>
-                              {course.name}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option>لا يوجد خيارات</option>
-                      )}
-                    </Select>
-                    <FieldErrorMessage>
-                      {fieldsErrors.course?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='name'>الاسم</label>
-                    <input
-                      type='text'
-                      id='name'
-                      {...register('name')}
-                      className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-                    />
-                    <FieldErrorMessage>
-                      {fieldsErrors.name?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='mb-2'>
-                    <div className='flex gap-1'>
-                      <div>
-                        <label htmlFor='from-page'>من صفحة</label>
-                        <input
-                          type='number'
-                          id='from-page'
-                          min={1}
-                          className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-                          {...register('pages.from', {
-                            valueAsNumber: true
-                          })}
-                        />
-                        <FieldErrorMessage>
-                          {fieldsErrors.pages?.from?.message}
-                        </FieldErrorMessage>
-                      </div>
-                      <div>
-                        <label htmlFor='to-page'>إلى صفحة</label>
-                        <input
-                          type='number'
-                          id='to-page'
-                          className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-                          {...register('pages.to', {
-                            valueAsNumber: true
-                          })}
-                        />
-                        <FieldErrorMessage>
-                          {fieldsErrors.pages?.to?.message}
-                        </FieldErrorMessage>
-                      </div>
-                    </div>
-                    <FieldErrorMessage>
-                      {fieldsErrors.pages?.message}
-                    </FieldErrorMessage>
-                  </div>
-                </div>
-                <div className='flex bg-gray-50 py-3 px-4'>
-                  <DashboardButton
-                    type='submit'
-                    variant='success'
-                    loading={curriculumCreate.isLoading}
-                  >
-                    إضافة
-                  </DashboardButton>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
-          </div>
+    <Dialog open={open} setOpen={setOpen} title='هل أنت متأكد؟'>
+      <p className='mb-2'>
+        هل تريد حقاً حذف هذا المنهج؟ هذا سيحذف الإختبارات المرتبطة به أيضاً
+      </p>
+      <DialogActions>
+        <div className='flex items-center gap-2'>
+          <DashboardButton variant='success' onClick={deleteCurriculum}>
+            تأكيد
+          </DashboardButton>
+          <DashboardButton onClick={closeModal}>إلغاء</DashboardButton>
         </div>
-      </Dialog>
-    </Transition.Root>
+      </DialogActions>
+    </Dialog>
   )
 }
 
@@ -232,53 +223,13 @@ const columnHelper = createColumnHelper<
   }
 >()
 
-const columns = [
-  columnHelper.accessor('id', {
-    header: 'ID',
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('name', {
-    header: 'الاسم',
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('course.name', {
-    header: 'المقرر',
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.display({
-    id: 'pages',
-    header: 'الصفحات',
-    cell: info =>
-      'من ' + info.row.original.fromPage + ' إلى ' + info.row.original.toPage,
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.display({
-    id: 'actions',
-    header: 'الإجراءات',
-    cell: () => (
-      <div className='flex justify-center gap-2'>
-        {/* <DashboardButton variant='primary'>عرض المناهج</DashboardButton> */}
-        <DashboardButton variant='error'>حذف</DashboardButton>
-      </div>
-    ),
-    meta: {
-      className: 'text-center'
-    }
-  })
-]
-
 const PAGE_SIZE = 50
 
 const CurriculaPage = ({ page: initialPage }: Props) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [curriculumToDelete, setCurriculumToDelete] = useState<
+    boolean | number
+  >(false)
 
   const router = useRouter()
 
@@ -307,14 +258,65 @@ const CurriculaPage = ({ page: initialPage }: Props) => {
       page: pageIndex + 1
     },
     {
-      networkMode: 'always',
-      trpc: {
-        ssr: false
-      }
+      networkMode: 'always'
     }
   )
 
   const pageCount = data !== undefined ? Math.ceil(data.count / pageSize) : -1
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('id', {
+        header: 'ID',
+        meta: {
+          className: 'text-center'
+        }
+      }),
+      columnHelper.accessor('name', {
+        header: 'الاسم',
+        meta: {
+          className: 'text-center'
+        }
+      }),
+      columnHelper.accessor('course.name', {
+        header: 'المقرر',
+        meta: {
+          className: 'text-center'
+        }
+      }),
+      columnHelper.display({
+        id: 'pages',
+        header: 'الصفحات',
+        cell: info =>
+          'من ' +
+          info.row.original.fromPage +
+          ' إلى ' +
+          info.row.original.toPage,
+        meta: {
+          className: 'text-center'
+        }
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'الإجراءات',
+        cell: ({ row }) => (
+          <div className='flex justify-center gap-2'>
+            {/* <DashboardButton variant='primary'>عرض المناهج</DashboardButton> */}
+            <DashboardButton
+              variant='error'
+              onClick={() => setCurriculumToDelete(row.original.id)}
+            >
+              حذف
+            </DashboardButton>
+          </div>
+        ),
+        meta: {
+          className: 'text-center'
+        }
+      })
+    ],
+    []
+  )
 
   const table = useReactTable({
     data: data?.curricula || [],
@@ -354,10 +356,16 @@ const CurriculaPage = ({ page: initialPage }: Props) => {
           إضافة منهج
         </DashboardButton>
       </div>
-      <AddCurriculumModal
+      <AddCurriculumDialog
         open={isModalOpen}
         setOpen={setIsModalOpen}
         refetch={refetch}
+      />
+      <DeleteCurriculumDialog
+        open={!!curriculumToDelete}
+        setOpen={setCurriculumToDelete}
+        refetch={refetch}
+        id={typeof curriculumToDelete === 'number' ? curriculumToDelete : null}
       />
       {isRefetchingCurricula && (
         <span className='mt-2 flex items-center gap-1 rounded bg-blue-200 p-2'>

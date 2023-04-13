@@ -7,6 +7,7 @@ import { PageOptions } from '../types'
 import { sendMail } from '../utils/email'
 import { arDifficultyToEn } from '../utils/questions'
 import { FilterSchema } from '../server/api/routers/exams'
+import { User } from 'next-auth'
 
 export const getPaginatedExams = async ({
   page,
@@ -172,7 +173,8 @@ const getRandomQuestionsForDifficulty = async (
 export const createExam = async (
   difficulty: QuestionDifficulty,
   courseId: number,
-  curriculumId: number
+  curriculumId: number,
+  user: User & { role?: string }
 ) => {
   const curriculum = await prisma.curriculum.findFirstOrThrow({
     where: { id: curriculumId, courseId }
@@ -193,13 +195,8 @@ export const createExam = async (
         create: questions.map(q => ({ question: { connect: { id: q.id } } }))
       },
       user: {
-        connectOrCreate: {
-          where: { id: 'testuser' },
-          create: {
-            id: 'testuser',
-            name: 'Test User',
-            email: 'testuser@test.com'
-          }
+        connect: {
+          id: user.id
         }
       },
       course: { connect: { id: courseId } },

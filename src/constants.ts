@@ -24,3 +24,8 @@ export enum SettingKey {
   HARD_MCQ_QUESTIONS = 'HARD_MCQ_QUESTIONS',
   HARD_WRITTEN_QUESTIONS = 'HARD_WRITTEN_QUESTIONS'
 }
+
+export enum UserRole {
+  STUDENT = 'STUDENT',
+  ADMIN = 'ADMIN'
+}

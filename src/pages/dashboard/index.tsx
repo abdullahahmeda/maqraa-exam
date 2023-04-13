@@ -1,5 +1,5 @@
 // import type { NextPageWithLayout } from '../_app'
-import DashboardLayout from '../../components/dashboard/layout'
+import DashboardLayout from '~/components/dashboard/layout'
 import Head from 'next/head'
 
 const DashboardPage = () => {

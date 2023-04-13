@@ -30,7 +30,7 @@ export const customErrorMap: z.ZodErrorMap = (issue, ctx) => {
   // if (issue.code === _z.ZodIssueCode.invalid_union) {
   //   issue.unionErrors.map(error =>)
   // }
-  console.log('issue', issue)
-  console.log('ctx', ctx)
+  // console.log('issue', issue)
+  // console.log('ctx', ctx)
   return { message: ctx.defaultError }
 }

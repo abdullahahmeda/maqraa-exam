@@ -1,11 +1,11 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { sendGradeEmail } from '../../../services/exams'
-import { logErrorToLogtail } from '../../../utils/logtail'
-import { createTRPCRouter, publicProcedure } from '../trpc'
+import { sendGradeEmail } from '~/services/exams'
+import { logErrorToLogtail } from '~/utils/logtail'
+import { adminOnlyProcedure, createTRPCRouter, publicProcedure } from '../trpc'
 
 export const emailsrouter = createTRPCRouter({
-  sendGradeEmail: publicProcedure
+  sendGradeEmail: adminOnlyProcedure
     .input(
       z.object({
         id: z.string().cuid().min(1)

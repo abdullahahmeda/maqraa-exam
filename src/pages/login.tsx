@@ -7,6 +7,12 @@ import { loginSchema } from '../validation/loginSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import Button from '../components/button'
 import { customErrorMap } from '../validation/customErrorMap'
+import { getProviders, signIn } from 'next-auth/react'
+import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
+import { useRouter } from 'next/router'
+import FieldErrorMessage from '../components/field-error-message'
+import WebsiteLayout from '../components/layout'
+import { getServerAuthSession } from '../server/auth'
 
 type FieldValues = {
   email: string
@@ -16,11 +22,15 @@ const defaultValues: FieldValues = {
   email: ''
 }
 
-export default function LoginPage () {
+export default function LoginPage ({
+  providers
+}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const router = useRouter()
   const {
     handleSubmit,
     register,
-    formState: { errors: fieldsErrors }
+    formState: { errors: fieldsErrors },
+    setError
   } = useForm<FieldValues>({
     defaultValues,
     resolver: zodResolver(loginSchema, {
@@ -29,13 +39,23 @@ export default function LoginPage () {
   })
 
   const onSubmit = (data: FieldValues) => {
-    // if (!IsEmail(inputRef.current.value)) {
-    //   setError('هذا البريد الالكتروني غير صحيح')
-    //   inputRef.current.focus()
-    //   return
-    // }
-
-    console.log('hello :)')
+    signIn('email', { email: data.email, redirect: false })
+      .then(response => {
+        if (response?.error === 'AccessDenied') {
+          setError('root.serverError', {
+            message: 'هذا الإيميل غير مسجل، قم بالتسجيل أولاً'
+          })
+          return
+        }
+        if (response?.ok) {
+          router.push('/verify-request')
+        }
+      })
+      .catch(() => {
+        setError('root.serverError', {
+          message: 'حدث خطأ غير متوقع'
+        })
+      })
   }
 
   return (
@@ -56,7 +76,7 @@ export default function LoginPage () {
         }
       `}</style>
       <Head>
-        <title>حفاظ الوحيين | تسجيل الدخول للاختبار</title>
+        <title>حفاظ الوحيين | تسجيل الدخول</title>
       </Head>
       <form
         className='mx-auto max-w-[360px] pt-20'
@@ -73,7 +93,15 @@ export default function LoginPage () {
             />
           </Link>
         </div>
+        {router.query.callbackUrl && (
+          <div className='bg-orange-500 p-2 text-neutral-50'>
+            قم بتسجيل الدخول للمتابعة
+          </div>
+        )}
         <div className='bg-white p-5 shadow'>
+          <h1 className='mb-4 text-center text-2xl font-bold text-neutral-800'>
+            تسجيل الدخول
+          </h1>
           <div className='flex'>
             <input
               type='email'
@@ -85,12 +113,31 @@ export default function LoginPage () {
               <FaEnvelope />
             </div>
           </div>
-          <p className='text-[#dc3545]'>{fieldsErrors.email?.message}</p>
+          <FieldErrorMessage>{fieldsErrors.email?.message}</FieldErrorMessage>
+          <FieldErrorMessage>
+            {fieldsErrors.root?.serverError?.message}
+          </FieldErrorMessage>
           <Button className='mt-2' variant='primary'>
-            أرسل الرمز
+            أرسل الرابط
           </Button>
         </div>
       </form>
     </>
   )
+}
+LoginPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
+
+export async function getServerSideProps (context: GetServerSidePropsContext) {
+  const { req, res } = context
+  const session = await getServerAuthSession({ req, res })
+
+  if (session) {
+    return { redirect: { destination: '/' } }
+  }
+
+  const providers = await getProviders()
+
+  return {
+    props: { providers: providers ?? [] }
+  }
 }

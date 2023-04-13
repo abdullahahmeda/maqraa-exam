@@ -1,15 +1,26 @@
 import { TRPCError } from '@trpc/server'
 import { z, ZodError } from 'zod'
-import { getFields, getSheets, importQuestions } from '../../../services/sheets'
-import { getSpreadsheetIdFromURL } from '../../../utils/sheets'
+import {
+  getFields,
+  getSheets,
+  importQuestions,
+  importStudents
+} from '~/services/sheets'
+import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import {
   importQuestionsSchema,
   spreadsheetUrlSchema
-} from '../../../validation/importQuestionsSchema'
+} from '~/validation/importQuestionsSchema'
 import { GaxiosError } from 'gaxios'
 
-import { createTRPCRouter, publicProcedure, protectedProcedure } from '../trpc'
-import { logErrorToLogtail } from '../../../utils/logtail'
+import {
+  createTRPCRouter,
+  publicProcedure,
+  protectedProcedure,
+  adminOnlyProcedure
+} from '../trpc'
+import { logErrorToLogtail } from '~/utils/logtail'
+import { importStudentsSchema } from '~/validation/importStudentsSchema'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -35,7 +46,7 @@ const googleSheetErrorHandler = (error: any) => {
 }
 
 export const sheetsRouter = createTRPCRouter({
-  listSheets: publicProcedure
+  listSheets: adminOnlyProcedure
     .input(
       z.object({
         url: spreadsheetUrlSchema
@@ -54,7 +65,7 @@ export const sheetsRouter = createTRPCRouter({
       return sheets
     }),
 
-  importQuestions: publicProcedure
+  importQuestions: adminOnlyProcedure
     .input(importQuestionsSchema)
     .mutation(async ({ input }) => {
       const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
@@ -68,6 +79,41 @@ export const sheetsRouter = createTRPCRouter({
 
       try {
         await importQuestions(rows, input.course, input.removeOldQuestions)
+      } catch (error: any) {
+        if (error instanceof ZodError) {
+          const issue = error.issues[0]!
+
+          const [rowNumber, field] = issue.path
+
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
+            cause: issue
+          })
+        }
+
+        logErrorToLogtail(error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'حدث خطأ غير متوقع'
+        })
+      }
+      return true
+    }),
+  importStudents: adminOnlyProcedure
+    .input(importStudentsSchema)
+    .mutation(async ({ input }) => {
+      const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
+
+      let rows
+      try {
+        rows = await getFields(spreadsheetId, input.sheet)
+      } catch (error) {
+        throw googleSheetErrorHandler(error)
+      }
+
+      try {
+        await importStudents(rows)
       } catch (error: any) {
         if (error instanceof ZodError) {
           const issue = error.issues[0]!

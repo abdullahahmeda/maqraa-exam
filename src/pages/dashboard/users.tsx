@@ -1,6 +1,6 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '~/pages/_app'
+// import { NextPageWithLayout } from '../../pages/_app'
 import { Dialog, Transition } from '@headlessui/react'
 import { Fragment, useMemo, useState } from 'react'
 import { MdClose } from 'react-icons/md'
@@ -20,7 +20,7 @@ import { z } from 'zod'
 import toast from 'react-hot-toast'
 import DashboardButton from '~/components/dashboard/button'
 import Badge from '~/components/badge'
-import { Question } from '@prisma/client'
+import { Question, User } from '@prisma/client'
 import Select from '~/components/select'
 import Spinner from '~/components/spinner'
 import {
@@ -30,33 +30,30 @@ import {
   PaginationState
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
-import { QuestionDifficulty, QuestionType } from '../../constants'
-import Pagination from '../../components/pagination'
-import { customErrorMap } from '../../validation/customErrorMap'
-import DashboardTable from '../../components/dashboard/table'
+import { QuestionDifficulty, QuestionType, UserRole } from '~/constants'
+import Pagination from '~/components/pagination'
+import { customErrorMap } from '~/validation/customErrorMap'
+import DashboardTable from '~/components/dashboard/table'
+import { enUserRoleToAr } from '~/utils/users'
 
 type FieldValues = {
   url: string
   sheet: string
-  course: null | number
-  removeOldQuestions: boolean
 }
 
 const defaultValues: FieldValues = {
   url: '',
-  sheet: '',
-  course: null,
-  removeOldQuestions: false
+  sheet: ''
 }
 
-const AddQuestionsModal = ({
+const AddUsersModal = ({
   open,
   setOpen,
-  refetchQuestions
+  refetchUsers
 }: {
   open: boolean
   setOpen: any
-  refetchQuestions: any
+  refetchUsers: any
 }) => {
   const {
     register,
@@ -75,7 +72,7 @@ const AddQuestionsModal = ({
 
   const closeModal = () => setOpen(false)
 
-  const questionsImport = api.sheets.importQuestions.useMutation()
+  const studentsImport = api.sheets.importQuestions.useMutation()
 
   const {
     isFetching: isFetchingSheets,
@@ -98,8 +95,6 @@ const AddQuestionsModal = ({
     }
   )
 
-  const { data: courses } = api.courses.fetchAll.useQuery()
-
   const updateSpreadsheet = async () => {
     const isValidUrl = await trigger('url')
     if (!isValidUrl) return
@@ -108,15 +103,15 @@ const AddQuestionsModal = ({
   }
 
   const onSubmit = (data: FieldValues) => {
-    const t = toast.loading('جاري إضافة الأسئلة')
-    questionsImport
+    const t = toast.loading('جاري إضافة الطلبة')
+    studentsImport
       .mutateAsync(data as z.infer<typeof importQuestionsSchema>)
       .then(() => {
         toast.dismiss(t)
         resetForm()
-        toast.success('تم إضافة الأسئلة بنجاح')
+        toast.success('تم إضافة الطلبة بنجاح')
         closeModal()
-        refetchQuestions(data.removeOldQuestions)
+        refetchUsers()
       })
       .catch(error => {
         toast.dismiss(t)
@@ -161,7 +156,7 @@ const AddQuestionsModal = ({
                       as='h3'
                       className='text-base font-semibold leading-6 text-gray-900'
                     >
-                      إضافة أسئلة
+                      إضافة مستخدمين
                     </Dialog.Title>
                     <button
                       type='button'
@@ -217,49 +212,12 @@ const AddQuestionsModal = ({
                       {fieldsErrors.sheet?.message}
                     </FieldErrorMessage>
                   </div>
-                  <div className='mb-2'>
-                    <label htmlFor='course'>المقرر</label>
-                    <Select
-                      disabled={!courses || courses.length === 0}
-                      className='w-full'
-                      id='course'
-                      {...register('course', {
-                        valueAsNumber: true
-                      })}
-                    >
-                      {!!courses && courses?.length > 0 ? (
-                        <>
-                          <option value={undefined}>اختر المقرر</option>
-                          {courses?.map(course => (
-                            <option key={course.id} value={course.id}>
-                              {course.name}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option>لا يوجد خيارات</option>
-                      )}
-                    </Select>
-                    <FieldErrorMessage>
-                      {fieldsErrors.course?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='flex items-center gap-1'>
-                    <input
-                      type='checkbox'
-                      id='remove-old-questions'
-                      {...register('removeOldQuestions')}
-                    />
-                    <label htmlFor='remove-old-questions'>
-                      حذف الأسئلة القديمة
-                    </label>
-                  </div>
                 </div>
                 <div className='flex bg-gray-50 py-3 px-4'>
                   <DashboardButton
                     type='submit'
                     variant='success'
-                    loading={questionsImport.isLoading}
+                    loading={studentsImport.isLoading}
                   >
                     إضافة
                   </DashboardButton>
@@ -277,71 +235,31 @@ type Props = {
   page: number
 }
 
-const columnHelper = createColumnHelper<
-  Question & {
-    course: {
-      name: string
-    }
-  }
->()
+const columnHelper = createColumnHelper<User>()
 
 const columns = [
-  columnHelper.accessor('id', {
-    header: 'ID',
+  columnHelper.accessor('email', {
+    header: 'البريد الإلكتروني',
     meta: {
       className: 'text-center'
     }
   }),
-  // columnHelper.accessor('number', {
-  //   header: 'رقم السؤال',
-  //   meta: {
-  //     className: 'text-center'
-  //   }
-  // }),
-  columnHelper.accessor('text', {
-    header: 'السؤال'
-  }),
-  columnHelper.accessor('course.name', {
-    header: 'المقرر',
+  columnHelper.accessor('name', {
+    header: 'الاسم',
     meta: {
-      className: 'text-center min-w-[150px]'
+      className: 'text-center'
     }
   }),
-  columnHelper.accessor('type', {
-    header: 'النوع',
+  columnHelper.accessor('role', {
+    header: 'الصلاحيات',
     cell: info => (
       <Badge
-        text={enTypeToAr(info.getValue())}
-        variant={info.getValue() === QuestionType.MCQ ? 'success' : 'warning'}
+        text={enUserRoleToAr(info.getValue() || '')}
+        variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
       />
     ),
     meta: {
       className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('style', {
-    header: 'الأسلوب',
-    cell: info => <Badge text={enStyleToAr(info.getValue())} />,
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('difficulty', {
-    header: 'المستوى',
-    cell: info => (
-      <Badge
-        text={enDifficultyToAr(info.getValue())}
-        variant={getDifficultyVariant(info.getValue() as QuestionDifficulty)}
-      />
-    ),
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('answer', {
-    header: 'الإجابة',
-    meta: {
-      className: 'min-w-[300px]'
     }
   }),
   columnHelper.display({
@@ -356,7 +274,7 @@ const columns = [
 
 const PAGE_SIZE = 50
 
-const QuestionsPage = ({ page: initialPage }: Props) => {
+const UsersPage = ({ page: initialPage }: Props) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   const router = useRouter()
@@ -381,7 +299,7 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
     refetch: refetchQuestions,
     isLoadingError,
     isRefetchError
-  } = api.questions.list.useQuery(
+  } = api.users.list.useQuery(
     {
       page: pageIndex + 1
     },
@@ -393,7 +311,7 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
   const pageCount = data !== undefined ? Math.ceil(data.count / pageSize) : -1
 
   const table = useReactTable({
-    data: data?.questions || [],
+    data: data?.users || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
@@ -422,21 +340,18 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
   return (
     <>
       <Head>
-        <title>الأسئلة</title>
+        <title>المستخدمون</title>
       </Head>
       <div className='mb-2 flex items-center'>
-        <h2 className='ml-2 text-2xl font-bold'>الأسئلة</h2>
+        <h2 className='ml-2 text-2xl font-bold'>المستخدمون</h2>
         <DashboardButton onClick={openModal} variant='primary'>
-          إضافة أسئلة
+          إضافة مستخدمين
         </DashboardButton>
       </div>
-      <AddQuestionsModal
+      <AddUsersModal
         open={isModalOpen}
         setOpen={setIsModalOpen}
-        refetchQuestions={(removeOldQuestions: boolean) => {
-          if (removeOldQuestions) changePageIndex(0)
-          refetchQuestions()
-        }}
+        refetchUsers={refetchQuestions}
       />
       {isRefetchingQuestions && (
         <span className='mt-2 flex items-center gap-1 rounded bg-blue-200 p-2'>
@@ -467,9 +382,7 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
   )
 }
 
-QuestionsPage.getLayout = (page: any) => (
-  <DashboardLayout>{page}</DashboardLayout>
-)
+UsersPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
 export const getServerSideProps: GetServerSideProps = async context => {
   const _page = context.query.page
@@ -482,4 +395,4 @@ export const getServerSideProps: GetServerSideProps = async context => {
   }
 }
 
-export default QuestionsPage
+export default UsersPage
