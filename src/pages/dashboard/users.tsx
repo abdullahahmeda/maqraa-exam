@@ -1,18 +1,11 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '../../pages/_app'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
 import FieldErrorMessage from '~/components/field-error-message'
 import { api } from '~/utils/api'
-import {
-  enDifficultyToAr,
-  enStyleToAr,
-  enTypeToAr,
-  getDifficultyVariant
-} from '~/utils/questions'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
@@ -28,13 +21,14 @@ import {
   PaginationState
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
-import { QuestionDifficulty, QuestionType, UserRole } from '~/constants'
+import { UserRole } from '~/constants'
 import Pagination from '~/components/pagination'
 import { customErrorMap } from '~/validation/customErrorMap'
 import DashboardTable from '~/components/dashboard/table'
 import { enUserRoleToAr } from '~/utils/users'
 import Dialog, { DialogActions } from '~/components/dialog'
 import { updateUserSchema } from '~/validation/updateUserSchema'
+import { importUsersSchema } from '~/validation/importUsersSchema'
 
 type EditUserFieldValues = {
   id: string
@@ -182,14 +176,14 @@ const AddUsersDialog = ({
     setError,
     formState: { errors: fieldsErrors }
   } = useForm<AddUsersFieldValues>({
-    resolver: zodResolver(importQuestionsSchema, {
+    resolver: zodResolver(importUsersSchema, {
       errorMap: customErrorMap
     })
   })
 
   const closeModal = () => setOpen(false)
 
-  const studentsImport = api.sheets.importQuestions.useMutation()
+  const usersImport = api.sheets.importUsers.useMutation()
 
   const {
     isFetching: isFetchingSheets,
@@ -221,8 +215,8 @@ const AddUsersDialog = ({
 
   const onSubmit = (data: AddUsersFieldValues) => {
     const t = toast.loading('جاري إضافة الطلبة')
-    studentsImport
-      .mutateAsync(data as z.infer<typeof importQuestionsSchema>)
+    usersImport
+      .mutateAsync(data as z.infer<typeof importUsersSchema>)
       .then(() => {
         toast.dismiss(t)
         resetForm()
@@ -285,7 +279,7 @@ const AddUsersDialog = ({
           <DashboardButton
             type='submit'
             variant='success'
-            loading={studentsImport.isLoading}
+            loading={usersImport.isLoading}
           >
             إضافة
           </DashboardButton>

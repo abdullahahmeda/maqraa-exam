@@ -100,7 +100,7 @@ SettingsPage.getLayout = (page: any) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
 
-async function getServerSideProps (context: GetServerSidePropsContext) {
+export async function getServerSideProps (context: GetServerSidePropsContext) {
   const settings = await getSettings()
   return {
     props: {

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { prisma } from '../server/db'
 import sheets from '../utils/sheets'
 import { questionSchema } from '../validation/questionSchema'
-import { studentSchema } from '../validation/studentSchema'
+import { userSchema } from '../validation/userSchema'
 
 // const headers = [
 //   'رقم السؤال',
@@ -80,25 +80,25 @@ export const importQuestions = async (
   } else await createQuestions
 }
 
-export const importStudents = async (rows: string[][]) => {
-  const students: z.infer<typeof studentSchema>[] = []
+export const importUsers = async (rows: string[][]) => {
+  const users: z.infer<typeof userSchema>[] = []
   for (const [i, row] of rows.entries()) {
     if (i === 0) continue // TODO: validate sheet headers are equal to `headers` 👆
-    const _student = {
-      email: row[0]
+    const _user = {
+      name: row[0],
+      email: row[1],
+      role: row[2]
     }
 
-    const student = studentSchema.parse(_student, {
+    const user = userSchema.parse(_user, {
       path: [i + 1]
     })
-    students.push(student)
+    users.push(user)
   }
 
-  // await prisma.question.createMany({
-  //   data: students
-  // })
-
-  // TODO: add users
+  await prisma.user.createMany({
+    data: users
+  })
 }
 
 export const getFields = async (spreadsheetId: string, sheet: string) => {

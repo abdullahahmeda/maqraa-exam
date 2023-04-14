@@ -4,7 +4,7 @@ import {
   getFields,
   getSheets,
   importQuestions,
-  importStudents
+  importUsers
 } from '~/services/sheets'
 import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import {
@@ -20,7 +20,7 @@ import {
   adminOnlyProcedure
 } from '../trpc'
 import { logErrorToLogtail } from '~/utils/logtail'
-import { importStudentsSchema } from '~/validation/importStudentsSchema'
+import { importUsersSchema } from '~/validation/importUsersSchema'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -100,8 +100,8 @@ export const sheetsRouter = createTRPCRouter({
       }
       return true
     }),
-  importStudents: adminOnlyProcedure
-    .input(importStudentsSchema)
+  importUsers: adminOnlyProcedure
+    .input(importUsersSchema)
     .mutation(async ({ input }) => {
       const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
 
@@ -113,7 +113,7 @@ export const sheetsRouter = createTRPCRouter({
       }
 
       try {
-        await importStudents(rows)
+        await importUsers(rows)
       } catch (error: any) {
         if (error instanceof ZodError) {
           const issue = error.issues[0]!
