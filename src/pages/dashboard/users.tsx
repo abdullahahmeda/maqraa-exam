@@ -1,9 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '../../pages/_app'
-import { Dialog, Transition } from '@headlessui/react'
-import { Fragment, useMemo, useState } from 'react'
-import { MdClose } from 'react-icons/md'
+import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
@@ -35,25 +33,145 @@ import Pagination from '~/components/pagination'
 import { customErrorMap } from '~/validation/customErrorMap'
 import DashboardTable from '~/components/dashboard/table'
 import { enUserRoleToAr } from '~/utils/users'
+import Dialog, { DialogActions } from '~/components/dialog'
+import { updateUserSchema } from '~/validation/updateUserSchema'
 
-type FieldValues = {
+type EditUserFieldValues = {
+  id: string
+  name: string
+  email: string
+  role: string
+}
+
+const EditUserDialog = ({
+  open,
+  setOpen,
+  refetch,
+  id
+}: {
+  open: boolean
+  setOpen: any
+  refetch: any
+  id: string | null
+}) => {
+  const {
+    register,
+    handleSubmit,
+    reset: resetForm,
+    setError,
+    formState: { errors: fieldsErrors }
+  } = useForm<EditUserFieldValues>({
+    resolver: zodResolver(updateUserSchema, {
+      errorMap: customErrorMap
+    })
+  })
+  const { isLoading: isLoadingUser } = api.users.get.useQuery(
+    {
+      id: id!
+    },
+    {
+      enabled: id != null,
+      onSuccess: user => {
+        if (user)
+          resetForm({
+            id: user.id,
+            name: user.name!,
+            email: user.email!,
+            role: user.role! as UserRole
+          })
+      }
+    }
+  )
+  const userUpdate = api.users.update.useMutation()
+  const closeModal = () => setOpen(false)
+
+  const onSubmit = (data: EditUserFieldValues) => {
+    userUpdate
+      .mutateAsync({
+        ...data,
+        role: data.role as UserRole
+      })
+      .then(() => {
+        toast.success('تم تعديل بيانات المستخدم بنجاح')
+        closeModal()
+        refetch()
+      })
+      .catch(error => {
+        setError('root.serverError', {
+          message: error.message || 'حدث خطأ غير متوقع'
+        })
+      })
+  }
+
+  return (
+    <Dialog open={open} setOpen={setOpen} title='تعديل بيانات المستخدم'>
+      {isLoadingUser && id != null ? (
+        <div className='flex items-center justify-center gap-2 text-center'>
+          <Spinner />
+          <p>جاري التحميل</p>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <input type='hidden' {...register('id')} />
+          <div className='mb-2'>
+            <label htmlFor='name'>الاسم</label>
+            <input
+              type='text'
+              id='name'
+              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+              {...register('name')}
+            />
+            <FieldErrorMessage>{fieldsErrors.name?.message}</FieldErrorMessage>
+          </div>
+          <div className='mb-2'>
+            <label htmlFor='email'>البريد الإلكتروني</label>
+            <input
+              type='email'
+              id='email'
+              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+              {...register('email')}
+            />
+            <FieldErrorMessage>{fieldsErrors.email?.message}</FieldErrorMessage>
+          </div>
+          <div className='mb-2'>
+            <label htmlFor='name'>الصلاحيات</label>
+            <Select className='w-full' id='role' {...register('role')}>
+              <option value={UserRole.STUDENT}>طالب</option>
+              <option value={UserRole.ADMIN}>أدمن</option>
+            </Select>
+            <FieldErrorMessage>{fieldsErrors.role?.message}</FieldErrorMessage>
+          </div>
+          <FieldErrorMessage className='mb-2'>
+            {fieldsErrors.root?.serverError?.message}
+          </FieldErrorMessage>
+          <DialogActions>
+            <DashboardButton
+              type='submit'
+              variant='success'
+              loading={userUpdate.isLoading}
+            >
+              تعديل
+            </DashboardButton>
+          </DialogActions>
+        </form>
+      )}
+    </Dialog>
+  )
+}
+
+type AddUsersFieldValues = {
   url: string
   sheet: string
 }
 
-const defaultValues: FieldValues = {
-  url: '',
-  sheet: ''
-}
-
-const AddUsersModal = ({
+const AddUsersDialog = ({
   open,
   setOpen,
-  refetchUsers
+  refetch: refetchUsers
 }: {
   open: boolean
   setOpen: any
-  refetchUsers: any
+  refetch: any
 }) => {
   const {
     register,
@@ -63,8 +181,7 @@ const AddUsersModal = ({
     getValues,
     setError,
     formState: { errors: fieldsErrors }
-  } = useForm<FieldValues>({
-    defaultValues,
+  } = useForm<AddUsersFieldValues>({
     resolver: zodResolver(importQuestionsSchema, {
       errorMap: customErrorMap
     })
@@ -102,7 +219,7 @@ const AddUsersModal = ({
     refetchSheets()
   }
 
-  const onSubmit = (data: FieldValues) => {
+  const onSubmit = (data: AddUsersFieldValues) => {
     const t = toast.loading('جاري إضافة الطلبة')
     studentsImport
       .mutateAsync(data as z.infer<typeof importQuestionsSchema>)
@@ -120,114 +237,61 @@ const AddUsersModal = ({
   }
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as='div' className='relative z-10' onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter='ease-out duration-300'
-          enterFrom='opacity-0'
-          enterTo='opacity-100'
-          leave='ease-in duration-200'
-          leaveFrom='opacity-100'
-          leaveTo='opacity-0'
-        >
-          <div className='fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity' />
-        </Transition.Child>
-
-        <div className='fixed inset-0 z-[100] overflow-y-auto'>
-          <div className='flex min-h-full items-center justify-center p-4 text-center sm:p-0'>
-            <Transition.Child
-              as={Fragment}
-              enter='ease-out duration-300'
-              enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
-              enterTo='opacity-100 translate-y-0 sm:scale-100'
-              leave='ease-in duration-200'
-              leaveFrom='opacity-100 translate-y-0 sm:scale-100'
-              leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+    <Dialog open={open} setOpen={setOpen} title='إضافة مستخدمين'>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className='mb-2'>
+          <label htmlFor='url'>رابط الإكسل الشيت</label>
+          <div className='flex gap-1'>
+            <input
+              type='url'
+              id='url'
+              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+              {...register('url')}
+            />
+            <DashboardButton
+              type='button'
+              onClick={updateSpreadsheet}
+              loading={isFetchingSheets}
             >
-              <Dialog.Panel
-                as='form'
-                onSubmit={handleSubmit(onSubmit)}
-                className='relative w-full transform overflow-hidden rounded-lg bg-white text-right shadow-xl transition-all sm:my-8 sm:max-w-lg'
-              >
-                <div className='bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4'>
-                  <div className='mb-4 flex items-center justify-between'>
-                    <Dialog.Title
-                      as='h3'
-                      className='text-base font-semibold leading-6 text-gray-900'
-                    >
-                      إضافة مستخدمين
-                    </Dialog.Title>
-                    <button
-                      type='button'
-                      onClick={closeModal}
-                      className='text-gray-600 hover:text-gray-700'
-                    >
-                      <MdClose size={20} />
-                    </button>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='url'>رابط الإكسل الشيت</label>
-                    <div className='flex gap-1'>
-                      <input
-                        type='url'
-                        id='url'
-                        className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-                        {...register('url')}
-                      />
-                      <DashboardButton
-                        type='button'
-                        onClick={updateSpreadsheet}
-                        loading={isFetchingSheets}
-                      >
-                        تحديث
-                      </DashboardButton>
-                    </div>
-                    <FieldErrorMessage>
-                      {fieldsErrors.url?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='sheet'>الورقة</label>
-                    <Select
-                      disabled={!sheets || sheets.length === 0}
-                      className='w-full'
-                      id='sheet'
-                      {...register('sheet')}
-                    >
-                      {!!sheets && sheets?.length > 0 ? (
-                        <>
-                          <option value=''>اختر الورقة</option>
-                          {sheets.map(sheet => (
-                            <option key={sheet} value={sheet}>
-                              {sheet}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option>لا يوجد خيارات</option>
-                      )}
-                    </Select>
-                    <FieldErrorMessage>
-                      {fieldsErrors.sheet?.message}
-                    </FieldErrorMessage>
-                  </div>
-                </div>
-                <div className='flex bg-gray-50 py-3 px-4'>
-                  <DashboardButton
-                    type='submit'
-                    variant='success'
-                    loading={studentsImport.isLoading}
-                  >
-                    إضافة
-                  </DashboardButton>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+              تحديث
+            </DashboardButton>
           </div>
+          <FieldErrorMessage>{fieldsErrors.url?.message}</FieldErrorMessage>
         </div>
-      </Dialog>
-    </Transition.Root>
+        <div className='mb-2'>
+          <label htmlFor='sheet'>الورقة</label>
+          <Select
+            disabled={!sheets || sheets.length === 0}
+            className='w-full'
+            id='sheet'
+            {...register('sheet')}
+          >
+            {!!sheets && sheets?.length > 0 ? (
+              <>
+                <option value=''>اختر الورقة</option>
+                {sheets.map(sheet => (
+                  <option key={sheet} value={sheet}>
+                    {sheet}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <option>لا يوجد خيارات</option>
+            )}
+          </Select>
+          <FieldErrorMessage>{fieldsErrors.sheet?.message}</FieldErrorMessage>
+        </div>
+        <DialogActions>
+          <DashboardButton
+            type='submit'
+            variant='success'
+            loading={studentsImport.isLoading}
+          >
+            إضافة
+          </DashboardButton>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }
 
@@ -237,45 +301,11 @@ type Props = {
 
 const columnHelper = createColumnHelper<User>()
 
-const columns = [
-  columnHelper.accessor('email', {
-    header: 'البريد الإلكتروني',
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('name', {
-    header: 'الاسم',
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.accessor('role', {
-    header: 'الصلاحيات',
-    cell: info => (
-      <Badge
-        text={enUserRoleToAr(info.getValue() || '')}
-        variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
-      />
-    ),
-    meta: {
-      className: 'text-center'
-    }
-  }),
-  columnHelper.display({
-    id: 'actions',
-    cell: () => (
-      <div className='flex justify-center'>
-        <DashboardButton variant='primary'>عرض</DashboardButton>
-      </div>
-    )
-  })
-]
-
 const PAGE_SIZE = 50
 
 const UsersPage = ({ page: initialPage }: Props) => {
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [userToEdit, setUserToEdit] = useState<boolean | string>(false)
 
   const router = useRouter()
 
@@ -296,7 +326,7 @@ const UsersPage = ({ page: initialPage }: Props) => {
     data,
     isLoading: isLoadingQuestions,
     isRefetching: isRefetchingQuestions,
-    refetch: refetchQuestions,
+    refetch,
     isLoadingError,
     isRefetchError
   } = api.users.list.useQuery(
@@ -309,6 +339,50 @@ const UsersPage = ({ page: initialPage }: Props) => {
   )
 
   const pageCount = data !== undefined ? Math.ceil(data.count / pageSize) : -1
+
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('email', {
+        header: 'البريد الإلكتروني',
+        meta: {
+          className: 'text-center'
+        }
+      }),
+      columnHelper.accessor('name', {
+        header: 'الاسم',
+        meta: {
+          className: 'text-center'
+        }
+      }),
+      columnHelper.accessor('role', {
+        header: 'الصلاحيات',
+        cell: info => (
+          <Badge
+            text={enUserRoleToAr(info.getValue() || '')}
+            variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
+          />
+        ),
+        meta: {
+          className: 'text-center'
+        }
+      }),
+      columnHelper.display({
+        id: 'actions',
+        cell: ({ row }) => (
+          <div className='flex justify-center gap-2'>
+            <DashboardButton variant='primary'>عرض</DashboardButton>
+            <DashboardButton
+              variant='warning'
+              onClick={() => setUserToEdit(row.original.id)}
+            >
+              تعديل
+            </DashboardButton>
+          </div>
+        )
+      })
+    ],
+    []
+  )
 
   const table = useReactTable({
     data: data?.users || [],
@@ -348,10 +422,16 @@ const UsersPage = ({ page: initialPage }: Props) => {
           إضافة مستخدمين
         </DashboardButton>
       </div>
-      <AddUsersModal
+      <AddUsersDialog
         open={isModalOpen}
         setOpen={setIsModalOpen}
-        refetchUsers={refetchQuestions}
+        refetch={refetch}
+      />
+      <EditUserDialog
+        open={!!userToEdit}
+        setOpen={setUserToEdit}
+        refetch={refetch}
+        id={typeof userToEdit === 'string' ? userToEdit : null}
       />
       {isRefetchingQuestions && (
         <span className='mt-2 flex items-center gap-1 rounded bg-blue-200 p-2'>
@@ -368,7 +448,7 @@ const UsersPage = ({ page: initialPage }: Props) => {
         table={table}
         isLoading={isLoadingQuestions}
         isLoadingError={isLoadingError}
-        refetch={refetchQuestions}
+        refetch={refetch}
       />
 
       <nav className='flex justify-center'>

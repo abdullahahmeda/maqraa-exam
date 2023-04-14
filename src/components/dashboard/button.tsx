@@ -4,7 +4,7 @@ import Spinner from '../spinner'
 
 interface ButtonProps<T extends ElementType> {
   as?: T
-  variant?: 'primary' | 'success' | 'error'
+  variant?: 'primary' | 'success' | 'error' | 'warning'
   loading?: boolean
   children?: ReactNode
 }
@@ -37,7 +37,9 @@ export default function DashboardButton<T extends ElementType = 'button'> ({
           'bg-green-500 text-white hover:bg-green-600 focus:ring-green-500':
             variant === 'success' && !disabled,
           'bg-red-600 text-white hover:bg-red-700 focus:ring-red-600':
-            variant === 'error' && !disabled
+            variant === 'error' && !disabled,
+          'bg-orange-600 text-white hover:bg-orange-700 focus:ring-orange-600':
+            variant === 'warning' && !disabled
         },
 
         className

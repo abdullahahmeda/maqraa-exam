@@ -1,39 +1,67 @@
+import clsx from 'clsx'
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { ReactNode } from 'react'
+import { ReactNode, useReducer, useState } from 'react'
+import { MdMenu } from 'react-icons/md'
+import { getFirstName } from '~/utils/users'
 
 const Navbar = () => {
+  const [isMenuOpen, toggleMenu] = useReducer(isOpen => !isOpen, false)
   const { data: session, status } = useSession()
   return (
     <nav className='bg-white py-4 shadow-xl'>
-      <div className='container mx-auto flex max-w-5xl items-center justify-between'>
-        <Link href='/' className='text-xl font-bold text-neutral-800'>
-          حفاظ الوحيين
-        </Link>
+      <div className='container mx-auto max-w-5xl items-center justify-between md:flex'>
+        <div className='flex justify-between'>
+          <Link href='/' className='text-xl font-bold text-neutral-800'>
+            حفاظ الوحيين
+          </Link>
+          <button onClick={toggleMenu} className='md:hidden'>
+            <MdMenu size={20} />
+          </button>
+        </div>
         <div>
-          <ul className='flex gap-10'>
+          <ul
+            className={clsx(
+              'container mt-4 flex-col gap-5 md:mr-auto md:mt-0 md:flex md:flex-row md:px-0',
+              {
+                hidden: !isMenuOpen,
+                flex: isMenuOpen
+              }
+            )}
+          >
             {status === 'authenticated' ? (
               <>
-                <li>
-                  أهلاً بك، {session.user.name?.split(' ')[0] || 'مستخدم'}
+                <li>أهلاً بك، {getFirstName(session?.user.name)}</li>
+                <li className='block font-bold'>
+                  <Link href='/dashboard' className='block'>
+                    لوحة التحكم
+                  </Link>
                 </li>
-                <li className='font-bold'>
-                  <Link href='/dashboard'>لوحة التحكم</Link>
+                <li className='block font-bold'>
+                  <Link href='/' className='block'>
+                    بدأ اختبار
+                  </Link>
                 </li>
-                <li className='font-bold'>
-                  <Link href='/'>بدأ اختبار</Link>
-                </li>
-                <li className='font-bold'>
-                  <button onClick={() => signOut()}>تسجيل خروج</button>
+                <li className='block font-bold'>
+                  <button
+                    onClick={() => signOut()}
+                    className='w-100 block text-right'
+                  >
+                    تسجيل خروج
+                  </button>
                 </li>
               </>
             ) : (
               <>
-                <li className='font-bold'>
-                  <Link href='/login'>دخول</Link>
+                <li className='block font-bold'>
+                  <Link href='/login' className='block'>
+                    دخول
+                  </Link>
                 </li>
-                <li className='font-bold'>
-                  <Link href='/register'>تسجيل</Link>
+                <li className='block font-bold'>
+                  <Link href='/register' className='block'>
+                    تسجيل
+                  </Link>
                 </li>
               </>
             )}

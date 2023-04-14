@@ -2,7 +2,11 @@
 module.exports = {
   content: ['./src/**/*.{js,ts,jsx,tsx}'],
   theme: {
-    extend: {}
+    extend: {
+      container: {
+        padding: '1rem'
+      }
+    }
   },
   plugins: [require('@tailwindcss/forms')]
 }

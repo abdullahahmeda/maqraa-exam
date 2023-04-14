@@ -27,7 +27,6 @@ async function main () {
 
   await prisma.user.create({
     data: {
-      id: adminEmail,
       email: adminEmail,
       role: UserRole.ADMIN,
       name: 'الأدمن'

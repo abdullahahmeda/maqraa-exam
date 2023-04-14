@@ -14,3 +14,7 @@ export const enUserRoleToAr = (enUserRole: string): ArUserRole | string => {
   const inverted = invert(userRoleMapping)
   return inverted[enUserRole as keyof typeof inverted] ?? enUserRole
 }
+
+export const getFirstName = (name?: string | null, fallback = 'مستخدم') => {
+  return name?.split(' ')[0] || fallback
+}

@@ -12,10 +12,10 @@ import {
 } from 'react-icons/md'
 import useOnClickOutside from '~/hooks/useOnClickOutside'
 import useMediaQuery from '~/hooks/useMediaQuery'
-import { useRouter } from 'next/router'
 import MenuItem from './menu-item'
 import clsx from 'clsx'
-import { signOut } from 'next-auth/react'
+import { signOut, useSession } from 'next-auth/react'
+import { getFirstName } from '~/utils/users'
 
 const sidebarMiniVariantWidth = 80
 const sidebarWidth = 300
@@ -77,7 +77,7 @@ const Overlay = styled('div', {
 export default function DashboardLayout ({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-  const { push } = useRouter()
+  const { data: session } = useSession()
 
   const isDesktop = useMediaQuery('(min-width: 1024px)')
   const closeSidebar = () => setIsSidebarOpen(false)
@@ -100,7 +100,18 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
         ref={sidebarRef}
       >
         <div>
-          <ul className='justify-content-end flex-grow-1 mt-2'>
+          <h1
+            className={clsx(
+              'mt-5 whitespace-nowrap text-center text-xl font-semibold transition-opacity',
+              {
+                'opacity-0': !isSidebarOpen
+              }
+            )}
+          >
+            أهلاً بك، {getFirstName(session?.user.name)}
+          </h1>
+
+          <ul className='justify-content-end flex-grow-1 mt-3'>
             <MenuItem
               startIcon={
                 <MdHome
@@ -112,6 +123,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               href='/dashboard'
               className='mb-2'
               isActive={pathname => pathname === '/dashboard'}
+              closeSidebar={closeSidebar}
             />
             <MenuItem
               startIcon={
@@ -123,6 +135,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               text='المقررات'
               className='mb-2'
               href='/dashboard/courses'
+              closeSidebar={closeSidebar}
             />
             <MenuItem
               startIcon={
@@ -134,6 +147,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               text='المناهج'
               className='mb-2'
               href='/dashboard/curricula'
+              closeSidebar={closeSidebar}
             />
             <MenuItem
               startIcon={
@@ -145,6 +159,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               text='المستخدمون'
               className='mb-2'
               href='/dashboard/users'
+              closeSidebar={closeSidebar}
             />
 
             <MenuItem
@@ -157,6 +172,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               text='الأسئلة'
               className='mb-2'
               href='/dashboard/questions'
+              closeSidebar={closeSidebar}
             />
             <MenuItem
               startIcon={
@@ -168,6 +184,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               text='التسليمات'
               className='mb-2'
               href='/dashboard/exams'
+              closeSidebar={closeSidebar}
             />
 
             <MenuItem
@@ -179,6 +196,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               }
               text='الإعدادات'
               href='/dashboard/settings'
+              closeSidebar={closeSidebar}
             />
           </ul>
         </div>
@@ -199,7 +217,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               <h1>لوحة التحكم</h1>
               <button
                 className='mr-auto rounded px-3 py-2 transition-colors hover:bg-zinc-900/10'
-                onClick={() => signOut()}
+                onClick={() => signOut({ callbackUrl: '/' })}
               >
                 تسجيل الخروج
               </button>

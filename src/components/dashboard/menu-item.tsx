@@ -5,6 +5,7 @@ import { MouseEventHandler, ReactNode, useReducer, useRef } from 'react'
 import { UrlObject } from 'url'
 import clsx from 'clsx'
 import { MdOutlineExpandMore } from 'react-icons/md'
+import { useTheme } from '~/lib/theme'
 
 const DropdownContent = styled('div', {
   shouldForwardProp: prop => prop !== 'open'
@@ -23,6 +24,7 @@ type MenuLinkProps = {
   onClick?: MouseEventHandler<HTMLAnchorElement>
   isActive?: boolean | ((pathname: string) => boolean)
   className?: string
+  closeSidebar: any
 }
 
 type MenuItemProps = {
@@ -36,7 +38,8 @@ const MenuLink = ({
   endIcon,
   onClick,
   isActive,
-  className
+  className,
+  closeSidebar
 }: MenuLinkProps) => {
   // const { closeSidebar } = useTheme()
 
@@ -49,8 +52,10 @@ const MenuLink = ({
         !isActive && 'bg-black/10',
         className
       )}
-      // onClick={closeSidebar}
-      onClick={onClick}
+      onClick={e => {
+        if (onClick) onClick(e)
+        closeSidebar()
+      }}
     >
       {startIcon}
       {text}
@@ -66,7 +71,8 @@ export default function MenuItem ({
   href = '#0',
   isActive: _isActive,
   endIcon,
-  className = ''
+  className = '',
+  closeSidebar
 }: MenuItemProps) {
   const [isDropdownOpen, toggleDropdown] = useReducer(
     (state: boolean, _action_: any) => !state,
@@ -84,7 +90,7 @@ export default function MenuItem ({
   return (
     <>
       <MenuLink
-        {...{ href, startIcon, text, isActive, className }}
+        {...{ href, startIcon, text, isActive, className, closeSidebar }}
         endIcon={
           endIcon !== undefined
             ? endIcon

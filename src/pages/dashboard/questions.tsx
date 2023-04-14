@@ -1,9 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { Dialog, Transition } from '@headlessui/react'
-import { Fragment, useMemo, useState } from 'react'
-import { MdClose } from 'react-icons/md'
+import { useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
@@ -34,6 +32,7 @@ import { QuestionDifficulty, QuestionType } from '../../constants'
 import Pagination from '../../components/pagination'
 import { customErrorMap } from '../../validation/customErrorMap'
 import DashboardTable from '../../components/dashboard/table'
+import Dialog, { DialogActions } from '~/components/dialog'
 
 type FieldValues = {
   url: string
@@ -49,7 +48,7 @@ const defaultValues: FieldValues = {
   removeOldQuestions: false
 }
 
-const AddQuestionsModal = ({
+const AddQuestionsDialog = ({
   open,
   setOpen,
   refetchQuestions
@@ -125,151 +124,94 @@ const AddQuestionsModal = ({
   }
 
   return (
-    <Transition.Root show={open} as={Fragment}>
-      <Dialog as='div' className='relative z-10' onClose={setOpen}>
-        <Transition.Child
-          as={Fragment}
-          enter='ease-out duration-300'
-          enterFrom='opacity-0'
-          enterTo='opacity-100'
-          leave='ease-in duration-200'
-          leaveFrom='opacity-100'
-          leaveTo='opacity-0'
-        >
-          <div className='fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity' />
-        </Transition.Child>
-
-        <div className='fixed inset-0 z-[100] overflow-y-auto'>
-          <div className='flex min-h-full items-center justify-center p-4 text-center sm:p-0'>
-            <Transition.Child
-              as={Fragment}
-              enter='ease-out duration-300'
-              enterFrom='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
-              enterTo='opacity-100 translate-y-0 sm:scale-100'
-              leave='ease-in duration-200'
-              leaveFrom='opacity-100 translate-y-0 sm:scale-100'
-              leaveTo='opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95'
+    <Dialog open={open} setOpen={setOpen} title='إضافة أسئلة'>
+      <form onSubmit={handleSubmit(onSubmit)}>
+        <div className='mb-2'>
+          <label htmlFor='url'>رابط الإكسل الشيت</label>
+          <div className='flex gap-1'>
+            <input
+              type='url'
+              id='url'
+              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+              {...register('url')}
+            />
+            <DashboardButton
+              type='button'
+              onClick={updateSpreadsheet}
+              loading={isFetchingSheets}
             >
-              <Dialog.Panel
-                as='form'
-                onSubmit={handleSubmit(onSubmit)}
-                className='relative w-full transform overflow-hidden rounded-lg bg-white text-right shadow-xl transition-all sm:my-8 sm:max-w-lg'
-              >
-                <div className='bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4'>
-                  <div className='mb-4 flex items-center justify-between'>
-                    <Dialog.Title
-                      as='h3'
-                      className='text-base font-semibold leading-6 text-gray-900'
-                    >
-                      إضافة أسئلة
-                    </Dialog.Title>
-                    <button
-                      type='button'
-                      onClick={closeModal}
-                      className='text-gray-600 hover:text-gray-700'
-                    >
-                      <MdClose size={20} />
-                    </button>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='url'>رابط الإكسل الشيت</label>
-                    <div className='flex gap-1'>
-                      <input
-                        type='url'
-                        id='url'
-                        className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-                        {...register('url')}
-                      />
-                      <DashboardButton
-                        type='button'
-                        onClick={updateSpreadsheet}
-                        loading={isFetchingSheets}
-                      >
-                        تحديث
-                      </DashboardButton>
-                    </div>
-                    <FieldErrorMessage>
-                      {fieldsErrors.url?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='sheet'>الورقة</label>
-                    <Select
-                      disabled={!sheets || sheets.length === 0}
-                      className='w-full'
-                      id='sheet'
-                      {...register('sheet')}
-                    >
-                      {!!sheets && sheets?.length > 0 ? (
-                        <>
-                          <option value=''>اختر الورقة</option>
-                          {sheets.map(sheet => (
-                            <option key={sheet} value={sheet}>
-                              {sheet}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option>لا يوجد خيارات</option>
-                      )}
-                    </Select>
-                    <FieldErrorMessage>
-                      {fieldsErrors.sheet?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='mb-2'>
-                    <label htmlFor='course'>المقرر</label>
-                    <Select
-                      disabled={!courses || courses.length === 0}
-                      className='w-full'
-                      id='course'
-                      {...register('course', {
-                        valueAsNumber: true
-                      })}
-                    >
-                      {!!courses && courses?.length > 0 ? (
-                        <>
-                          <option value={undefined}>اختر المقرر</option>
-                          {courses?.map(course => (
-                            <option key={course.id} value={course.id}>
-                              {course.name}
-                            </option>
-                          ))}
-                        </>
-                      ) : (
-                        <option>لا يوجد خيارات</option>
-                      )}
-                    </Select>
-                    <FieldErrorMessage>
-                      {fieldsErrors.course?.message}
-                    </FieldErrorMessage>
-                  </div>
-                  <div className='flex items-center gap-1'>
-                    <input
-                      type='checkbox'
-                      id='remove-old-questions'
-                      {...register('removeOldQuestions')}
-                    />
-                    <label htmlFor='remove-old-questions'>
-                      حذف الأسئلة القديمة
-                    </label>
-                  </div>
-                </div>
-                <div className='flex bg-gray-50 py-3 px-4'>
-                  <DashboardButton
-                    type='submit'
-                    variant='success'
-                    loading={questionsImport.isLoading}
-                  >
-                    إضافة
-                  </DashboardButton>
-                </div>
-              </Dialog.Panel>
-            </Transition.Child>
+              تحديث
+            </DashboardButton>
           </div>
+          <FieldErrorMessage>{fieldsErrors.url?.message}</FieldErrorMessage>
         </div>
-      </Dialog>
-    </Transition.Root>
+        <div className='mb-2'>
+          <label htmlFor='sheet'>الورقة</label>
+          <Select
+            disabled={!sheets || sheets.length === 0}
+            className='w-full'
+            id='sheet'
+            {...register('sheet')}
+          >
+            {!!sheets && sheets?.length > 0 ? (
+              <>
+                <option value=''>اختر الورقة</option>
+                {sheets.map(sheet => (
+                  <option key={sheet} value={sheet}>
+                    {sheet}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <option>لا يوجد خيارات</option>
+            )}
+          </Select>
+          <FieldErrorMessage>{fieldsErrors.sheet?.message}</FieldErrorMessage>
+        </div>
+        <div className='mb-2'>
+          <label htmlFor='course'>المقرر</label>
+          <Select
+            disabled={!courses || courses.length === 0}
+            className='w-full'
+            id='course'
+            {...register('course', {
+              valueAsNumber: true
+            })}
+          >
+            {!!courses && courses?.length > 0 ? (
+              <>
+                <option value={undefined}>اختر المقرر</option>
+                {courses?.map(course => (
+                  <option key={course.id} value={course.id}>
+                    {course.name}
+                  </option>
+                ))}
+              </>
+            ) : (
+              <option>لا يوجد خيارات</option>
+            )}
+          </Select>
+          <FieldErrorMessage>{fieldsErrors.course?.message}</FieldErrorMessage>
+        </div>
+        <div className='mb-2 flex items-center gap-1'>
+          <input
+            type='checkbox'
+            id='remove-old-questions'
+            {...register('removeOldQuestions')}
+          />
+          <label htmlFor='remove-old-questions'>حذف الأسئلة القديمة</label>
+        </div>
+        <DialogActions>
+          <DashboardButton
+            type='submit'
+            variant='success'
+            loading={questionsImport.isLoading}
+          >
+            إضافة
+          </DashboardButton>
+        </DialogActions>
+      </form>
+    </Dialog>
   )
 }
 
@@ -430,7 +372,7 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
           إضافة أسئلة
         </DashboardButton>
       </div>
-      <AddQuestionsModal
+      <AddQuestionsDialog
         open={isModalOpen}
         setOpen={setIsModalOpen}
         refetchQuestions={(removeOldQuestions: boolean) => {
