@@ -14,6 +14,8 @@ type FieldValues = Record<string, string>
 
 const ExamPage = () => {
   const router = useRouter()
+  const { register, handleSubmit, reset: resetForm } = useForm<FieldValues>()
+
   const {
     data: exam,
     isLoadingError,
@@ -26,11 +28,16 @@ const ExamPage = () => {
     },
     {
       enabled: typeof router.query.id === 'string',
-      refetchOnReconnect: false
+      refetchOnReconnect: false,
+      onSuccess: exam => {
+        const questionsValues = exam.questions.reduce(
+          (obj, q) => ({ ...obj, [q.id]: q.answer }),
+          {}
+        )
+        if (exam.submittedAt) resetForm(questionsValues)
+      }
     }
   )
-
-  const { register, handleSubmit } = useForm<FieldValues>()
 
   const examSubmit = api.exams.submit.useMutation()
 
@@ -86,7 +93,11 @@ const ExamPage = () => {
             </p>
           )}
           {exam && (
-            <form onSubmit={handleSubmit(onSubmit)}>
+            <form
+              onSubmit={
+                exam.submittedAt ? () => undefined : handleSubmit(onSubmit)
+              }
+            >
               {exam?.questions.map(({ question, id }, i) => (
                 <div key={id} className='mb-4'>
                   <p className='block'>
@@ -100,7 +111,9 @@ const ExamPage = () => {
                         <textarea
                           className='block w-full'
                           id={`question-${id}-answer`}
-                          {...register('' + id)}
+                          {...register('' + id, {
+                            disabled: !!exam.submittedAt
+                          })}
                         />
                       </>
                     ) : (
@@ -110,11 +123,13 @@ const ExamPage = () => {
                           {question.style === QuestionStyle.CHOOSE ? (
                             <>
                               {question.option1 && (
-                                <div className='flex gap-2'>
+                                <div className='flex items-center gap-2'>
                                   <input
                                     type='radio'
                                     id={`quesion-${id}-option-1`}
-                                    {...register('' + id)}
+                                    {...register('' + id, {
+                                      disabled: !!exam.submittedAt
+                                    })}
                                     value={question.option1}
                                   />
                                   <label htmlFor={`quesion-${id}-option-1`}>
@@ -123,11 +138,13 @@ const ExamPage = () => {
                                 </div>
                               )}
                               {question.option2 && (
-                                <div className='flex gap-2'>
+                                <div className='flex items-center gap-2'>
                                   <input
                                     type='radio'
                                     id={`quesion-${id}-option-2`}
-                                    {...register('' + id)}
+                                    {...register('' + id, {
+                                      disabled: !!exam.submittedAt
+                                    })}
                                     value={question.option2}
                                   />
                                   <label htmlFor={`quesion-${id}-option-2`}>
@@ -136,11 +153,13 @@ const ExamPage = () => {
                                 </div>
                               )}
                               {question.option3 && (
-                                <div className='flex gap-2'>
+                                <div className='flex items-center gap-2'>
                                   <input
                                     type='radio'
                                     id={`quesion-${id}-option-3`}
-                                    {...register('' + id)}
+                                    {...register('' + id, {
+                                      disabled: !!exam.submittedAt
+                                    })}
                                     value={question.option3}
                                   />
                                   <label htmlFor={`quesion-${id}-option-3`}>
@@ -149,11 +168,13 @@ const ExamPage = () => {
                                 </div>
                               )}
                               {question.option4 && (
-                                <div className='flex gap-2'>
+                                <div className='flex items-center gap-2'>
                                   <input
                                     type='radio'
                                     id={`quesion-${id}-option-4`}
-                                    {...register('' + id)}
+                                    {...register('' + id, {
+                                      disabled: !!exam.submittedAt
+                                    })}
                                     value={question.option4}
                                   />
                                   <label htmlFor={`quesion-${id}-option-4`}>
@@ -164,22 +185,26 @@ const ExamPage = () => {
                             </>
                           ) : (
                             <>
-                              <div className='flex gap-2'>
+                              <div className='flex items-center gap-2'>
                                 <input
                                   type='radio'
                                   id={`quesion-${i + 1}-option-true`}
-                                  {...register('' + id)}
+                                  {...register('' + id, {
+                                    disabled: !!exam.submittedAt
+                                  })}
                                   value={question.trueText!}
                                 />
                                 <label htmlFor={`quesion-${i + 1}-option-true`}>
                                   {question.trueText}
                                 </label>
                               </div>
-                              <div className='flex gap-2'>
+                              <div className='flex items-center gap-2'>
                                 <input
                                   type='radio'
                                   id={`quesion-${i + 1}-option-false`}
-                                  {...register('' + id)}
+                                  {...register('' + id, {
+                                    disabled: !!exam.submittedAt
+                                  })}
                                   value={question.falseText!}
                                 />
                                 <label
@@ -194,11 +219,14 @@ const ExamPage = () => {
                       </>
                     )}
                   </div>
+                  {question.answer && <p>الإجابة الصحيحة: {question.answer}</p>}
                 </div>
               ))}
-              <Button loading={examSubmit.isLoading} variant='primary'>
-                تسليم
-              </Button>
+              {!exam.submittedAt && (
+                <Button loading={examSubmit.isLoading} variant='primary'>
+                  تسليم
+                </Button>
+              )}
             </form>
           )}
         </div>

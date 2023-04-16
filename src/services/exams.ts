@@ -58,31 +58,39 @@ export const getPaginatedExams = async ({
   }
 }
 
-export const getExamToSolve = async (id: string) => {
+export const getExamToSolve = async (id: string, authedUserId: string) => {
+  const _select = {
+    id: true,
+    answer: false,
+    question: {
+      select: {
+        text: true,
+        falseText: true,
+        trueText: true,
+        option1: true,
+        option2: true,
+        option3: true,
+        option4: true,
+        style: true,
+        type: true,
+        answer: false
+      }
+    }
+  }
+  const _exam = await prisma.exam.findFirst({ where: { id } })
+  if (!_exam) return null
+  if (_exam.submittedAt) _select.answer = true
+  if (_exam.grade) _select.question.select.answer = true
+  const select = Prisma.validator<Prisma.ExamQuestionSelect>()(_select)
   const exam = await prisma.exam.findFirst({
     where: {
-      // userId: authedUser,
-      id,
-      submittedAt: null
+      userId: authedUserId,
+      id
+      // submittedAt: null
     },
     include: {
       questions: {
-        select: {
-          id: true,
-          question: {
-            select: {
-              text: true,
-              falseText: true,
-              trueText: true,
-              option1: true,
-              option2: true,
-              option3: true,
-              option4: true,
-              style: true,
-              type: true
-            }
-          }
-        }
+        select
       }
     }
   })
@@ -231,6 +239,9 @@ export const submitExam = async (
     })
   )
 
+  const exam = await prisma.exam.findFirstOrThrow({ where: { id } })
+  if (exam.submittedAt) throw new Error('تم تسليم هذا الإختبار من قبل')
+
   await prisma.exam.update({
     where: {
       id
@@ -282,6 +293,19 @@ export const sendGradeEmail = async (examId: string) => {
       }
     }
   })
+
+  const brandColor = '#346df1'
+  const buttonText = '#fff'
+
+  const color = {
+    background: '#f9f9f9',
+    text: '#444',
+    mainBackground: '#fff',
+    buttonBackground: brandColor,
+    buttonBorder: brandColor,
+    buttonText
+  }
+
   return sendMail({
     to: [
       {
@@ -289,7 +313,33 @@ export const sendGradeEmail = async (examId: string) => {
         // email: exam.user.email
       }
     ],
-    subject: 'تم تصحيح الاختبار الخاص بك',
-    textContent: `الدرجة الخاصة بك هي ${exam.grade} من ${exam.questions.length}`
+    subject: 'تم تصحيح الإختبار الخاص بك',
+    textContent: `الدرجة الخاصة بك هي ${exam.grade} من ${exam.questions.length}`,
+    htmlContent: `<body style="background: ${color.background};">
+  <table width="100%" border="0" cellspacing="20" cellpadding="0"
+    style="background: ${color.mainBackground}; max-width: 600px; margin: auto; border-radius: 10px;">
+    <tr>
+      <td align="center"
+        style="padding: 10px 0px; font-size: 22px; font-family: Helvetica, Arial, sans-serif; color: ${color.text};">
+        <strong>تم تصحيح الإختبار الخاص بك</strong>
+      </td>
+    </tr>
+    <tr>
+      <td align="center" style="padding: 20px 0;">
+        <table border="0" cellspacing="0" cellpadding="0">
+          <tr>
+            <td align="center" style="border-radius: 5px;" bgcolor="${color.buttonBackground}">${exam.grade}/${exam.questions.length}</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+    <tr>
+      <td align="center"
+        style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${color.text};">
+        إذا كنت تظن أن هناك مشكلة، قم بالتواصل معنا.
+      </td>
+    </tr>
+  </table>
+</body>`
   })
 }

@@ -8,7 +8,7 @@ const DashboardPage = () => {
       <Head>
         <title>لوحة التحكم</title>
       </Head>
-      <div>Hello</div>
+      <div>الإحصائيات قريباً..</div>
     </>
   )
 }

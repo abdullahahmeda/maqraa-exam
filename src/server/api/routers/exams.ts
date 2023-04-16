@@ -84,7 +84,7 @@ export const examsRouter = createTRPCRouter({
     .query(async ({ input, ctx }) => {
       let exam
       try {
-        exam = await getExamToSolve(input.id)
+        exam = await getExamToSolve(input.id, ctx.session.user.id)
       } catch (error) {
         logErrorToLogtail(error)
         throw new TRPCError({
@@ -99,11 +99,14 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الاختبار غير موجود'
         })
 
-      if (exam.userId !== ctx.session.user.id)
-        throw new TRPCError({
-          code: 'UNAUTHORIZED',
-          message: 'هذا الاختبار ليس خاصاً بك'
-        })
+      // Unreachable because `exam = await getExamToSolve(input.id, ctx.session.user.id)`
+      //                                                            ~~~~~~~~~~~~~~~~~~~
+
+      // if (exam.userId !== ctx.session.user.id)
+      //   throw new TRPCError({
+      //     code: 'UNAUTHORIZED',
+      //     message: 'هذا الاختبار ليس خاصاً بك'
+      //   })
       return exam
     }),
   create: protectedProcedure
