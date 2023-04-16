@@ -1,3 +1,6 @@
+import { compareTwoStrings } from 'string-similarity'
+import { QuestionType } from '~/constants'
+
 export const normalizeText = function (text: string) {
   //remove special characters
   text = text.replace(
@@ -22,4 +25,16 @@ export const normalizeText = function (text: string) {
   }
 
   return text
+}
+
+export const isCorrectAnswer = (
+  question: { type: string; answer: string },
+  answer: string | null
+) => {
+  question.type === QuestionType.MCQ
+    ? question.answer === answer
+    : compareTwoStrings(
+        normalizeText('' + answer),
+        normalizeText(question.answer)
+      ) >= 0.85
 }

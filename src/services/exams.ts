@@ -8,6 +8,8 @@ import { sendMail } from '../utils/email'
 import { arDifficultyToEn } from '../utils/questions'
 import { FilterSchema } from '../server/api/routers/exams'
 import { User } from 'next-auth'
+import { compareTwoStrings } from 'string-similarity'
+import { isCorrectAnswer, normalizeText } from '~/utils/strings'
 
 export const getPaginatedExams = async ({
   page,
@@ -217,9 +219,12 @@ export const submitExam = async (
   id: string,
   answers: Record<string, string | null>
 ) => {
+  const exam = await prisma.exam.findFirstOrThrow({ where: { id } })
+  if (exam.submittedAt) throw new Error('تم تسليم هذا الإختبار من قبل')
+
   const questions = await Promise.all(
     Object.entries(answers).map(async ([id, answer]) => {
-      const examQuestion = await prisma.examQuestion.findFirst({
+      const examQuestion = await prisma.examQuestion.findFirstOrThrow({
         where: {
           id: Number(id)
         },
@@ -228,7 +233,8 @@ export const submitExam = async (
         }
       })
 
-      const isCorrect = examQuestion?.question.answer === answer
+      const isCorrect = isCorrectAnswer(examQuestion.question, answer)
+
       return {
         where: { id: Number(id) },
         data: {
@@ -238,9 +244,6 @@ export const submitExam = async (
       }
     })
   )
-
-  const exam = await prisma.exam.findFirstOrThrow({ where: { id } })
-  if (exam.submittedAt) throw new Error('تم تسليم هذا الإختبار من قبل')
 
   await prisma.exam.update({
     where: {
@@ -309,7 +312,7 @@ export const sendGradeEmail = async (examId: string) => {
   return sendMail({
     to: [
       {
-        email: 'elmagicabdulah@gmail.com'
+        email: exam.user.email!
         // email: exam.user.email
       }
     ],
@@ -328,7 +331,7 @@ export const sendGradeEmail = async (examId: string) => {
       <td align="center" style="padding: 20px 0;">
         <table border="0" cellspacing="0" cellpadding="0">
           <tr>
-            <td align="center" style="border-radius: 5px;" bgcolor="${color.buttonBackground}">${exam.grade}/${exam.questions.length}</td>
+            <td align="center" style="border-radius: 5px; padding: 10px 20px; font-weight: bold; font-size: 20px" bgcolor="${color.buttonBackground}">${exam.grade}/${exam.questions.length}</td>
           </tr>
         </table>
       </td>

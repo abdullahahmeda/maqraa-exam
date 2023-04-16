@@ -123,6 +123,8 @@ function html (params: { url: string; host: string; theme: Theme }) {
         </table>
       </td>
     </tr>
+    <tr align="center"
+        style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${color.text};">إن لم يعمل الزر، يمكنك استخدام هذا الرابط: <a href="${url}" target="_blank" font-size: 18px; font-family: Helvetica, Arial, sans-serif;>${url}</a></tr>
     <tr>
       <td align="center"
         style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${color.text};">

@@ -4,6 +4,7 @@ import { useRouter } from 'next/router'
 import { ReactNode, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
+import { compareTwoStrings } from 'string-similarity'
 import Badge from '~/components/badge'
 import DashboardButton from '~/components/dashboard/button'
 import DashboardLayout from '~/components/dashboard/layout'
@@ -12,6 +13,7 @@ import { QuestionType } from '~/constants'
 import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
 import { enStyleToAr, enTypeToAr } from '~/utils/questions'
+import { isCorrectAnswer, normalizeText } from '~/utils/strings'
 
 type FieldValues = Record<string, boolean>
 
@@ -122,10 +124,9 @@ const ExamPage = () => {
 
   let possibleGrade: null | number = null
   if (exam && exam.grade === null)
-    possibleGrade = exam.questions.reduce(
-      (acc, { answer, question }) => acc + Number(answer === question.answer),
-      0
-    )
+    possibleGrade = exam.questions.reduce((acc, { answer, question }) => {
+      return acc + Number(isCorrectAnswer(question, answer))
+    }, 0)
 
   return (
     <>
@@ -197,8 +198,19 @@ const ExamPage = () => {
                 >
                   إجابة الطالب: {answer || '(لا يوجد إجابة)'}
                 </p>
-
                 <p>الإجابة الصحيحة: {question.answer}</p>
+                {question.type === QuestionType.WRITTEN && (
+                  <p>
+                    نسبة التطابق مع الإجابة الصحيحة:{' '}
+                    {(
+                      compareTwoStrings(
+                        normalizeText(question.answer),
+                        normalizeText('' + answer)
+                      ) * 100
+                    ).toFixed(2)}
+                    %
+                  </p>
+                )}
                 <div className='flex items-center gap-2'>
                   <input
                     type='checkbox'
