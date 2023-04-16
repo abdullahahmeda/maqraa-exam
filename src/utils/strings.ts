@@ -31,7 +31,7 @@ export const isCorrectAnswer = (
   question: { type: string; answer: string },
   answer: string | null
 ) => {
-  question.type === QuestionType.MCQ
+  return question.type === QuestionType.MCQ
     ? question.answer === answer
     : compareTwoStrings(
         normalizeText('' + answer),
