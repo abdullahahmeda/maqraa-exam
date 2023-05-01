@@ -3,6 +3,7 @@ import { logErrorToLogtail } from '~/utils/logtail'
 import { adminOnlyProcedure, createTRPCRouter, publicProcedure } from '../trpc'
 import { registerSchema } from '~/validation/registerSchema'
 import {
+  createUser,
   getPaginatedUsers,
   getUser,
   registerStudent,
@@ -10,6 +11,7 @@ import {
 } from '~/services/users'
 import { z } from 'zod'
 import { updateUserSchema } from '~/validation/updateUserSchema'
+import { newUserSchema } from '~/validation/newUserSchema'
 
 export const usersRouter = createTRPCRouter({
   list: adminOnlyProcedure
@@ -43,6 +45,26 @@ export const usersRouter = createTRPCRouter({
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message: 'هذا البريد الإلكتروني مستخدم بالفعل'
+          })
+
+        logErrorToLogtail(error)
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'حدث خطأ غير متوقع'
+        })
+      }
+      return true
+    }),
+  create: adminOnlyProcedure
+    .input(newUserSchema)
+    .mutation(async ({ input }) => {
+      try {
+        await createUser(input)
+      } catch (error: any) {
+        if (error.code === 'P2002')
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'هذا البريد الإلكتروني مسجل بالفعل'
           })
 
         logErrorToLogtail(error)

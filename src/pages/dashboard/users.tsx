@@ -29,6 +29,7 @@ import { enUserRoleToAr } from '~/utils/users'
 import Dialog, { DialogActions } from '~/components/dialog'
 import { updateUserSchema } from '~/validation/updateUserSchema'
 import { importUsersSchema } from '~/validation/importUsersSchema'
+import { newUserSchema } from '~/validation/newUserSchema'
 
 type EditUserFieldValues = {
   id: string
@@ -153,17 +154,15 @@ const EditUserDialog = ({
   )
 }
 
-type AddUsersFieldValues = {
+type AddUsersSheetFieldValues = {
   url: string
   sheet: string
 }
 
-const AddUsersDialog = ({
-  open,
+const AddUsersFromSheetForm = ({
   setOpen,
   refetch: refetchUsers
 }: {
-  open: boolean
   setOpen: any
   refetch: any
 }) => {
@@ -175,7 +174,7 @@ const AddUsersDialog = ({
     getValues,
     setError,
     formState: { errors: fieldsErrors }
-  } = useForm<AddUsersFieldValues>({
+  } = useForm<AddUsersSheetFieldValues>({
     resolver: zodResolver(importUsersSchema, {
       errorMap: customErrorMap
     })
@@ -213,7 +212,7 @@ const AddUsersDialog = ({
     refetchSheets()
   }
 
-  const onSubmit = (data: AddUsersFieldValues) => {
+  const onSubmit = (data: AddUsersSheetFieldValues) => {
     const t = toast.loading('جاري إضافة الطلبة')
     usersImport
       .mutateAsync(data as z.infer<typeof importUsersSchema>)
@@ -229,62 +228,185 @@ const AddUsersDialog = ({
         toast.error(error.message)
       })
   }
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <div className='mb-2'>
+        <label htmlFor='url'>رابط الإكسل الشيت</label>
+        <div className='flex gap-1'>
+          <input
+            type='url'
+            id='url'
+            className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+            {...register('url')}
+          />
+          <DashboardButton
+            type='button'
+            onClick={updateSpreadsheet}
+            loading={isFetchingSheets}
+          >
+            تحديث
+          </DashboardButton>
+        </div>
+        <FieldErrorMessage>{fieldsErrors.url?.message}</FieldErrorMessage>
+      </div>
+      <div className='mb-2'>
+        <label htmlFor='sheet'>الورقة</label>
+        <Select
+          disabled={!sheets || sheets.length === 0}
+          className='w-full'
+          id='sheet'
+          {...register('sheet')}
+        >
+          {!!sheets && sheets?.length > 0 ? (
+            <>
+              <option value=''>اختر الورقة</option>
+              {sheets.map(sheet => (
+                <option key={sheet} value={sheet}>
+                  {sheet}
+                </option>
+              ))}
+            </>
+          ) : (
+            <option>لا يوجد خيارات</option>
+          )}
+        </Select>
+        <FieldErrorMessage>{fieldsErrors.sheet?.message}</FieldErrorMessage>
+      </div>
+      <DialogActions>
+        <DashboardButton
+          type='submit'
+          variant='success'
+          loading={usersImport.isLoading}
+        >
+          إضافة
+        </DashboardButton>
+      </DialogActions>
+    </form>
+  )
+}
+
+type AddUsersSingleFieldValues = {
+  name: string
+  email: string
+  role: UserRole
+}
+
+const AddUsersDialog = ({
+  open,
+  setOpen,
+  refetch: refetchUsers
+}: {
+  open: boolean
+  setOpen: any
+  refetch: any
+}) => {
+  const [type, setType] = useState('SINGLE')
+
+  const {
+    register,
+    handleSubmit,
+    reset: resetForm,
+    trigger,
+    getValues,
+    setError,
+    formState: { errors: fieldsErrors }
+  } = useForm<AddUsersSingleFieldValues>({
+    defaultValues: {
+      role: UserRole.STUDENT
+    },
+    resolver: zodResolver(newUserSchema, {
+      errorMap: customErrorMap
+    })
+  })
+
+  const closeModal = () => setOpen(false)
+
+  const userCreate = api.users.create.useMutation()
+
+  const onSubmit = (data: AddUsersSingleFieldValues) => {
+    const t = toast.loading('جاري إضافة الطالب')
+    userCreate
+      .mutateAsync(data as z.infer<typeof newUserSchema>)
+      .then(() => {
+        toast.dismiss(t)
+        resetForm()
+        toast.success('تم إضافة الطالب بنجاح')
+        closeModal()
+        refetchUsers()
+      })
+      .catch(error => {
+        toast.dismiss(t)
+        toast.error(error.message)
+      })
+  }
 
   return (
     <Dialog open={open} setOpen={setOpen} title='إضافة مستخدمين'>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className='mb-2'>
-          <label htmlFor='url'>رابط الإكسل الشيت</label>
-          <div className='flex gap-1'>
+      <div className='mb-2 flex items-center justify-around'>
+        <div className='flex items-center gap-1'>
+          <input
+            type='radio'
+            checked={type === 'SINGLE'}
+            value='SINGLE'
+            id='single'
+            onChange={e => setType(e.currentTarget.value)}
+          />
+          <label htmlFor='single'>مستخدم واحد</label>
+        </div>
+        <div className='flex items-center gap-1'>
+          <input
+            type='radio'
+            checked={type === 'SHEETS'}
+            value='SHEETS'
+            id='sheets'
+            onChange={e => setType(e.currentTarget.value)}
+          />
+          <label htmlFor='single'>من اكسل شيت</label>
+        </div>
+      </div>
+      {type === 'SINGLE' ? (
+        <form onSubmit={handleSubmit(onSubmit)}>
+          <div className='mb-2'>
+            <label htmlFor='name'>الاسم</label>
             <input
-              type='url'
-              id='url'
+              type='text'
+              id='name'
               className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-              {...register('url')}
+              {...register('name')}
             />
-            <DashboardButton
-              type='button'
-              onClick={updateSpreadsheet}
-              loading={isFetchingSheets}
-            >
-              تحديث
-            </DashboardButton>
+            <FieldErrorMessage>{fieldsErrors.name?.message}</FieldErrorMessage>
           </div>
-          <FieldErrorMessage>{fieldsErrors.url?.message}</FieldErrorMessage>
-        </div>
-        <div className='mb-2'>
-          <label htmlFor='sheet'>الورقة</label>
-          <Select
-            disabled={!sheets || sheets.length === 0}
-            className='w-full'
-            id='sheet'
-            {...register('sheet')}
-          >
-            {!!sheets && sheets?.length > 0 ? (
-              <>
-                <option value=''>اختر الورقة</option>
-                {sheets.map(sheet => (
-                  <option key={sheet} value={sheet}>
-                    {sheet}
-                  </option>
-                ))}
-              </>
-            ) : (
-              <option>لا يوجد خيارات</option>
-            )}
-          </Select>
-          <FieldErrorMessage>{fieldsErrors.sheet?.message}</FieldErrorMessage>
-        </div>
-        <DialogActions>
-          <DashboardButton
-            type='submit'
-            variant='success'
-            loading={usersImport.isLoading}
-          >
-            إضافة
-          </DashboardButton>
-        </DialogActions>
-      </form>
+          <div className='mb-2'>
+            <label htmlFor='email'>البريد الإلكتروني</label>
+            <input
+              type='email'
+              id='email'
+              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
+              {...register('email')}
+            />
+            <FieldErrorMessage>{fieldsErrors.email?.message}</FieldErrorMessage>
+          </div>
+          <div className='mb-2'>
+            <label htmlFor='name'>الصلاحيات</label>
+            <Select className='w-full' id='role' {...register('role')}>
+              <option value={UserRole.STUDENT}>طالب</option>
+              <option value={UserRole.ADMIN}>أدمن</option>
+            </Select>
+            <FieldErrorMessage>{fieldsErrors.role?.message}</FieldErrorMessage>
+          </div>
+          <DialogActions>
+            <DashboardButton
+              type='submit'
+              variant='success'
+              loading={userCreate.isLoading}
+            >
+              إضافة
+            </DashboardButton>
+          </DialogActions>
+        </form>
+      ) : (
+        <AddUsersFromSheetForm {...{ setOpen, refetch: refetchUsers }} />
+      )}
     </Dialog>
   )
 }

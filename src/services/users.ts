@@ -4,6 +4,7 @@ import { prisma } from '../server/db'
 import { UserRole } from '../constants'
 import { PageOptions } from '../types'
 import { updateUserSchema } from '~/validation/updateUserSchema'
+import { newUserSchema } from '~/validation/newUserSchema'
 
 export const getPaginatedUsers = async ({ page, pageSize }: PageOptions) => {
   return {
@@ -35,5 +36,11 @@ export const registerStudent = (data: z.infer<typeof registerSchema>) => {
       email: data.email,
       role: UserRole.STUDENT
     }
+  })
+}
+
+export const createUser = (data: z.infer<typeof newUserSchema>) => {
+  return prisma.user.create({
+    data
   })
 }

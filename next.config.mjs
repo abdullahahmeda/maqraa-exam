@@ -16,12 +16,12 @@ const config = {
    *
    * @see https://github.com/vercel/next.js/issues/41980
    */
-  i18n: {
-    locales: ['ar'],
-    defaultLocale: 'ar'
+  // i18n: {
+  //   locales: ['ar'],
+  //   defaultLocale: 'ar'
+  // },
+  experimental: {
+    swcPlugins: [['next-superjson-plugin', {}]]
   }
-  // experimental: {
-  //   swcPlugins: [['next-superjson-plugin', {}]]
-  // }
 }
 export default config

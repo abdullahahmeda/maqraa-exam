@@ -1,7 +1,7 @@
 import { type AppType } from 'next/app'
 import { type Session } from 'next-auth'
 import type { NextPage } from 'next'
-import type { ReactElement, ReactNode } from 'react'
+import { ReactElement, ReactNode, useEffect } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { Cairo } from '@next/font/google'
 import { Toaster } from 'react-hot-toast'
@@ -9,7 +9,6 @@ import { z } from 'zod'
 import { customErrorMap } from '../validation/customErrorMap'
 import dayjs from 'dayjs'
 import 'dayjs/locale/ar-sa'
-
 import { api } from '../utils/api'
 
 const cairo = Cairo({
@@ -34,6 +33,7 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
 }: any) => {
   const getLayout =
     (Component as NextPageWithLayout).getLayout || (page => page)
+
   return (
     <>
       <SessionProvider session={session}>

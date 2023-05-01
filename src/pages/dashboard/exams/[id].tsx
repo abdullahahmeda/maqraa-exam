@@ -151,7 +151,7 @@ const ExamPage = () => {
         ) : (
           <form onSubmit={handleSubmit(onSubmit)}>
             <h3 className='mb-4 inline-block text-center text-2xl font-semibold'>
-              الاختبار
+              الإختبار
             </h3>
             <Badge
               className='sticky top-3 float-left mr-auto mt-1 shadow'
@@ -169,58 +169,71 @@ const ExamPage = () => {
               }
               variant={exam?.grade !== null ? 'primary' : 'warning'}
             />
-            {exam?.questions.map(({ id, question, isCorrect, answer }) => (
-              <div
-                key={id}
-                className={clsx('mb-2 rounded p-3', {
-                  'bg-green-200': isCorrect,
-                  'bg-red-200':
-                    !isCorrect &&
-                    (exam.grade !== null || question.type === QuestionType.MCQ),
-                  'bg-gray-300':
-                    !isCorrect &&
-                    exam.grade === null &&
-                    question.type === QuestionType.WRITTEN
-                })}
-              >
-                <p>
-                  <Badge text={enTypeToAr(question.type)} className='ml-1' />
-                  <Badge text={enStyleToAr(question.style)} className='ml-2' />
-                  {question.text}
-                </p>
-                <p
-                  className={clsx(
-                    answer === question.answer && 'text-green-600',
-                    question.type === QuestionType.MCQ &&
-                      answer !== question.answer &&
-                      'text-red-500'
-                  )}
+            <div className='mb-4'>
+              <p>اسم الطالب: {exam?.user.name}</p>
+              <p>الإيميل: {exam?.user.email}</p>
+            </div>
+            <div>
+              <h4 className='mb-1 text-xl font-semibold'>الأسئلة</h4>
+              {exam?.questions.map(({ id, question, isCorrect, answer }) => (
+                <div
+                  key={id}
+                  className={clsx('mb-2 rounded p-3', {
+                    'bg-green-200': isCorrect,
+                    'bg-red-200':
+                      !isCorrect &&
+                      (exam.grade !== null ||
+                        question.type === QuestionType.MCQ),
+                    'bg-gray-300':
+                      !isCorrect &&
+                      exam.grade === null &&
+                      question.type === QuestionType.WRITTEN
+                  })}
                 >
-                  إجابة الطالب: {answer || '(لا يوجد إجابة)'}
-                </p>
-                <p>الإجابة الصحيحة: {question.answer}</p>
-                {question.type === QuestionType.WRITTEN && (
                   <p>
-                    نسبة التطابق مع الإجابة الصحيحة:{' '}
-                    {(
-                      compareTwoStrings(
-                        normalizeText(question.answer),
-                        normalizeText('' + answer)
-                      ) * 100
-                    ).toFixed(2)}
-                    %
+                    <Badge text={enTypeToAr(question.type)} className='ml-1' />
+                    <Badge
+                      text={enStyleToAr(question.style)}
+                      className='ml-2'
+                    />
+                    {question.text}
                   </p>
-                )}
-                <div className='flex items-center gap-2'>
-                  <input
-                    type='checkbox'
-                    id={`is-correct-${id}`}
-                    {...register('' + id)}
-                  />
-                  <label htmlFor={`is-correct-${id}`}>تعيين كإجابة صحيحة</label>
+                  <p
+                    className={clsx(
+                      answer === question.answer && 'text-green-600',
+                      question.type === QuestionType.MCQ &&
+                        answer !== question.answer &&
+                        'text-red-500'
+                    )}
+                  >
+                    إجابة الطالب: {answer || '(لا يوجد إجابة)'}
+                  </p>
+                  <p>الإجابة الصحيحة: {question.answer}</p>
+                  {question.type === QuestionType.WRITTEN && (
+                    <p>
+                      نسبة التطابق مع الإجابة الصحيحة:{' '}
+                      {(
+                        compareTwoStrings(
+                          normalizeText(question.answer),
+                          normalizeText('' + answer)
+                        ) * 100
+                      ).toFixed(2)}
+                      %
+                    </p>
+                  )}
+                  <div className='flex items-center gap-2'>
+                    <input
+                      type='checkbox'
+                      id={`is-correct-${id}`}
+                      {...register('' + id)}
+                    />
+                    <label htmlFor={`is-correct-${id}`}>
+                      تعيين كإجابة صحيحة
+                    </label>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
             <DashboardButton
               variant='success'
               className='mt-2'
