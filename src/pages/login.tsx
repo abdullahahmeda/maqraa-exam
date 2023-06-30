@@ -5,45 +5,49 @@ import { FaEnvelope } from 'react-icons/fa'
 import { useForm } from 'react-hook-form'
 import { loginSchema } from '../validation/loginSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
-import Button from '../components/button'
+// import Button from '../components/button'
 import { customErrorMap } from '../validation/customErrorMap'
 import { getProviders, signIn } from 'next-auth/react'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
 import { useRouter } from 'next/router'
-import FieldErrorMessage from '../components/field-error-message'
 import WebsiteLayout from '../components/layout'
 import { getServerAuthSession } from '../server/auth'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '~/components/ui/form'
+import { Input } from '~/components/ui/input'
+import { Button } from '~/components/ui/button'
 
 type FieldValues = {
   email: string
 }
 
 const defaultValues: FieldValues = {
-  email: ''
+  email: '',
 }
 
-export default function LoginPage ({
-  providers
+export default function LoginPage({
+  providers,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const router = useRouter()
-  const {
-    handleSubmit,
-    register,
-    formState: { errors: fieldsErrors },
-    setError
-  } = useForm<FieldValues>({
+  const form = useForm<FieldValues>({
     defaultValues,
     resolver: zodResolver(loginSchema, {
-      errorMap: customErrorMap
-    })
+      errorMap: customErrorMap,
+    }),
   })
 
   const onSubmit = (data: FieldValues) => {
     signIn('email', { email: data.email, redirect: false })
-      .then(response => {
+      .then((response) => {
         if (response?.error === 'AccessDenied') {
-          setError('root.serverError', {
-            message: 'هذا الإيميل غير مسجل، قم بالتسجيل أولاً'
+          form.setError('root.serverError', {
+            message: 'هذا الإيميل غير مسجل، قم بالتسجيل أولاً',
           })
           return
         }
@@ -52,8 +56,8 @@ export default function LoginPage ({
         }
       })
       .catch(() => {
-        setError('root.serverError', {
-          message: 'حدث خطأ غير متوقع'
+        form.setError('root.serverError', {
+          message: 'حدث خطأ غير متوقع',
         })
       })
   }
@@ -78,56 +82,54 @@ export default function LoginPage ({
       <Head>
         <title>حفاظ الوحيين | تسجيل الدخول</title>
       </Head>
-      <form
-        className='mx-auto max-w-[360px] pt-20'
-        onSubmit={handleSubmit(onSubmit)}
-      >
-        <div className='mb-4 text-center'>
-          <Link href='https://mqraa.alwahyaen.com/' className='inline-block'>
-            <Image
-              src='/maqraa_app.png'
-              alt='Logo'
-              width='230'
-              height='150'
-              className='inline-block'
-            />
-          </Link>
-        </div>
-        {router.query.callbackUrl && (
-          <div className='bg-orange-500 p-2 text-neutral-50'>
-            قم بتسجيل الدخول للمتابعة
+      <Form {...form}>
+        <form
+          className='mx-auto max-w-[360px] pt-20'
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
+          <div className='mb-4 text-center'>
+            <Link href='https://mqraa.alwahyaen.com/' className='inline-block'>
+              <Image
+                src='/maqraa_app.png'
+                alt='Logo'
+                width='230'
+                height='150'
+                className='inline-block'
+              />
+            </Link>
           </div>
-        )}
-        <div className='bg-white p-5 shadow'>
-          <h1 className='mb-4 text-center text-2xl font-bold text-neutral-800'>
-            تسجيل الدخول
-          </h1>
-          <div className='flex'>
-            <input
-              type='email'
-              className='peer flex-1 rounded rounded-l-none border border-[#ced4da] py-[.375rem] px-3 text-[#495057] transition-colors focus:border-[#d9b14d] focus:outline-0'
-              placeholder='البريد الإلكتروني'
-              {...register('email')}
-            />
-            <div className='flex items-center rounded rounded-r-none border border-[#ced4da] py-[.375rem] px-3 text-[#777] transition-colors peer-focus:border-[#80bdff]'>
-              <FaEnvelope />
+          {router.query.callbackUrl && (
+            <div className='bg-orange-500 p-2 text-neutral-50'>
+              قم بتسجيل الدخول للمتابعة
             </div>
+          )}
+          <div className='bg-white p-5 shadow'>
+            <h1 className='mb-4 text-center text-2xl font-bold text-neutral-800'>
+              تسجيل الدخول
+            </h1>
+            <FormField
+              control={form.control}
+              name='email'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>البريد الإلكتروني</FormLabel>
+                  <FormControl>
+                    <Input type='email' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <Button className='mt-2'>أرسل الرابط</Button>
           </div>
-          <FieldErrorMessage>{fieldsErrors.email?.message}</FieldErrorMessage>
-          <FieldErrorMessage>
-            {fieldsErrors.root?.serverError?.message}
-          </FieldErrorMessage>
-          <Button className='mt-2' variant='primary'>
-            أرسل الرابط
-          </Button>
-        </div>
-      </form>
+        </form>
+      </Form>
     </>
   )
 }
 LoginPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
 
-export async function getServerSideProps (context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const { req, res } = context
   const session = await getServerAuthSession({ req, res })
 
@@ -138,6 +140,6 @@ export async function getServerSideProps (context: GetServerSidePropsContext) {
   const providers = await getProviders()
 
   return {
-    props: { providers: providers ?? [] }
+    props: { providers: providers ?? [] },
   }
 }

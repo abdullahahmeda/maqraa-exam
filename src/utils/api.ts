@@ -20,7 +20,7 @@ export const getBaseUrl = () => {
 
 /** A set of type-safe react-query hooks for your tRPC API. */
 export const api = createTRPCNext<AppRouter>({
-  config () {
+  config() {
     return {
       /**
        * Transformer used for data de-serialization from the server.
@@ -32,12 +32,13 @@ export const api = createTRPCNext<AppRouter>({
         defaultOptions: {
           queries: {
             retry: (failureCount, error: any) => {
-              if (error?.data?.code === 'UNAUTHORIZED') return false
+              if (['UNAUTHORIZED', 'FORBIDDEN'].includes(error?.data?.code))
+                return false
               return failureCount >= 1
             },
-            refetchOnWindowFocus: false
-          }
-        }
+            refetchOnWindowFocus: false,
+          },
+        },
       },
 
       /**
@@ -47,14 +48,14 @@ export const api = createTRPCNext<AppRouter>({
        * */
       links: [
         loggerLink({
-          enabled: opts =>
+          enabled: (opts) =>
             process.env.NODE_ENV === 'development' ||
-            (opts.direction === 'down' && opts.result instanceof Error)
+            (opts.direction === 'down' && opts.result instanceof Error),
         }),
         httpBatchLink({
-          url: `${getBaseUrl()}/api/trpc`
-        })
-      ]
+          url: `${getBaseUrl()}/api/trpc`,
+        }),
+      ],
     }
   },
   /**
@@ -62,7 +63,7 @@ export const api = createTRPCNext<AppRouter>({
    *
    * @see https://trpc.io/docs/nextjs#ssr-boolean-default-false
    */
-  ssr: false
+  ssr: false,
 })
 
 /**

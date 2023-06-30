@@ -2,24 +2,31 @@ import {
   QuestionDifficulty as EnDifficulty,
   QuestionType as EnType,
   QuestionStyle,
-  QuestionDifficulty
+  QuestionDifficulty,
 } from '../constants'
 import invert from 'lodash.invert'
 
-const typeMapping = {
+export const typeMapping = {
   موضوعي: EnType.MCQ,
-  مقالي: EnType.WRITTEN
+  مقالي: EnType.WRITTEN,
 }
 
-const difficultyMapping = {
+export const difficultyMapping = {
   سهل: EnDifficulty.EASY,
   متوسط: EnDifficulty.MEDIUM,
-  صعب: EnDifficulty.HARD
+  صعب: EnDifficulty.HARD,
 }
 
-const styleMapping = {
+export const styleMapping = {
   'صح أو خطأ': QuestionStyle.TRUE_OR_FALSE,
-  اختر: QuestionStyle.CHOOSE
+  اختر: QuestionStyle.CHOOSE,
+  الراوي: 'RAWI',
+  أجب: 'ANSWER',
+  اذكر: 'MENTION',
+  أكمل: 'COMPLETE',
+  عدد: 'NUMBER',
+  استدل: 'EVIDENCE',
+  'من القائل': 'WHO_SAID',
 }
 
 type ArType = keyof typeof typeMapping

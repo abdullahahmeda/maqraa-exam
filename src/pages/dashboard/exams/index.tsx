@@ -5,7 +5,7 @@ import {
   createColumnHelper,
   getCoreRowModel,
   PaginationState,
-  useReactTable
+  useReactTable,
 } from '@tanstack/react-table'
 import { GetServerSideProps } from 'next'
 import Head from 'next/head'
@@ -13,8 +13,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { ReactNode, useMemo, useState } from 'react'
 import { z } from 'zod'
-import Badge from '~/components/badge'
-import DashboardButton from '~/components/dashboard/button'
+import { Button, buttonVariants } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
 import Pagination from '~/components/pagination'
 import { QuestionDifficulty } from '~/constants'
@@ -23,7 +22,10 @@ import { enDifficultyToAr, getDifficultyVariant } from '~/utils/questions'
 import DashboardTable from '~/components/dashboard/table'
 import dayjs from 'dayjs'
 import { percentage } from '~/utils/percentage'
-import Select from '~/components/select'
+import { Badge } from '~/components/ui/badge'
+import { cn } from '~/lib/utils'
+import { Select, SelectTrigger } from '~/components/ui/select'
+import { DataTable } from '~/components/ui/data-table'
 
 const columnHelper = createColumnHelper<
   Exam & {
@@ -38,98 +40,98 @@ const columnHelper = createColumnHelper<
 
 const columns = [
   columnHelper.accessor('id', {
-    header: 'ID'
+    header: 'ID',
   }),
   columnHelper.accessor('user.email', {
     header: 'المستخدم',
     meta: {
-      className: 'text-center'
-    }
+      className: 'text-center',
+    },
   }),
   columnHelper.accessor('course.name', {
     header: 'المقرر',
     meta: {
-      className: 'text-center'
-    }
+      className: 'text-center',
+    },
   }),
   columnHelper.accessor('curriculum.name', {
     header: 'المنهج',
     meta: {
-      className: 'text-center'
-    }
+      className: 'text-center',
+    },
   }),
   columnHelper.accessor('grade', {
     header: 'الدرجة',
-    cell: info => (
+    cell: (info) => (
       <Badge
-        text={
-          info.getValue() === null
-            ? 'لم يتم التصحيح'
-            : `${info.getValue()} من ${
-                info.row.original.questions.length
-              } (${percentage(
-                info.getValue() as number,
-                info.row.original.questions.length
-              )}%)`
-        }
-        variant={info.getValue() !== null ? 'primary' : 'warning'}
-      />
+      // variant={info.getValue() !== null ? 'primary' : 'warning'}
+      >
+        {info.getValue() === null
+          ? 'لم يتم التصحيح'
+          : `${info.getValue()} من ${
+              info.row.original.questions.length
+            } (${percentage(
+              info.getValue() as number,
+              info.row.original.questions.length
+            )}%)`}
+      </Badge>
     ),
     meta: {
-      className: 'text-center'
-    }
+      className: 'text-center',
+    },
   }),
   columnHelper.accessor('createdAt', {
     header: 'وقت البدأ',
-    cell: info => dayjs(info.getValue()).format('DD MMMM YYYY hh:mm A'),
+    cell: (info) => dayjs(info.getValue()).format('DD MMMM YYYY hh:mm A'),
     meta: {
-      className: 'text-center'
-    }
+      className: 'text-center',
+    },
   }),
   columnHelper.accessor('difficulty', {
     header: 'المستوى',
-    cell: info => (
+    cell: (info) => (
       <Badge
-        text={enDifficultyToAr(info.getValue())}
-        variant={getDifficultyVariant(info.getValue() as QuestionDifficulty)}
-      />
+      // variant={getDifficultyVariant(info.getValue() as QuestionDifficulty)}
+      >
+        {enDifficultyToAr(info.getValue())}
+      </Badge>
     ),
     meta: {
-      className: 'text-center'
-    }
+      className: 'text-center',
+    },
   }),
   columnHelper.accessor('submittedAt', {
     header: 'وقت التسليم',
-    cell: info =>
+    cell: (info) =>
       info.getValue() ? (
         dayjs(info.getValue()).format('DD MMMM YYYY hh:mm A')
       ) : (
-        <Badge text='لم يتم التسليم' variant='error' />
+        <Badge variant='destructive'>لم يتم التسليم</Badge>
       ),
     meta: {
-      className: 'text-center'
-    }
+      className: 'text-center',
+    },
   }),
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
-    cell: info => (
+    cell: (info) => (
       <div className='flex justify-center gap-2'>
-        <DashboardButton
-          as={Link}
+        <Link
+          className={cn(buttonVariants())}
           href={`/dashboard/exams/${info.row.original.id}`}
         >
           تصحيح
-        </DashboardButton>
-        <DashboardButton variant='error' onClick={() => null}>
+        </Link>
+        <Button variant='destructive' onClick={() => null}>
           حذف
-        </DashboardButton>
+        </Button>
       </div>
     ),
     meta: {
-      className: 'text-center'
-    }
-  })
+      className: 'text-center',
+    },
+  }),
 ]
 
 type Props = {
@@ -143,28 +145,28 @@ const ExamsPage = ({ page: initialPage }: Props) => {
 
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: initialPage - 1,
-    pageSize: PAGE_SIZE
+    pageSize: PAGE_SIZE,
   })
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
     {
       id: 'difficulty',
-      value: ''
+      value: '',
     },
     {
       id: 'grade',
-      value: ''
+      value: '',
     },
     {
       id: 'graded',
-      value: ''
-    }
+      value: '',
+    },
   ])
 
   const pagination = useMemo(
     () => ({
       pageIndex,
-      pageSize: PAGE_SIZE
+      pageSize: PAGE_SIZE,
     }),
     [pageSize, pageIndex]
   )
@@ -173,17 +175,17 @@ const ExamsPage = ({ page: initialPage }: Props) => {
     data,
     isLoading: isLoading,
     refetch: refetch,
-    isLoadingError
+    isLoadingError,
   } = api.exams.list.useQuery(
     {
       page: pageIndex + 1,
       filters: columnFilters.reduce(
         (obj, column) => ({ ...obj, [column.id]: column.value }),
         {}
-      )
+      ),
     },
     {
-      networkMode: 'always'
+      networkMode: 'always',
     }
   )
 
@@ -198,21 +200,21 @@ const ExamsPage = ({ page: initialPage }: Props) => {
     manualFiltering: true,
     state: {
       pagination,
-      columnFilters
+      columnFilters,
     },
     onPaginationChange: setPagination,
-    onColumnFiltersChange: setColumnFilters
+    onColumnFiltersChange: setColumnFilters,
   })
 
   const changePageIndex = (pageIndex: number) => {
     table.setPageIndex(pageIndex)
     router.replace(
       {
-        query: { ...router.query, page: pageIndex + 1 }
+        query: { ...router.query, page: pageIndex + 1 },
       },
       undefined,
       {
-        shallow: true
+        shallow: true,
       }
     )
   }
@@ -220,7 +222,7 @@ const ExamsPage = ({ page: initialPage }: Props) => {
   const changeColumnFilterValue = (newValue: ColumnFilter) => {
     const newColumnFilters = columnFilters.slice()
     const index = newColumnFilters.findIndex(
-      column => column.id === newValue.id
+      (column) => column.id === newValue.id
     )
     if (index === -1) newColumnFilters.push(newValue)
     else newColumnFilters[index] = newValue
@@ -234,73 +236,12 @@ const ExamsPage = ({ page: initialPage }: Props) => {
       </Head>
       <div>
         <h2 className='mb-2 text-2xl font-bold'>التسليمات</h2>
-        <div className='mb-2 flex flex-wrap items-center gap-2'>
-          <div>
-            <label htmlFor='graded'>التصحيح</label>
-            <Select
-              id='graded'
-              className='block'
-              onChange={e =>
-                changeColumnFilterValue({
-                  id: 'graded',
-                  value: e.target.value
-                })
-              }
-            >
-              <option value=''>الكل</option>
-              <option value='yes'>تم التصحيح</option>
-              <option value='no'>لم يتم التصحيح</option>
-            </Select>
-          </div>
-          <div>
-            <label htmlFor='grade'>الدرجة</label>
-            <input
-              type='number'
-              id='grade'
-              className='block'
-              onChange={e =>
-                changeColumnFilterValue({
-                  id: 'grade',
-                  value: isNaN(e.currentTarget.valueAsNumber)
-                    ? ''
-                    : e.currentTarget.valueAsNumber
-                })
-              }
-            />
-          </div>
-          <div>
-            <label htmlFor='difficulty'>المستوى</label>
-            <Select
-              id='difficulty'
-              className='block'
-              onChange={e =>
-                changeColumnFilterValue({
-                  id: 'difficulty',
-                  value: e.target.value
-                })
-              }
-            >
-              <option value=''>الكل</option>
-              <option value={QuestionDifficulty.EASY}>سهل</option>
-              <option value={QuestionDifficulty.MEDIUM}>متوسط</option>
-              <option value={QuestionDifficulty.HARD}>صعب</option>
-            </Select>
-          </div>
-        </div>
-        <DashboardTable
+        <DataTable
           table={table}
-          isLoading={isLoading}
-          isLoadingError={isLoadingError}
-          refetch={refetch}
+          // isLoading={isLoading}
+          // isLoadingError={isLoadingError}
+          // refetch={refetch}
         />
-
-        <nav className='flex justify-center'>
-          <Pagination
-            pageCount={pageCount}
-            pageIndex={pageIndex}
-            changePageIndex={changePageIndex}
-          />
-        </nav>
       </div>
     </>
   )
@@ -310,14 +251,14 @@ ExamsPage.getLayout = (page: ReactNode) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
 
-export const getServerSideProps: GetServerSideProps = async context => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
   const _page = context.query.page
   const pageData = z.number().positive().int().safeParse(Number(_page))
 
   return {
     props: {
-      page: pageData.success ? pageData.data : 1
-    }
+      page: pageData.success ? pageData.data : 1,
+    },
   }
 }
 

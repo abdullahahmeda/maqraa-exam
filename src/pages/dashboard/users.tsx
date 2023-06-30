@@ -4,21 +4,18 @@ import DashboardLayout from '~/components/dashboard/layout'
 import { useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import FieldErrorMessage from '~/components/field-error-message'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import toast from 'react-hot-toast'
-import DashboardButton from '~/components/dashboard/button'
-import Badge from '~/components/badge'
+import { Button } from '~/components/ui/button'
 import { Question, User } from '@prisma/client'
-import Select from '~/components/select'
 import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
   useReactTable,
   getCoreRowModel,
-  PaginationState
+  PaginationState,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
 import { UserRole } from '~/constants'
@@ -26,10 +23,35 @@ import Pagination from '~/components/pagination'
 import { customErrorMap } from '~/validation/customErrorMap'
 import DashboardTable from '~/components/dashboard/table'
 import { enUserRoleToAr } from '~/utils/users'
-import Dialog, { DialogActions } from '~/components/dialog'
 import { updateUserSchema } from '~/validation/updateUserSchema'
 import { importUsersSchema } from '~/validation/importUsersSchema'
 import { newUserSchema } from '~/validation/newUserSchema'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '~/components/ui/form'
+import { Input } from '~/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '~/components/ui/select'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTrigger,
+} from '~/components/ui/dialog'
+import { useQueryClient } from '@tanstack/react-query'
+import { Badge } from '~/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
 
 type EditUserFieldValues = {
   id: string
@@ -42,39 +64,33 @@ const EditUserDialog = ({
   open,
   setOpen,
   refetch,
-  id
+  id,
 }: {
   open: boolean
   setOpen: any
   refetch: any
   id: string | null
 }) => {
-  const {
-    register,
-    handleSubmit,
-    reset: resetForm,
-    setError,
-    formState: { errors: fieldsErrors }
-  } = useForm<EditUserFieldValues>({
+  const form = useForm<EditUserFieldValues>({
     resolver: zodResolver(updateUserSchema, {
-      errorMap: customErrorMap
-    })
+      errorMap: customErrorMap,
+    }),
   })
   const { isLoading: isLoadingUser } = api.users.get.useQuery(
     {
-      id: id!
+      id: id!,
     },
     {
       enabled: id != null,
-      onSuccess: user => {
+      onSuccess: (user) => {
         if (user)
-          resetForm({
+          form.reset({
             id: user.id,
             name: user.name!,
             email: user.email!,
-            role: user.role! as UserRole
+            role: user.role! as UserRole,
           })
-      }
+      },
     }
   )
   const userUpdate = api.users.update.useMutation()
@@ -84,73 +100,93 @@ const EditUserDialog = ({
     userUpdate
       .mutateAsync({
         ...data,
-        role: data.role as UserRole
+        role: data.role as UserRole,
       })
       .then(() => {
         toast.success('تم تعديل بيانات المستخدم بنجاح')
         closeModal()
         refetch()
       })
-      .catch(error => {
-        setError('root.serverError', {
-          message: error.message || 'حدث خطأ غير متوقع'
+      .catch((error) => {
+        form.setError('root.serverError', {
+          message: error.message || 'حدث خطأ غير متوقع',
         })
       })
   }
 
   return (
-    <Dialog open={open} setOpen={setOpen} title='تعديل بيانات المستخدم'>
+    <>
       {isLoadingUser && id != null ? (
         <div className='flex items-center justify-center gap-2 text-center'>
           <Spinner />
           <p>جاري التحميل</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <input type='hidden' {...register('id')} />
-          <div className='mb-2'>
-            <label htmlFor='name'>الاسم</label>
-            <input
-              type='text'
-              id='name'
-              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-              {...register('name')}
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <input type='hidden' {...form.register('id')} />
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor='name'>الاسم</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <FieldErrorMessage>{fieldsErrors.name?.message}</FieldErrorMessage>
-          </div>
-          <div className='mb-2'>
-            <label htmlFor='email'>البريد الإلكتروني</label>
-            <input
-              type='email'
-              id='email'
-              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-              {...register('email')}
+            <FormField
+              control={form.control}
+              name='email'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>البريد الإلكتروني</FormLabel>
+                  <FormControl>
+                    <Input type='email' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <FieldErrorMessage>{fieldsErrors.email?.message}</FieldErrorMessage>
-          </div>
-          <div className='mb-2'>
-            <label htmlFor='name'>الصلاحيات</label>
-            <Select className='w-full' id='role' {...register('role')}>
-              <option value={UserRole.STUDENT}>طالب</option>
-              <option value={UserRole.ADMIN}>أدمن</option>
-            </Select>
-            <FieldErrorMessage>{fieldsErrors.role?.message}</FieldErrorMessage>
-          </div>
-          <FieldErrorMessage className='mb-2'>
-            {fieldsErrors.root?.serverError?.message}
-          </FieldErrorMessage>
-          <DialogActions>
-            <DashboardButton
-              type='submit'
-              variant='success'
-              loading={userUpdate.isLoading}
-            >
-              تعديل
-            </DashboardButton>
-          </DialogActions>
-        </form>
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الصلاحيات</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='اختر الصلاحية' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={UserRole.STUDENT}>طالب</SelectItem>
+                      <SelectItem value={UserRole.ADMIN}>أدمن</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* <FieldErrorMessage className='mb-2'>
+              {fieldsErrors.root?.serverError?.message}
+            </FieldErrorMessage> */}
+            <DialogFooter>
+              <Button type='submit' loading={userUpdate.isLoading}>
+                تعديل
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       )}
-    </Dialog>
+    </>
   )
 }
 
@@ -159,54 +195,40 @@ type AddUsersSheetFieldValues = {
   sheet: string
 }
 
-const AddUsersFromSheetForm = ({
-  setOpen,
-  refetch: refetchUsers
-}: {
-  setOpen: any
-  refetch: any
-}) => {
-  const {
-    register,
-    handleSubmit,
-    reset: resetForm,
-    trigger,
-    getValues,
-    setError,
-    formState: { errors: fieldsErrors }
-  } = useForm<AddUsersSheetFieldValues>({
+const AddUsersFromSheetForm = () => {
+  const form = useForm<AddUsersSheetFieldValues>({
     resolver: zodResolver(importUsersSchema, {
-      errorMap: customErrorMap
-    })
+      errorMap: customErrorMap,
+    }),
   })
 
-  const closeModal = () => setOpen(false)
-
   const usersImport = api.sheets.importUsers.useMutation()
+
+  const queryClient = useQueryClient()
 
   const {
     isFetching: isFetchingSheets,
     data: sheets,
-    refetch: refetchSheets
+    refetch: refetchSheets,
   } = api.sheets.listSheets.useQuery(
     {
-      url: getValues('url')
+      url: form.getValues('url'),
     },
     {
       enabled: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
 
-      onError: error => {
-        setError('url', {
-          message: error.message
+      onError: (error) => {
+        form.setError('url', {
+          message: error.message,
         })
-      }
+      },
     }
   )
 
   const updateSpreadsheet = async () => {
-    const isValidUrl = await trigger('url')
+    const isValidUrl = await form.trigger('url')
     if (!isValidUrl) return
 
     refetchSheets()
@@ -218,70 +240,77 @@ const AddUsersFromSheetForm = ({
       .mutateAsync(data as z.infer<typeof importUsersSchema>)
       .then(() => {
         toast.dismiss(t)
-        resetForm()
+        form.reset()
         toast.success('تم إضافة الطلبة بنجاح')
-        closeModal()
-        refetchUsers()
       })
-      .catch(error => {
+      .catch((error) => {
         toast.dismiss(t)
         toast.error(error.message)
       })
+      .finally(() => {
+        queryClient.invalidateQueries([['sheets']])
+      })
   }
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div className='mb-2'>
-        <label htmlFor='url'>رابط الإكسل الشيت</label>
-        <div className='flex gap-1'>
-          <input
-            type='url'
-            id='url'
-            className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-            {...register('url')}
-          />
-          <DashboardButton
-            type='button'
-            onClick={updateSpreadsheet}
-            loading={isFetchingSheets}
-          >
-            تحديث
-          </DashboardButton>
-        </div>
-        <FieldErrorMessage>{fieldsErrors.url?.message}</FieldErrorMessage>
-      </div>
-      <div className='mb-2'>
-        <label htmlFor='sheet'>الورقة</label>
-        <Select
-          disabled={!sheets || sheets.length === 0}
-          className='w-full'
-          id='sheet'
-          {...register('sheet')}
-        >
-          {!!sheets && sheets?.length > 0 ? (
-            <>
-              <option value=''>اختر الورقة</option>
-              {sheets.map(sheet => (
-                <option key={sheet} value={sheet}>
-                  {sheet}
-                </option>
-              ))}
-            </>
-          ) : (
-            <option>لا يوجد خيارات</option>
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+        <FormField
+          control={form.control}
+          name='url'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>رابط الإكسل الشيت</FormLabel>
+              <FormControl>
+                <div className='flex gap-1'>
+                  <Input type='url' {...field} />
+                  <Button
+                    type='button'
+                    onClick={updateSpreadsheet}
+                    loading={isFetchingSheets}
+                  >
+                    تحديث
+                  </Button>
+                </div>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
           )}
-        </Select>
-        <FieldErrorMessage>{fieldsErrors.sheet?.message}</FieldErrorMessage>
-      </div>
-      <DialogActions>
-        <DashboardButton
-          type='submit'
-          variant='success'
-          loading={usersImport.isLoading}
-        >
-          إضافة
-        </DashboardButton>
-      </DialogActions>
-    </form>
+        />
+        <FormField
+          control={form.control}
+          name='sheet'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>الورقة</FormLabel>
+              <Select
+                disabled={!sheets || sheets.length === 0}
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder='اختر الورقة' />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {sheets?.map((sheet) => (
+                    <SelectItem key={sheet} value={sheet}>
+                      {sheet}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button type='submit' loading={usersImport.isLoading}>
+            إضافة
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
   )
 }
 
@@ -291,123 +320,110 @@ type AddUsersSingleFieldValues = {
   role: UserRole
 }
 
-const AddUsersDialog = ({
-  open,
-  setOpen,
-  refetch: refetchUsers
-}: {
-  open: boolean
-  setOpen: any
-  refetch: any
-}) => {
+const AddUsersDialog = () => {
   const [type, setType] = useState('SINGLE')
+  const queryClient = useQueryClient()
 
-  const {
-    register,
-    handleSubmit,
-    reset: resetForm,
-    trigger,
-    getValues,
-    setError,
-    formState: { errors: fieldsErrors }
-  } = useForm<AddUsersSingleFieldValues>({
+  const form = useForm<AddUsersSingleFieldValues>({
     defaultValues: {
-      role: UserRole.STUDENT
+      role: UserRole.STUDENT,
     },
     resolver: zodResolver(newUserSchema, {
-      errorMap: customErrorMap
-    })
+      errorMap: customErrorMap,
+    }),
   })
-
-  const closeModal = () => setOpen(false)
 
   const userCreate = api.users.create.useMutation()
 
   const onSubmit = (data: AddUsersSingleFieldValues) => {
-    const t = toast.loading('جاري إضافة الطالب')
+    const t = toast.loading('جاري إضافة المستخدم')
     userCreate
       .mutateAsync(data as z.infer<typeof newUserSchema>)
       .then(() => {
         toast.dismiss(t)
-        resetForm()
-        toast.success('تم إضافة الطالب بنجاح')
-        closeModal()
-        refetchUsers()
+        form.reset()
+        toast.success('تم إضافة المستخدم بنجاح')
       })
-      .catch(error => {
+      .catch((error) => {
         toast.dismiss(t)
         toast.error(error.message)
+      })
+      .finally(() => {
+        queryClient.invalidateQueries([['users']])
       })
   }
 
   return (
-    <Dialog open={open} setOpen={setOpen} title='إضافة مستخدمين'>
-      <div className='mb-2 flex items-center justify-around'>
-        <div className='flex items-center gap-1'>
-          <input
-            type='radio'
-            checked={type === 'SINGLE'}
-            value='SINGLE'
-            id='single'
-            onChange={e => setType(e.currentTarget.value)}
-          />
-          <label htmlFor='single'>مستخدم واحد</label>
-        </div>
-        <div className='flex items-center gap-1'>
-          <input
-            type='radio'
-            checked={type === 'SHEETS'}
-            value='SHEETS'
-            id='sheets'
-            onChange={e => setType(e.currentTarget.value)}
-          />
-          <label htmlFor='single'>من اكسل شيت</label>
-        </div>
-      </div>
-      {type === 'SINGLE' ? (
-        <form onSubmit={handleSubmit(onSubmit)}>
-          <div className='mb-2'>
-            <label htmlFor='name'>الاسم</label>
-            <input
-              type='text'
-              id='name'
-              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-              {...register('name')}
+    <Tabs defaultValue='single'>
+      <TabsList>
+        <TabsTrigger value='single'>مستخدم واحد</TabsTrigger>
+        <TabsTrigger value='sheet'>من اكسل شيت</TabsTrigger>
+      </TabsList>
+      <TabsContent value='single'>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel htmlFor='name'>الاسم</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <FieldErrorMessage>{fieldsErrors.name?.message}</FieldErrorMessage>
-          </div>
-          <div className='mb-2'>
-            <label htmlFor='email'>البريد الإلكتروني</label>
-            <input
-              type='email'
-              id='email'
-              className='w-full border border-zinc-300 p-2 outline-0 focus:border-zinc-400'
-              {...register('email')}
+            <FormField
+              control={form.control}
+              name='email'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>البريد الإلكتروني</FormLabel>
+                  <FormControl>
+                    <Input type='email' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-            <FieldErrorMessage>{fieldsErrors.email?.message}</FieldErrorMessage>
-          </div>
-          <div className='mb-2'>
-            <label htmlFor='name'>الصلاحيات</label>
-            <Select className='w-full' id='role' {...register('role')}>
-              <option value={UserRole.STUDENT}>طالب</option>
-              <option value={UserRole.ADMIN}>أدمن</option>
-            </Select>
-            <FieldErrorMessage>{fieldsErrors.role?.message}</FieldErrorMessage>
-          </div>
-          <DialogActions>
-            <DashboardButton
-              type='submit'
-              variant='success'
-              loading={userCreate.isLoading}
-            >
-              إضافة
-            </DashboardButton>
-          </DialogActions>
-        </form>
-      ) : (
-        <AddUsersFromSheetForm {...{ setOpen, refetch: refetchUsers }} />
-      )}
-    </Dialog>
+            <FormField
+              control={form.control}
+              name='name'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الصلاحيات</FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder='اختر الصلاحية' />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value={UserRole.STUDENT}>طالب</SelectItem>
+                      <SelectItem value={UserRole.ADMIN}>أدمن</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <DialogFooter>
+              <Button type='submit' loading={userCreate.isLoading}>
+                إضافة
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </TabsContent>
+      <TabsContent value='sheet'>
+        <AddUsersFromSheetForm />
+      </TabsContent>
+    </Tabs>
   )
 }
 
@@ -427,13 +443,13 @@ const UsersPage = ({ page: initialPage }: Props) => {
 
   const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
     pageIndex: initialPage - 1,
-    pageSize: PAGE_SIZE
+    pageSize: PAGE_SIZE,
   })
 
   const pagination = useMemo(
     () => ({
       pageIndex,
-      pageSize: PAGE_SIZE
+      pageSize: PAGE_SIZE,
     }),
     [pageSize, pageIndex]
   )
@@ -444,13 +460,13 @@ const UsersPage = ({ page: initialPage }: Props) => {
     isRefetching: isRefetchingQuestions,
     refetch,
     isLoadingError,
-    isRefetchError
+    isRefetchError,
   } = api.users.list.useQuery(
     {
-      page: pageIndex + 1
+      page: pageIndex + 1,
     },
     {
-      networkMode: 'always'
+      networkMode: 'always',
     }
   )
 
@@ -461,41 +477,39 @@ const UsersPage = ({ page: initialPage }: Props) => {
       columnHelper.accessor('email', {
         header: 'البريد الإلكتروني',
         meta: {
-          className: 'text-center'
-        }
+          className: 'text-center',
+        },
       }),
       columnHelper.accessor('name', {
         header: 'الاسم',
         meta: {
-          className: 'text-center'
-        }
+          className: 'text-center',
+        },
       }),
       columnHelper.accessor('role', {
         header: 'الصلاحيات',
-        cell: info => (
+        cell: (info) => (
           <Badge
-            text={enUserRoleToAr(info.getValue() || '')}
-            variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
-          />
+          // variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
+          >
+            {enUserRoleToAr(info.getValue() || '')}
+          </Badge>
         ),
         meta: {
-          className: 'text-center'
-        }
+          className: 'text-center',
+        },
       }),
       columnHelper.display({
         id: 'actions',
         cell: ({ row }) => (
           <div className='flex justify-center gap-2'>
-            <DashboardButton variant='primary'>عرض</DashboardButton>
-            <DashboardButton
-              variant='warning'
-              onClick={() => setUserToEdit(row.original.id)}
-            >
+            <Button>عرض</Button>
+            <Button onClick={() => setUserToEdit(row.original.id)}>
               تعديل
-            </DashboardButton>
+            </Button>
           </div>
-        )
-      })
+        ),
+      }),
     ],
     []
   )
@@ -507,9 +521,9 @@ const UsersPage = ({ page: initialPage }: Props) => {
     pageCount,
     manualPagination: true,
     state: {
-      pagination
+      pagination,
     },
-    onPaginationChange: setPagination
+    onPaginationChange: setPagination,
   })
 
   const openModal = () => setIsModalOpen(true)
@@ -518,11 +532,11 @@ const UsersPage = ({ page: initialPage }: Props) => {
     table.setPageIndex(pageIndex)
     router.replace(
       {
-        query: { ...router.query, page: pageIndex + 1 }
+        query: { ...router.query, page: pageIndex + 1 },
       },
       undefined,
       {
-        shallow: true
+        shallow: true,
       }
     )
   }
@@ -534,21 +548,23 @@ const UsersPage = ({ page: initialPage }: Props) => {
       </Head>
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المستخدمون</h2>
-        <DashboardButton onClick={openModal} variant='primary'>
-          إضافة مستخدمين
-        </DashboardButton>
+        <Dialog>
+          <DialogTrigger>
+            <Button>إضافة مستخدمين</Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>إضافة مستخدمين</DialogHeader>
+            <AddUsersDialog />
+          </DialogContent>
+        </Dialog>
       </div>
-      <AddUsersDialog
-        open={isModalOpen}
-        setOpen={setIsModalOpen}
-        refetch={refetch}
-      />
-      <EditUserDialog
+      {/* <EditUserDialog
+      title='تعديل بيانات المستخدم'
         open={!!userToEdit}
         setOpen={setUserToEdit}
         refetch={refetch}
         id={typeof userToEdit === 'string' ? userToEdit : null}
-      />
+      /> */}
       {isRefetchingQuestions && (
         <span className='mt-2 flex items-center gap-1 rounded bg-blue-200 p-2'>
           <Spinner />
@@ -566,28 +582,20 @@ const UsersPage = ({ page: initialPage }: Props) => {
         isLoadingError={isLoadingError}
         refetch={refetch}
       />
-
-      <nav className='flex justify-center'>
-        <Pagination
-          pageCount={pageCount}
-          pageIndex={pageIndex}
-          changePageIndex={changePageIndex}
-        />
-      </nav>
     </>
   )
 }
 
 UsersPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
-export const getServerSideProps: GetServerSideProps = async context => {
+export const getServerSideProps: GetServerSideProps = async (context) => {
   const _page = context.query.page
   const pageData = z.number().positive().int().safeParse(Number(_page))
 
   return {
     props: {
-      page: pageData.success ? pageData.data : 1
-    }
+      page: pageData.success ? pageData.data : 1,
+    },
   }
 }
 

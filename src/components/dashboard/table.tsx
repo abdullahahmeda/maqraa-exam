@@ -2,7 +2,7 @@ import { flexRender, Table } from '@tanstack/react-table'
 import clsx from 'clsx'
 import { ReactNode } from 'react'
 import Spinner from '../spinner'
-import DashboardButton from './button'
+import { Button } from '../ui/button'
 
 type Props = {
   table: Table<any>
@@ -11,11 +11,11 @@ type Props = {
   isLoadingError?: boolean
 }
 
-export default function DashboardTable ({
+export default function DashboardTable({
   table,
   refetch = () => undefined,
   isLoading = false,
-  isLoadingError = false
+  isLoadingError = false,
 }: Props) {
   const renderTableBody = (): ReactNode => {
     if (isLoading) {
@@ -39,9 +39,7 @@ export default function DashboardTable ({
               <p className='text-red-500'>
                 حدث خطأ أثناء تحميل البيانات، يرجى إعادة المحاولة
               </p>
-              <DashboardButton onClick={() => refetch()} variant='primary'>
-                إعادة المحاولة
-              </DashboardButton>
+              <Button onClick={() => refetch()}>إعادة المحاولة</Button>
             </div>
           </td>
         </tr>
@@ -56,9 +54,9 @@ export default function DashboardTable ({
           </td>
         </tr>
       )
-    return table.getRowModel().rows.map(row => (
+    return table.getRowModel().rows.map((row) => (
       <tr key={row.id} className='border-b'>
-        {row.getVisibleCells().map(cell => (
+        {row.getVisibleCells().map((cell) => (
           <td
             key={cell.id}
             className={clsx(
@@ -76,9 +74,9 @@ export default function DashboardTable ({
     <div className='overflow-x-auto rounded-lg border border-gray-200 shadow-md'>
       <table className='w-full'>
         <thead className='bg-gray-100'>
-          {table.getHeaderGroups().map(headerGroup => (
+          {table.getHeaderGroups().map((headerGroup) => (
             <tr key={headerGroup.id}>
-              {headerGroup.headers.map(header => (
+              {headerGroup.headers.map((header) => (
                 <th key={header.id} className='px-6 py-4'>
                   {header.isPlaceholder
                     ? null

@@ -5,8 +5,7 @@ import { ReactNode, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import toast from 'react-hot-toast'
 import { compareTwoStrings } from 'string-similarity'
-import Badge from '~/components/badge'
-import DashboardButton from '~/components/dashboard/button'
+import { Button } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
 import Spinner from '~/components/spinner'
 import { QuestionType } from '~/constants'
@@ -14,6 +13,7 @@ import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
 import { enStyleToAr, enTypeToAr } from '~/utils/questions'
 import { isCorrectAnswer, normalizeText } from '~/utils/strings'
+import { Badge } from '~/components/ui/badge'
 
 type FieldValues = Record<string, boolean>
 
@@ -27,13 +27,13 @@ const ExamPage = () => {
     isLoading: _isLoading,
     isPaused,
     error,
-    refetch
+    refetch,
   } = api.exams.get.useQuery(
     {
-      id: router.query.id as string
+      id: router.query.id as string,
     },
     {
-      enabled: router.isReady
+      enabled: router.isReady,
     }
   )
 
@@ -45,7 +45,7 @@ const ExamPage = () => {
       const fieldValues = exam.questions.reduce(
         (obj, question) => ({
           ...obj,
-          [question.id]: question.isCorrect
+          [question.id]: question.isCorrect,
         }),
         {}
       )
@@ -59,29 +59,29 @@ const ExamPage = () => {
     examSave
       .mutateAsync({
         id: exam?.id as string,
-        questions: data
+        questions: data,
       })
-      .then(isEmailSent => {
+      .then((isEmailSent) => {
         if (isEmailSent) {
           toast.success('تم حفظ الاختبار وارسال الدرجة بنجاح')
           router.push('/dashboard/exams')
         } else
           toast(
-            t => (
+            (t) => (
               <div className='flex flex-col items-center justify-between gap-3'>
                 <p>
                   تم حفظ الدرجة لكن حدث خطأ أثناء ارسال الايميل، هل تريد إعادة
                   المحاولة؟
                 </p>
                 <div className='flex gap-2'>
-                  <DashboardButton
+                  <Button
                     variant='success'
                     onClick={() => {
                       toast.dismiss(t.id)
                       const newToast = toast.loading('جاري ارسال الإيميل')
                       gradeEmailSend
                         .mutateAsync({
-                          id: exam!.id
+                          id: exam!.id,
                         })
                         .then(() => {
                           toast.dismiss(newToast)
@@ -97,24 +97,24 @@ const ExamPage = () => {
                     }}
                   >
                     نعم
-                  </DashboardButton>
-                  <DashboardButton
+                  </Button>
+                  <Button
                     onClick={() => {
                       toast.dismiss(t.id)
                       router.push('/dashboard/exams')
                     }}
                   >
                     لا
-                  </DashboardButton>
+                  </Button>
                 </div>
               </div>
             ),
             {
-              duration: Infinity
+              duration: Infinity,
             }
           )
       })
-      .catch(error => {
+      .catch((error) => {
         if (error.message) toast.error(error.message)
         else toast.error('حدث خطأ غير متوقع')
       })
@@ -144,9 +144,7 @@ const ExamPage = () => {
             <p className='text-red-500'>
               حدث خطأ أثناء تحميل البيانات، يرجى إعادة المحاولة
             </p>
-            <DashboardButton onClick={() => refetch()} variant='primary'>
-              إعادة المحاولة
-            </DashboardButton>
+            <Button onClick={() => refetch()}>إعادة المحاولة</Button>
           </div>
         ) : (
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -155,20 +153,19 @@ const ExamPage = () => {
             </h3>
             <Badge
               className='sticky top-3 float-left mr-auto mt-1 shadow'
-              text={
-                exam?.grade === null
-                  ? `لم يتم التصحيح - ${possibleGrade} من ${
-                      exam?.questions.length
-                    } (${percentage(possibleGrade!, exam?.questions.length)}%)`
-                  : `${correctAnswers?.length} من ${
-                      exam?.questions.length
-                    } (${percentage(
-                      correctAnswers!.length,
-                      exam!.questions.length
-                    )}%)`
-              }
-              variant={exam?.grade !== null ? 'primary' : 'warning'}
-            />
+              // variant={exam?.grade !== null ? 'primary' : 'warning'}
+            >
+              {exam?.grade === null
+                ? `لم يتم التصحيح - ${possibleGrade} من ${
+                    exam?.questions.length
+                  } (${percentage(possibleGrade!, exam?.questions.length)}%)`
+                : `${correctAnswers?.length} من ${
+                    exam?.questions.length
+                  } (${percentage(
+                    correctAnswers!.length,
+                    exam!.questions.length
+                  )}%)`}
+            </Badge>
             <div className='mb-4'>
               <p>اسم الطالب: {exam?.user.name}</p>
               <p>الإيميل: {exam?.user.email}</p>
@@ -187,15 +184,14 @@ const ExamPage = () => {
                     'bg-gray-300':
                       !isCorrect &&
                       exam.grade === null &&
-                      question.type === QuestionType.WRITTEN
+                      question.type === QuestionType.WRITTEN,
                   })}
                 >
                   <p>
-                    <Badge text={enTypeToAr(question.type)} className='ml-1' />
-                    <Badge
-                      text={enStyleToAr(question.style)}
-                      className='ml-2'
-                    />
+                    <Badge className='ml-1'>{enTypeToAr(question.type)}</Badge>
+                    <Badge className='ml-2'>
+                      {enStyleToAr(question.style)}
+                    </Badge>
                     {question.text}
                   </p>
                   <p
@@ -234,14 +230,14 @@ const ExamPage = () => {
                 </div>
               ))}
             </div>
-            <DashboardButton
+            <Button
               variant='success'
               className='mt-2'
               type='submit'
               loading={examSave.isLoading}
             >
               حفظ
-            </DashboardButton>
+            </Button>
           </form>
         )}
       </div>

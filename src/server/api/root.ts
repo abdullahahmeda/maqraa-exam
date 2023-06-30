@@ -21,7 +21,7 @@ export const appRouter = createTRPCRouter({
   emails: emailsrouter,
   courses: coursesRouter,
   curricula: curriculaRouter,
-  users: usersRouter
+  users: usersRouter,
 })
 
 // export type definition of API

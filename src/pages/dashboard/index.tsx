@@ -14,7 +14,7 @@ import {
   Legend,
   ResponsiveContainer,
   BarChart,
-  Bar
+  Bar,
 } from 'recharts'
 import dayjs from 'dayjs'
 
@@ -22,9 +22,9 @@ const DashboardPage = ({
   examsCount,
   ungradedExamsCount,
   studentsCount,
-  last30DaysExamsCounts
+  last30DaysExamsCounts,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
-  console.log(last30DaysExamsCounts)
+  // console.log(last30DaysExamsCounts)
   return (
     <>
       <Head>
@@ -38,33 +38,33 @@ const DashboardPage = ({
               top: 0,
               right: 0,
               left: 0,
-              bottom: 0
+              bottom: 0,
             }}
             style={{ direction: 'ltr' }}
           >
             <CartesianGrid strokeDasharray='3 3' />
             <XAxis
               dataKey='createdAt'
-              tickFormatter={tickFormat =>
+              tickFormatter={(tickFormat) =>
                 dayjs(tickFormat).format('DD/MM/YYYY')
               }
             />
             <YAxis allowDecimals={false} />
             <Tooltip
-              labelFormatter={value => {
+              labelFormatter={(value) => {
                 return dayjs(value).format('التاريخ: DD/MM/YYYY')
               }}
             />
             <Legend />
             <Bar
               type='monotone'
-              dataKey={obj => '' + Number(obj.count)}
+              dataKey={(obj) => '' + Number(obj.count)}
               fill='#8884d8'
               name='الكل'
             />
             <Bar
               type='monotone'
-              dataKey={obj => '' + Number(obj.graded)}
+              dataKey={(obj) => '' + Number(obj.graded)}
               fill='#82ca9d'
               name='المصححة'
             />
@@ -79,9 +79,9 @@ DashboardPage.getLayout = (page: any) => {
   return <DashboardLayout>{page}</DashboardLayout>
 }
 
-export async function getServerSideProps (context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const studentsCount = await prisma.user.count({
-    where: { role: UserRole.STUDENT }
+    where: { role: UserRole.STUDENT },
   })
   const examsCount = await prisma.exam.count()
   const ungradedExamsCount = await prisma.exam.count({ where: { grade: null } })
@@ -96,8 +96,8 @@ export async function getServerSideProps (context: GetServerSidePropsContext) {
       studentsCount,
       examsCount,
       ungradedExamsCount,
-      last30DaysExamsCounts
-    }
+      last30DaysExamsCounts,
+    },
   }
 }
 

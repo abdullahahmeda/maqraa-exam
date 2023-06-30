@@ -6,7 +6,7 @@ import { newCurriculumSchema } from '../validation/newCurriculumSchema'
 
 export const getPaginatedCurricula = async ({
   page,
-  pageSize
+  pageSize,
 }: PageOptions) => {
   return {
     curricula: await prisma.curriculum.findMany({
@@ -15,12 +15,12 @@ export const getPaginatedCurricula = async ({
       include: {
         course: {
           select: {
-            name: true
-          }
-        }
-      }
+            name: true,
+          },
+        },
+      },
     }),
-    count: await prisma.curriculum.count()
+    count: await prisma.curriculum.count(),
   }
 }
 
@@ -28,8 +28,8 @@ export const fetchAllCurricula = ({ filters }: { filters: FilterSchema }) => {
   filters = filters!
   return prisma.curriculum.findMany({
     where: {
-      courseId: filters.course
-    }
+      courseId: filters.course,
+    },
   })
 }
 
@@ -41,10 +41,10 @@ export const createCurriculum = (
     course: { connect: { id: curriculum.course } },
     fromPage: curriculum.pages.from,
     toPage: curriculum.pages.to,
-    pages: undefined
+    pages: undefined,
   }
   return prisma.curriculum.create({
-    data
+    data,
   })
 }
 

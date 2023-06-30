@@ -24,9 +24,7 @@ import { prisma } from '../db'
 type CreateContextOptions = {
   session:
     | (Session & {
-        user: {
-          role?: string
-        }
+        user: { role?: string }
       })
     | null
 }
@@ -41,10 +39,10 @@ type CreateContextOptions = {
  *
  * @see https://create.t3.gg/en/usage/trpc#-servertrpccontextts
  */
-const createInnerTRPCContext = (opts: CreateContextOptions) => {
+const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   return {
     session: opts.session,
-    prisma
+    prisma: await withPresets(prisma, { user: opts.session?.user }),
   }
 }
 
@@ -60,9 +58,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   // Get the session from the server using the getServerSession wrapper function
   const session = await getServerAuthSession({ req, res })
 
-  return createInnerTRPCContext({
-    session
-  })
+  return createInnerTRPCContext({ session })
 }
 
 /**
@@ -74,12 +70,29 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 import { UserRole } from '../../constants'
+import { withPresets } from '@zenstackhq/runtime'
+import { ZodError } from 'zod'
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
-  errorFormatter ({ shape }) {
-    return shape
-  }
+  errorFormatter(opts) {
+    const { shape, error } = opts
+    if (shape.data.code === 'FORBIDDEN')
+      shape.message = 'لا تملك الصلاحية لهذه العملية'
+    if (shape.data.code === 'INTERNAL_SERVER_ERROR')
+      shape.message = 'حدث خطأ غير متوقع'
+
+    return {
+      ...shape,
+      data: {
+        ...shape.data,
+        zodError:
+          error.code === 'BAD_REQUEST' && error.cause instanceof ZodError
+            ? error.cause.flatten()
+            : null,
+      },
+    }
+  },
 })
 
 /**
@@ -113,14 +126,14 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.session || !ctx.session.user) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
-      message: 'ليس لديك الصلاحيات لهذه العملية'
+      message: 'ليس لديك الصلاحيات لهذه العملية',
     })
   }
   return next({
     ctx: {
       // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user }
-    }
+      session: { ...ctx.session, user: ctx.session.user },
+    },
   })
 })
 
@@ -143,14 +156,14 @@ const enforceUserIsAdmin = t.middleware(({ ctx, next }) => {
   ) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
-      message: 'ليس لديك الصلاحيات لهذه العملية'
+      message: 'ليس لديك الصلاحيات لهذه العملية',
     })
   }
   return next({
     ctx: {
       // infers the `session` as non-nullable
-      session: { ...ctx.session, user: ctx.session.user }
-    }
+      session: { ...ctx.session, user: ctx.session.user },
+    },
   })
 })
 

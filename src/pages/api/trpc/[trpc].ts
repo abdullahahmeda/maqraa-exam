@@ -3,6 +3,7 @@ import { createNextApiHandler } from '@trpc/server/adapters/next'
 import { env } from '~/env.mjs'
 import { createTRPCContext } from '~/server/api/trpc'
 import { appRouter } from '~/server/api/root'
+import { logErrorToLogtail } from '~/utils/logtail'
 
 // export API handler
 export default createNextApiHandler({
@@ -15,5 +16,7 @@ export default createNextApiHandler({
             `❌ tRPC failed on ${path ?? '<no-path>'}: ${error.message}`
           )
         }
-      : undefined
+      : ({ error }) => {
+          if (error.code === 'INTERNAL_SERVER_ERROR') logErrorToLogtail(error)
+        },
 })

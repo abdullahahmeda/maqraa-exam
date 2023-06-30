@@ -14,7 +14,7 @@ import { isCorrectAnswer, normalizeText } from '~/utils/strings'
 export const getPaginatedExams = async ({
   page,
   pageSize,
-  filters
+  filters,
 }: PageOptions & {
   filters: Required<FilterSchema>
 }) => {
@@ -33,30 +33,30 @@ export const getPaginatedExams = async ({
         user: true,
         questions: {
           select: {
-            id: true
-          }
+            id: true,
+          },
         },
         course: true,
-        curriculum: true
+        curriculum: true,
       },
       orderBy: [
         {
-          submittedAt: 'desc'
+          submittedAt: 'desc',
         },
         {
-          createdAt: 'desc'
-        }
+          createdAt: 'desc',
+        },
       ],
       where: {
         AND: [
           {
             difficulty: arDifficultyToEn(filters.difficulty || '') || undefined,
-            grade
-          }
-        ]
-      }
+            grade,
+          },
+        ],
+      },
     }),
-    count: await prisma.exam.count()
+    count: await prisma.exam.count(),
   }
 }
 
@@ -67,17 +67,17 @@ export const getExamToSolve = async (id: string, authedUserId: string) => {
     question: {
       select: {
         text: true,
-        falseText: true,
-        trueText: true,
+        textForFalse: true,
+        textForTrue: true,
         option1: true,
         option2: true,
         option3: true,
         option4: true,
         style: true,
         type: true,
-        answer: false
-      }
-    }
+        answer: false,
+      },
+    },
   }
   const _exam = await prisma.exam.findFirst({ where: { id } })
   if (!_exam) return null
@@ -87,14 +87,14 @@ export const getExamToSolve = async (id: string, authedUserId: string) => {
   const exam = await prisma.exam.findFirst({
     where: {
       userId: authedUserId,
-      id
+      id,
       // submittedAt: null
     },
     include: {
       questions: {
-        select
-      }
-    }
+        select,
+      },
+    },
   })
   return exam
 }
@@ -102,16 +102,16 @@ export const getExamToSolve = async (id: string, authedUserId: string) => {
 export const getExam = async (id: string) => {
   const exam = await prisma.exam.findFirst({
     where: {
-      id
+      id,
     },
     include: {
       questions: {
         include: {
-          question: true
-        }
+          question: true,
+        },
       },
-      user: true
-    }
+      user: true,
+    },
   })
   return exam
 }
@@ -125,8 +125,8 @@ const getRandomQuestionsForDifficulty = async (
     (
       await prisma.setting.findFirstOrThrow({
         where: {
-          key: (difficulty + '_MCQ_QUESTIONS') as SettingKey
-        }
+          key: (difficulty + '_MCQ_QUESTIONS') as SettingKey,
+        },
       })
     ).value
   )
@@ -135,8 +135,8 @@ const getRandomQuestionsForDifficulty = async (
     (
       await prisma.setting.findFirstOrThrow({
         where: {
-          key: (difficulty + '_WRITTEN_QUESTIONS') as SettingKey
-        }
+          key: (difficulty + '_WRITTEN_QUESTIONS') as SettingKey,
+        },
       })
     ).value
   )
@@ -144,14 +144,14 @@ const getRandomQuestionsForDifficulty = async (
   const select = Prisma.validator<Prisma.QuestionSelect>()({
     id: true,
     text: true,
-    falseText: true,
-    trueText: true,
+    textForFalse: true,
+    textForTrue: true,
     option1: true,
     option2: true,
     option3: true,
     option4: true,
     style: true,
-    type: true
+    type: true,
   })
 
   const mcqQuestions = await prisma.question.findMany({
@@ -159,9 +159,9 @@ const getRandomQuestionsForDifficulty = async (
       difficulty,
       type: QuestionType.MCQ,
       courseId,
-      pageNumber: { gte: range[0], lte: range[1] }
+      pageNumber: { gte: range[0], lte: range[1] },
     },
-    select
+    select,
   })
 
   const writtenQuestions = await prisma.question.findMany({
@@ -169,14 +169,14 @@ const getRandomQuestionsForDifficulty = async (
       difficulty,
       type: QuestionType.WRITTEN,
       courseId,
-      pageNumber: { gte: range[0], lte: range[1] }
+      pageNumber: { gte: range[0], lte: range[1] },
     },
-    select
+    select,
   })
 
   return {
     mcq: sampleSize(mcqQuestions, numberOfMcqQuestions),
-    written: sampleSize(writtenQuestions, numberOfWrittenQuestions)
+    written: sampleSize(writtenQuestions, numberOfWrittenQuestions),
   }
 }
 
@@ -187,7 +187,7 @@ export const createExam = async (
   user: User & { role?: string }
 ) => {
   const curriculum = await prisma.curriculum.findFirstOrThrow({
-    where: { id: curriculumId, courseId }
+    where: { id: curriculumId, courseId },
   })
   const _questions = await getRandomQuestionsForDifficulty(
     difficulty,
@@ -202,16 +202,16 @@ export const createExam = async (
     data: {
       difficulty,
       questions: {
-        create: questions.map(q => ({ question: { connect: { id: q.id } } }))
+        create: questions.map((q) => ({ question: { connect: { id: q.id } } })),
       },
       user: {
         connect: {
-          id: user.id
-        }
+          id: user.id,
+        },
       },
       course: { connect: { id: courseId } },
-      curriculum: { connect: { id: curriculumId } }
-    }
+      curriculum: { connect: { id: curriculumId } },
+    },
   })
 }
 
@@ -226,11 +226,11 @@ export const submitExam = async (
     Object.entries(answers).map(async ([id, answer]) => {
       const examQuestion = await prisma.examQuestion.findFirstOrThrow({
         where: {
-          id: Number(id)
+          id: Number(id),
         },
         include: {
-          question: true
-        }
+          question: true,
+        },
       })
 
       const isCorrect = isCorrectAnswer(examQuestion.question, answer)
@@ -239,22 +239,22 @@ export const submitExam = async (
         where: { id: Number(id) },
         data: {
           answer,
-          isCorrect
-        }
+          isCorrect,
+        },
       }
     })
   )
 
   await prisma.exam.update({
     where: {
-      id
+      id,
     },
     data: {
       submittedAt: new Date(),
       questions: {
-        update: questions
-      }
-    }
+        update: questions,
+      },
+    },
   })
 }
 
@@ -265,19 +265,19 @@ export const saveExam = async (
   const _questions = Object.entries(questions).map(([id, isCorrect]) => ({
     where: { id: Number(id) },
     data: {
-      isCorrect
-    }
+      isCorrect,
+    },
   }))
   await prisma.exam.update({
     where: {
-      id
+      id,
     },
     data: {
-      grade: Object.values(questions).filter(isCorrect => isCorrect).length,
+      grade: Object.values(questions).filter((isCorrect) => isCorrect).length,
       questions: {
-        update: _questions
-      }
-    }
+        update: _questions,
+      },
+    },
   })
 }
 
@@ -291,10 +291,10 @@ export const sendGradeEmail = async (examId: string) => {
       questions: true,
       user: {
         select: {
-          email: true
-        }
-      }
-    }
+          email: true,
+        },
+      },
+    },
   })
 
   const brandColor = '#346df1'
@@ -306,15 +306,15 @@ export const sendGradeEmail = async (examId: string) => {
     mainBackground: '#fff',
     buttonBackground: brandColor,
     buttonBorder: brandColor,
-    buttonText
+    buttonText,
   }
 
   return sendMail({
     to: [
       {
-        email: exam.user.email!
+        email: exam.user.email!,
         // email: exam.user.email
-      }
+      },
     ],
     subject: 'تم تصحيح الإختبار الخاص بك',
     textContent: `الدرجة الخاصة بك هي ${exam.grade} من ${exam.questions.length}`,
@@ -343,6 +343,6 @@ export const sendGradeEmail = async (examId: string) => {
       </td>
     </tr>
   </table>
-</body>`
+</body>`,
   })
 }

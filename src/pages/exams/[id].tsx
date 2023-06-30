@@ -21,21 +21,21 @@ const ExamPage = () => {
     isLoadingError,
     isLoading,
     isPaused,
-    error: examError
+    error: examError,
   } = api.exams.getToSolve.useQuery(
     {
-      id: router.query.id as string
+      id: router.query.id as string,
     },
     {
       enabled: typeof router.query.id === 'string',
       refetchOnReconnect: false,
-      onSuccess: exam => {
+      onSuccess: (exam) => {
         const questionsValues = exam.questions.reduce(
           (obj, q) => ({ ...obj, [q.id]: q.answer }),
           {}
         )
         if (exam.submittedAt) resetForm(questionsValues)
-      }
+      },
     }
   )
 
@@ -47,12 +47,12 @@ const ExamPage = () => {
       .mutateAsync({
         id: exam!.id,
         // id: 'clet8uawe000g356lbmte45my',
-        answers: data
+        answers: data,
       })
       .then(() => {
         router.replace('/exams/submitted')
       })
-      .catch(error => {
+      .catch((error) => {
         if (error.message) toast.error(error.message)
         else toast.error('حدث خطأ غير متوقع')
       })
@@ -112,7 +112,7 @@ const ExamPage = () => {
                           className='block w-full'
                           id={`question-${id}-answer`}
                           {...register('' + id, {
-                            disabled: !!exam.submittedAt
+                            disabled: !!exam.submittedAt,
                           })}
                         />
                       </>
@@ -128,7 +128,7 @@ const ExamPage = () => {
                                     type='radio'
                                     id={`quesion-${id}-option-1`}
                                     {...register('' + id, {
-                                      disabled: !!exam.submittedAt
+                                      disabled: !!exam.submittedAt,
                                     })}
                                     value={question.option1}
                                   />
@@ -143,7 +143,7 @@ const ExamPage = () => {
                                     type='radio'
                                     id={`quesion-${id}-option-2`}
                                     {...register('' + id, {
-                                      disabled: !!exam.submittedAt
+                                      disabled: !!exam.submittedAt,
                                     })}
                                     value={question.option2}
                                   />
@@ -158,7 +158,7 @@ const ExamPage = () => {
                                     type='radio'
                                     id={`quesion-${id}-option-3`}
                                     {...register('' + id, {
-                                      disabled: !!exam.submittedAt
+                                      disabled: !!exam.submittedAt,
                                     })}
                                     value={question.option3}
                                   />
@@ -173,7 +173,7 @@ const ExamPage = () => {
                                     type='radio'
                                     id={`quesion-${id}-option-4`}
                                     {...register('' + id, {
-                                      disabled: !!exam.submittedAt
+                                      disabled: !!exam.submittedAt,
                                     })}
                                     value={question.option4}
                                   />
@@ -190,12 +190,12 @@ const ExamPage = () => {
                                   type='radio'
                                   id={`quesion-${i + 1}-option-true`}
                                   {...register('' + id, {
-                                    disabled: !!exam.submittedAt
+                                    disabled: !!exam.submittedAt,
                                   })}
-                                  value={question.trueText!}
+                                  value={question.textForTrue!}
                                 />
                                 <label htmlFor={`quesion-${i + 1}-option-true`}>
-                                  {question.trueText}
+                                  {question.textForTrue}
                                 </label>
                               </div>
                               <div className='flex items-center gap-2'>
@@ -203,14 +203,14 @@ const ExamPage = () => {
                                   type='radio'
                                   id={`quesion-${i + 1}-option-false`}
                                   {...register('' + id, {
-                                    disabled: !!exam.submittedAt
+                                    disabled: !!exam.submittedAt,
                                   })}
-                                  value={question.falseText!}
+                                  value={question.textForFalse!}
                                 />
                                 <label
                                   htmlFor={`quesion-${i + 1}-option-false`}
                                 >
-                                  {question.falseText}
+                                  {question.textForFalse}
                                 </label>
                               </div>
                             </>

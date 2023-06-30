@@ -8,19 +8,18 @@ export const emailsrouter = createTRPCRouter({
   sendGradeEmail: adminOnlyProcedure
     .input(
       z.object({
-        id: z.string().cuid().min(1)
+        id: z.string().cuid().min(1),
       })
     )
     .mutation(async ({ input }) => {
       try {
         await sendGradeEmail(input.id)
       } catch (error) {
-        logErrorToLogtail(error)
         throw new TRPCError({
           code: 'INTERNAL_SERVER_ERROR',
-          message: 'حدث خطأ غير متوقع'
+          message: 'حدث خطأ غير متوقع',
         })
       }
       return true
-    })
+    }),
 })

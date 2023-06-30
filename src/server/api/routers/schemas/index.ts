@@ -1,0 +1,11 @@
+/* eslint-disable */
+export { AccountSchema as Account } from './Account.schema'
+export { SessionSchema as Session } from './Session.schema'
+export { UserSchema as User } from './User.schema'
+export { VerificationTokenSchema as VerificationToken } from './VerificationToken.schema'
+export { QuestionSchema as Question } from './Question.schema'
+export { SettingSchema as Setting } from './Setting.schema'
+export { ExamSchema as Exam } from './Exam.schema'
+export { ExamQuestionSchema as ExamQuestion } from './ExamQuestion.schema'
+export { CourseSchema as Course } from './Course.schema'
+export { CurriculumSchema as Curriculum } from './Curriculum.schema'
