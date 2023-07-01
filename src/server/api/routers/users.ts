@@ -13,9 +13,11 @@
 // import { updateUserSchema } from '~/validation/updateUserSchema'
 // import { newUserSchema } from '~/validation/newUserSchema'
 
+import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
 import { UserSchema } from './schemas/User.schema'
-import { checkMutate, db, checkRead } from './schemas/helper'
+import { checkMutate, db, checkRead } from './helper'
+import { UserWhereInputObjectSchema } from './schemas/objects'
 
 // export const usersRouter = createTRPCRouter({
 //   list: adminOnlyProcedure
@@ -106,10 +108,14 @@ export const usersRouter = createTRPCRouter({
       checkMutate(db(ctx).user.create(input))
     ),
 
+  count: protectedProcedure
+    .input(z.object({ where: UserWhereInputObjectSchema }).optional())
+    .query(async ({ ctx, input }) => checkRead(db(ctx).user.count(input))),
+
   delete: protectedProcedure
-    .input(UserSchema.delete)
+    .input(z.string().min(1))
     .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).user.delete(input))
+      checkMutate(db(ctx).user.delete({ where: { id: input } }))
     ),
 
   findFirst: protectedProcedure

@@ -1,7 +1,7 @@
 import { ZodError, z } from 'zod'
 
 import { createTRPCRouter, protectedProcedure } from '../trpc'
-import { checkMutate, checkRead, db } from './schemas/helper'
+import { checkMutate, checkRead, db } from './helper'
 import { QuestionSchema } from './schemas/Question.schema'
 import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
 import { questionSchema } from '~/validation/questionSchema'
@@ -9,6 +9,7 @@ import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { getFields } from '~/services/sheets'
 import { TRPCError } from '@trpc/server'
 import { GaxiosError } from 'gaxios'
+import { QuestionWhereInputObjectSchema } from './schemas/objects'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -88,16 +89,14 @@ export const questionsRouter = createTRPCRouter({
         }
       }
 
-      console.log(rows, questions)
+      // console.log(rows, questions)
 
       return checkMutate(db(ctx).question.createMany({ data: questions }))
     }),
 
   count: protectedProcedure
-    .input(QuestionSchema.count)
-    .query(async ({ ctx, input }) =>
-      checkMutate(db(ctx).question.count(input))
-    ),
+    .input(z.object({ where: QuestionWhereInputObjectSchema }).optional())
+    .query(async ({ ctx, input }) => checkRead(db(ctx).question.count(input))),
 
   delete: protectedProcedure
     .input(z.string().min(1))

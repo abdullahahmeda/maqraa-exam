@@ -17,9 +17,7 @@ import {
 } from '~/utils/questions'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
-import toast from 'react-hot-toast'
 import { Question } from '@prisma/client'
-import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
   useReactTable,
@@ -30,9 +28,7 @@ import {
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
 import { QuestionDifficulty, QuestionType } from '../../constants'
-import Pagination from '../../components/pagination'
 import { customErrorMap } from '../../validation/customErrorMap'
-import DashboardTable from '../../components/dashboard/table'
 import { Button } from '~/components/ui/button'
 import {
   Dialog,
@@ -59,25 +55,13 @@ import {
 } from '~/components/ui/form'
 import { Checkbox } from '~/components/ui/checkbox'
 import { Badge } from '~/components/ui/badge'
-import { Check, ChevronsUpDown, Loader2 } from 'lucide-react'
 import { DataTable } from '~/components/ui/data-table'
 import { Eye } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '~/components/ui/use-toast'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '~/components/ui/command'
-import { cn } from '~/lib/utils'
+
 import fuzzysort from 'fuzzysort'
+import { Combobox } from '~/components/ui/combobox'
 
 type FieldValues = {
   url: string
@@ -93,15 +77,7 @@ const defaultValues: FieldValues = {
   removeOldQuestions: false,
 }
 
-const AddQuestionsDialog = ({
-  // open,
-  // setOpen,
-  refetchQuestions,
-}: {
-  // open: boolean
-  // setOpen: any
-  refetchQuestions: any
-}) => {
+const AddQuestionsDialog = () => {
   const form = useForm<FieldValues>({
     defaultValues,
     resolver: zodResolver(importQuestionsSchema, {
@@ -226,7 +202,6 @@ const AddQuestionsDialog = ({
               <FormItem>
                 <FormLabel>المقرر</FormLabel>
                 <Select
-                  disabled={!courses || courses.length === 0}
                   onValueChange={field.onChange}
                   defaultValue={field.value}
                 >
@@ -306,94 +281,20 @@ const columns = [
   columnHelper.accessor('course.name', {
     id: 'course',
     header: ({ column }) => {
-      const [open, setOpen] = useState(false)
-      const columnFilterValue = column.getFilterValue()
-      const [searchValue, setSearchValue] = useState('')
-
-      const { data: _courses, isLoading } = api.courses.findMany.useQuery()
-
-      const onSelect = (currentValue: string | undefined) => {
-        column.setFilterValue(
-          currentValue
-          // currentValue === columnFilterValue ? '' : currentValue
-        )
-        setOpen(false)
-      }
-
-      const courses = searchValue
-        ? fuzzysort
-            .go(searchValue, _courses || [], {
-              key: 'name',
-            })
-            .map((item) => item.obj)
-        : _courses
-
+      const { data: courses, isLoading } = api.courses.findMany.useQuery()
       return (
         <>
           المقرر
-          <div>
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant='outline'
-                  role='combobox'
-                  aria-expanded={open}
-                  className='w-[200px] justify-between'
-                  disabled={isLoading}
-                >
-                  {columnFilterValue
-                    ? courses?.find((course) => course.id === columnFilterValue)
-                        ?.name
-                    : 'الكل'}
-                  {isLoading ? (
-                    <Loader2 className='mr-2 h-4 w-4 shrink-0 animate-spin opacity-50' />
-                  ) : (
-                    <ChevronsUpDown className='mr-2 h-4 w-4 shrink-0 opacity-50' />
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className='w-[200px] p-0'>
-                <Command shouldFilter={false}>
-                  <CommandInput
-                    placeholder='ابحث عن المقرر...'
-                    value={searchValue}
-                    onValueChange={setSearchValue}
-                  />
-                  <CommandEmpty>لا يوجد مقررات.</CommandEmpty>
-                  <CommandGroup>
-                    <CommandItem onSelect={() => onSelect(undefined)}>
-                      الكل
-                      <Check
-                        className={cn(
-                          'mr-auto h-4 w-4',
-                          columnFilterValue === undefined
-                            ? 'opacity-100'
-                            : 'opacity-0'
-                        )}
-                      />
-                    </CommandItem>
-                    {courses?.map((course) => (
-                      <CommandItem
-                        value={course.id}
-                        key={course.id}
-                        onSelect={onSelect}
-                      >
-                        {course.name}
-                        <Check
-                          className={cn(
-                            'mr-auto h-4 w-4',
-                            columnFilterValue === course.id
-                              ? 'opacity-100'
-                              : 'opacity-0'
-                          )}
-                        />
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
-          </div>
+          <Combobox
+            items={[{ name: 'الكل', id: '' }, ...(courses || [])]}
+            loading={isLoading}
+            labelKey='name'
+            valueKey='id'
+            onSelect={column.setFilterValue}
+            value={column.getFilterValue() as string | undefined}
+            triggerText='الكل'
+            triggerClassName='w-[200px]'
+          />
         </>
       )
     },
@@ -501,7 +402,7 @@ const columns = [
       <div className='flex justify-center'>
         {/* <Button>عرض</Button> */}
         <Button size='icon' variant='ghost'>
-          <Eye height={22} width={22} />
+          <Eye className='h-4 w-4' />
         </Button>
       </div>
     ),
@@ -599,7 +500,7 @@ const QuestionsPage = ({ page: initialPage }: Props) => {
             <Button>إضافة أسئلة</Button>
           </DialogTrigger>
           <DialogContent>
-            <AddQuestionsDialog refetchQuestions={refetchQuestions} />
+            <AddQuestionsDialog />
           </DialogContent>
         </Dialog>
       </div>

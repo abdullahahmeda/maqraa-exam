@@ -22,9 +22,11 @@
 //   publicProcedure,
 // } from '../trpc'
 
+import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
 import { ExamSchema } from './schemas/Exam.schema'
-import { checkMutate, checkRead, db } from './schemas/helper'
+import { checkMutate, checkRead, db } from './helper'
+import { ExamWhereInputObjectSchema } from './schemas/objects'
 
 // const filtersSchema = z
 //   .object({
@@ -223,10 +225,14 @@ export const examsRouter = createTRPCRouter({
       checkMutate(db(ctx).exam.create(input))
     ),
 
+  count: protectedProcedure
+    .input(z.object({ where: ExamWhereInputObjectSchema }).optional())
+    .query(async ({ ctx, input }) => checkRead(db(ctx).exam.count(input))),
+
   delete: protectedProcedure
-    .input(ExamSchema.delete)
+    .input(z.string().min(1))
     .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).exam.delete(input))
+      checkMutate(db(ctx).exam.delete({ where: { id: input } }))
     ),
 
   findFirst: protectedProcedure

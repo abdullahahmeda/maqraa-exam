@@ -1,19 +1,13 @@
 import { z } from 'zod'
 
-export const newCurriculumSchema = z.object({
-  course: z.number().positive().int(),
-  name: z.string().trim().min(1),
-  pages: z
-    .object({
-      from: z.number().positive().int(),
-      to: z.number().positive().int()
-    })
-    .refine(
-      ({ from, to }) => {
-        return to >= from
-      },
-      {
-        message: 'هذا النطاق غير صحيح'
-      }
-    )
-})
+export const newCurriculumSchema = z
+  .object({
+    trackId: z.string().min(1),
+    name: z.string().min(1),
+    fromPage: z.preprocess((v) => Number(v), z.number().positive().int()),
+    toPage: z.preprocess((v) => Number(v), z.number().positive().int()),
+  })
+  .refine(({ fromPage, toPage }) => toPage >= fromPage, {
+    message: 'هذا النطاق غير صحيح',
+    path: ['fromPage'],
+  })

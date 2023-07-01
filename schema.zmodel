@@ -185,15 +185,11 @@ model Track {
   name     String
   courseId String
   course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  fromPage Int
-  toPage   Int
   exams    Exam[]
   curricula Curriculum[]
 
   @@index([courseId])
-  @@index([fromPage])
-  @@index([toPage])
-
+  
   @@allow('create,update,delete', auth() != null)
   @@allow('read', true)
 }
@@ -201,10 +197,14 @@ model Track {
 model Curriculum {
   id String @id @default(cuid())
   name String
+  fromPage Int
+  toPage   Int
   trackId String
   track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
 
   @@index([trackId])
+  @@index([fromPage])
+  @@index([toPage])
 
   @@allow('create,update,delete', auth() != null)
   @@allow('read', true)

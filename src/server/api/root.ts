@@ -7,6 +7,8 @@ import { emailsrouter } from './routers/emails'
 import { coursesRouter } from './routers/courses'
 import { curriculaRouter } from './routers/curricula'
 import { usersRouter } from './routers/users'
+import { cyclesRouter } from './routers/cycles'
+import { tracksRouter } from './routers/tracks'
 
 /**
  * This is the primary router for your server.
@@ -22,6 +24,8 @@ export const appRouter = createTRPCRouter({
   courses: coursesRouter,
   curricula: curriculaRouter,
   users: usersRouter,
+  cycles: cyclesRouter,
+  tracks: tracksRouter,
 })
 
 // export type definition of API

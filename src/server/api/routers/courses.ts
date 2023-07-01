@@ -1,8 +1,10 @@
 import { createTRPCRouter, protectedProcedure } from '../trpc'
-import { checkRead, checkMutate, db } from './schemas/helper'
+import { checkRead, checkMutate, db } from './helper'
 import { CourseSchema } from './schemas/Course.schema'
 import { newCourseSchema } from '~/validation/newCourseSchema'
 import { z } from 'zod'
+import { CourseWhereInputObjectSchema } from './schemas/objects'
+import { editCourseSchema } from '~/validation/editCourseSchema'
 
 // export const coursesRouter = createTRPCRouter({
 //   list: adminOnlyProcedure
@@ -63,8 +65,8 @@ export const coursesRouter = createTRPCRouter({
     ),
 
   count: protectedProcedure
-    .input(CourseSchema.count)
-    .query(async ({ ctx, input }) => checkMutate(db(ctx).course.count(input))),
+    .input(z.object({ where: CourseWhereInputObjectSchema }).optional())
+    .query(async ({ ctx, input }) => checkRead(db(ctx).course.count(input))),
 
   delete: protectedProcedure
     .input(z.string().min(1))
@@ -81,8 +83,9 @@ export const coursesRouter = createTRPCRouter({
     .query(({ ctx, input }) => checkRead(db(ctx).course.findMany(input))),
 
   update: protectedProcedure
-    .input(CourseSchema.update)
-    .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).course.update(input))
-    ),
+    .input(editCourseSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input
+      return checkMutate(db(ctx).course.update({ where: { id }, data }))
+    }),
 })

@@ -15,9 +15,12 @@
 //   publicProcedure,
 // } from '../trpc'
 
+import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
 import { CurriculumSchema } from './schemas/Curriculum.schema'
-import { checkMutate, checkRead, db } from './schemas/helper'
+import { checkMutate, checkRead, db } from './helper'
+import { CurriculumWhereInputObjectSchema } from './schemas/objects'
+import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
 
 // const filtersSchema = z
 //   .object({
@@ -92,23 +95,29 @@ import { checkMutate, checkRead, db } from './schemas/helper'
 
 export const curriculaRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(CurriculumSchema.create)
+    .input(newCurriculumSchema)
     .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).curriculum.create(input))
+      checkMutate(db(ctx).curriculum.create({ data: input }))
+    ),
+
+  count: protectedProcedure
+    .input(z.object({ where: CurriculumWhereInputObjectSchema }).optional())
+    .query(async ({ ctx, input }) =>
+      checkRead(db(ctx).curriculum.count(input))
     ),
 
   delete: protectedProcedure
-    .input(CurriculumSchema.delete)
+    .input(z.string().min(1))
     .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).curriculum.delete(input))
+      checkMutate(db(ctx).curriculum.delete({ where: { id: input } }))
     ),
 
   findFirst: protectedProcedure
-    .input(CurriculumSchema.findFirst)
+    .input(CurriculumSchema.findFirst.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findFirst(input))),
 
   findMany: protectedProcedure
-    .input(CurriculumSchema.findMany)
+    .input(CurriculumSchema.findMany.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findMany(input))),
 
   update: protectedProcedure

@@ -4,9 +4,10 @@
 // import { updateSettingsSchema } from '~/validation/updateSettingsSchema'
 // import { adminOnlyProcedure, createTRPCRouter, publicProcedure } from '../trpc'
 
+import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
 import { SettingSchema } from './schemas/Setting.schema'
-import { checkMutate, db, checkRead } from './schemas/helper'
+import { checkMutate, db, checkRead } from './helper'
 
 // export const settingsRouter = createTRPCRouter({
 //   fetchAll: adminOnlyProcedure.query(async () => {
@@ -36,9 +37,9 @@ export const settingsRouter = createTRPCRouter({
     ),
 
   delete: protectedProcedure
-    .input(SettingSchema.delete)
+    .input(z.string().min(1))
     .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).setting.delete(input))
+      checkMutate(db(ctx).setting.delete({ where: { key: input } }))
     ),
 
   findFirst: protectedProcedure

@@ -3,7 +3,7 @@ import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { UseFormReturn, useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
@@ -49,22 +49,62 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
+import { editCourseSchema } from '~/validation/editCourseSchema'
+import { Edit, Loader2, Trash } from 'lucide-react'
 
-type FieldValues = {
-  name: string
+type CreateFieldValues = { name: string }
+type UpdateFieldValues = { id: string } & CreateFieldValues
+type FieldValues = CreateFieldValues | UpdateFieldValues
+
+const BaseCourseDialog = <T extends FieldValues>({
+  form,
+  onSubmit,
+  loading = false,
+  submitText,
+}: {
+  form: UseFormReturn<T>
+  onSubmit: (data: T) => void
+  loading?: boolean
+  submitText: string
+}) => {
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+        <FormField
+          control={form.control}
+          // @ts-ignore
+          name='name'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>اسم المقرر</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button type='submit' loading={loading}>
+            {submitText}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  )
 }
 
-const AddCourseDialog = ({ refetch }: { refetch: any }) => {
+const AddCourseDialog = () => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const form = useForm<FieldValues>({
+  const form = useForm<CreateFieldValues>({
     resolver: zodResolver(newCourseSchema, {
       errorMap: customErrorMap,
     }),
   })
   const courseCreate = api.courses.create.useMutation()
 
-  const onSubmit = (data: FieldValues) => {
+  const onSubmit = (data: CreateFieldValues) => {
     const t = toast({ title: 'جاري إضافة المقرر' })
     courseCreate
       .mutateAsync(data)
@@ -81,28 +121,78 @@ const AddCourseDialog = ({ refetch }: { refetch: any }) => {
       })
   }
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <FormField
-          control={form.control}
-          name='name'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>اسم المقرر</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <DialogFooter>
-          <Button type='submit' loading={courseCreate.isLoading}>
-            إضافة
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
+    <BaseCourseDialog
+      form={form}
+      onSubmit={onSubmit}
+      loading={courseCreate.isLoading}
+      submitText='إضافة'
+    />
+  )
+}
+
+const EditCourseDialog = ({ id }: { id: string }) => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+  const form = useForm<UpdateFieldValues>({
+    resolver: zodResolver(editCourseSchema, {
+      errorMap: customErrorMap,
+    }),
+  })
+
+  const {
+    data: course,
+    isLoading,
+    error,
+  } = api.courses.findFirst.useQuery({
+    where: { id },
+  })
+
+  const courseUpdate = api.courses.update.useMutation()
+
+  useEffect(() => {
+    if (course) form.reset(course)
+  }, [course])
+
+  const onSubmit = (data: UpdateFieldValues) => {
+    const t = toast({ title: 'جاري تعديل المقرر' })
+    courseUpdate
+      .mutateAsync(data)
+      .then(() => {
+        t.dismiss()
+        toast({ title: 'تم تعديل المقرر بنجاح' })
+      })
+      .catch((error) => {
+        t.dismiss()
+        toast({ title: error.message, variant: 'destructive' })
+      })
+      .finally(() => {
+        queryClient.invalidateQueries([['courses']])
+      })
+  }
+
+  if (isLoading)
+    return (
+      <div className='flex justify-center'>
+        <Loader2 className='h-4 w-4 animate-spin' />
+      </div>
+    )
+
+  if (error)
+    return (
+      <p className='text-center text-red-600'>
+        {error.message || 'حدث خطأ ما'}
+      </p>
+    )
+
+  return course === null ? (
+    <p className='text-center text-red-600'>هذا المقرر غير موجود</p>
+  ) : (
+    <BaseCourseDialog
+      form={form}
+      onSubmit={onSubmit}
+      loading={courseUpdate.isLoading}
+      submitText='تعديل'
+    />
   )
 }
 
@@ -150,7 +240,7 @@ type Props = {
 
 const columnHelper = createColumnHelper<Course>()
 
-const PAGE_SIZE = 1
+const PAGE_SIZE = 25
 
 const CoursesPage = ({ page: initialPage }: Props) => {
   const router = useRouter()
@@ -181,7 +271,7 @@ const CoursesPage = ({ page: initialPage }: Props) => {
   )
 
   const { data: count, isLoading: isCountLoading } = api.courses.count.useQuery(
-    {},
+    undefined,
     { networkMode: 'always' }
   )
 
@@ -216,10 +306,23 @@ const CoursesPage = ({ page: initialPage }: Props) => {
         header: 'الإجراءات',
         cell: ({ row }) => (
           <div className='flex justify-center gap-2'>
-            <Button>عرض المناهج</Button>
+            {/* <Button>عرض المناهج</Button> */}
+            <Dialog>
+              <DialogTrigger>
+                <Button variant='ghost' size='icon'>
+                  <Edit className='h-4 w-4' />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>تعديل المقرر</DialogHeader>
+                <EditCourseDialog id={row.original.id} />
+              </DialogContent>
+            </Dialog>
             <AlertDialog>
               <AlertDialogTrigger>
-                <Button variant='destructive'>حذف</Button>
+                <Button variant='ghost' size='icon'>
+                  <Trash className='h-4 w-4 text-red-600' />
+                </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <DeleteCourseDialog id={row.original.id} />
@@ -270,7 +373,7 @@ const CoursesPage = ({ page: initialPage }: Props) => {
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>إضافة مقرر</DialogHeader>
-            <AddCourseDialog refetch={refetch} />
+            <AddCourseDialog />
           </DialogContent>
         </Dialog>
       </div>

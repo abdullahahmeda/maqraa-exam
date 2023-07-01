@@ -207,8 +207,6 @@ model Track {
     name String
     courseId String
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-    fromPage Int
-    toPage Int
     exams Exam[]
     curricula Curriculum[]
 
@@ -217,8 +215,6 @@ model Track {
 
     @@index([zenstack_transaction])
     @@index([courseId])
-    @@index([fromPage])
-    @@index([toPage])
 }
 
 /// @@allow('create,update,delete', auth() != null)
@@ -226,6 +222,8 @@ model Track {
 model Curriculum {
     id String @id() @default(cuid())
     name String
+    fromPage Int
+    toPage Int
     trackId String
     track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
 
@@ -234,4 +232,6 @@ model Curriculum {
 
     @@index([zenstack_transaction])
     @@index([trackId])
+    @@index([fromPage])
+    @@index([toPage])
 }

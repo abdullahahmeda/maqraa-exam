@@ -42,31 +42,27 @@ const HomePage = () => {
 
   const examCreate = api.exams.create.useMutation()
 
-  const { data: courses } = api.courses.findMany.useQuery()
+  const { data: courses, isLoading: isCoursesLoading } =
+    api.courses.findMany.useQuery()
 
   const selectedCourse = useWatch({
     control: form.control,
     name: 'course',
   })
 
-  console.log(selectedCourse)
-
-  const {
-    isFetching: isFetchingCurricula,
-    data: curricula,
-    refetch: refetchCurricula,
-  } = api.curricula.fetchAll.useQuery(
-    {
-      filters: {
-        course: selectedCourse,
+  const { isLoading: isCurriculaLoading, data: curricula } =
+    api.curricula.findMany.useQuery(
+      {
+        filters: {
+          course: selectedCourse,
+        },
       },
-    },
-    {
-      enabled: !!selectedCourse,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-    }
-  )
+      {
+        enabled: !!selectedCourse,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+      }
+    )
 
   const router = useRouter()
 
@@ -142,12 +138,11 @@ const HomePage = () => {
                   <FormItem>
                     <FormLabel>المقرر</FormLabel>
                     <Select
-                      disabled={!courses || courses.length === 0}
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger loading={isCoursesLoading}>
                           <SelectValue placeholder='اختر المقرر' />
                         </SelectTrigger>
                       </FormControl>
@@ -170,12 +165,11 @@ const HomePage = () => {
                   <FormItem>
                     <FormLabel>المنهج</FormLabel>
                     <Select
-                      disabled={!curricula || curricula.length === 0}
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger>
+                        <SelectTrigger loading={isCurriculaLoading}>
                           <SelectValue placeholder='اختر المنهج' />
                         </SelectTrigger>
                       </FormControl>
