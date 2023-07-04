@@ -32,7 +32,11 @@ export const api = createTRPCNext<AppRouter>({
         defaultOptions: {
           queries: {
             retry: (failureCount, error: any) => {
-              if (['UNAUTHORIZED', 'FORBIDDEN'].includes(error?.data?.code))
+              if (
+                ['UNAUTHORIZED', 'FORBIDDEN', 'NOT_FOUND'].includes(
+                  error?.data?.code
+                )
+              )
                 return false
               return failureCount >= 1
             },

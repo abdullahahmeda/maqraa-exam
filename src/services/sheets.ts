@@ -98,7 +98,7 @@ export const importUsers = async (rows: string[][]) => {
 export const getFields = async (spreadsheetId: string, sheet: string) => {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId,
-    range: `'${sheet}'!A:O`,
+    range: `'${sheet}'!A:R`,
   })
 
   return response.data.values as string[][]

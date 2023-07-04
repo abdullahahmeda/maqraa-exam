@@ -35,7 +35,7 @@ import {
   FormMessage,
 } from '~/components/ui/form'
 import { Checkbox } from '~/components/ui/checkbox'
-import { Trash } from 'lucide-react'
+import { Filter, Trash } from 'lucide-react'
 import { DataTable } from '~/components/ui/data-table'
 import { Eye } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -60,6 +60,11 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import { Combobox } from '~/components/ui/combobox'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
 
 type FieldValues = { name: string; courseId: string }
 
@@ -214,25 +219,37 @@ const columns = [
       />
     ),
   }),
-  columnHelper.accessor('name', { header: 'الاسم' }),
+  columnHelper.accessor('name', { header: 'المسار' }),
   columnHelper.accessor('course.name', {
     id: 'course',
     header: ({ column }) => {
       const { data: courses, isLoading } = api.courses.findMany.useQuery()
+
+      const filterValue = column.getFilterValue() as string | undefined
+
       return (
-        <>
+        <div className='flex items-center'>
           المقرر
-          <Combobox
-            items={[{ name: 'الكل', id: '' }, ...(courses || [])]}
-            loading={isLoading}
-            labelKey='name'
-            valueKey='id'
-            onSelect={column.setFilterValue}
-            value={column.getFilterValue() as string | undefined}
-            triggerText='الكل'
-            triggerClassName='w-[200px]'
-          />
-        </>
+          <Popover>
+            <PopoverTrigger className='mr-4'>
+              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
+                <Filter className='h-4 w-4' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Combobox
+                items={[{ name: 'الكل', id: '' }, ...(courses || [])]}
+                loading={isLoading}
+                labelKey='name'
+                valueKey='id'
+                onSelect={column.setFilterValue}
+                value={filterValue}
+                triggerText='الكل'
+                triggerClassName='w-full'
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
       )
     },
   }),
@@ -246,7 +263,7 @@ const columns = [
         </Button>
         <AlertDialog>
           <AlertDialogTrigger>
-            <Button size='icon' variant='ghost'>
+            <Button size='icon' variant='ghost' className='hover:bg-red-50'>
               <Trash className='h-4 w-4 text-red-600' />
             </Button>
           </AlertDialogTrigger>
@@ -261,24 +278,23 @@ const columns = [
 
 const PAGE_SIZE = 25
 
-const TracksPage = ({ page: initialPage }: Props) => {
+const TracksPage = () => {
   const router = useRouter()
 
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-    pageIndex: initialPage - 1,
-    pageSize: PAGE_SIZE,
-  })
+  const pageIndex = z
+    .preprocess((v) => Number(v), z.number().positive().int())
+    .safeParse(router.query.page).success
+    ? Number(router.query.page) - 1
+    : 0
+
+  const pageSize = PAGE_SIZE
+
+  const pagination: PaginationState = {
+    pageIndex,
+    pageSize,
+  }
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-
-  const pagination = useMemo(
-    () => ({
-      pageIndex,
-      pageSize: PAGE_SIZE,
-    }),
-    [pageIndex, pageSize]
-  )
-
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'course')
       return { courseId: { equals: filter.value as string } }
@@ -315,21 +331,15 @@ const TracksPage = ({ page: initialPage }: Props) => {
     manualPagination: true,
     state: { pagination, columnFilters },
     manualFiltering: true,
-    onPaginationChange: setPagination,
+    onPaginationChange: (updater) => {
+      const newPagination: PaginationState = (updater as CallableFunction)(
+        pagination
+      )
+      router.query.page = `${newPagination.pageIndex + 1}`
+      router.push(router)
+    },
     onColumnFiltersChange: setColumnFilters,
   })
-
-  useEffect(() => {
-    router.query.page = `${pageIndex + 1}`
-    router.push(router)
-  }, [pageIndex])
-
-  useEffect(() => {
-    setPagination((pagination) => ({
-      ...pagination,
-      pageIndex: Number(router.query.page) - 1,
-    }))
-  }, [router.query.page])
 
   return (
     <>

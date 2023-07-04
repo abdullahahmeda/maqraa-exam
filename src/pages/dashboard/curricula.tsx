@@ -3,18 +3,19 @@ import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { useFieldArray, useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { Course, Curriculum } from '@prisma/client'
+import { Course, Curriculum, Part, Track } from '@prisma/client'
 import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
   useReactTable,
   getCoreRowModel,
   PaginationState,
+  ColumnFiltersState,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
 import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
@@ -49,31 +50,56 @@ import {
 import { DataTable } from '~/components/ui/data-table'
 import { Combobox } from '~/components/ui/combobox'
 import { useToast } from '~/components/ui/use-toast'
-import { Trash } from 'lucide-react'
+import { Filter, Trash } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
+import { Separator } from '~/components/ui/separator'
 
 type FieldValues = {
   trackId: string
   name: string
-  fromPage: number
-  toPage: number
+  parts: {
+    name: string
+    number: number | string
+    from: number | string
+    to: number | string
+  }[]
 }
 
 const AddCurriculumDialog = () => {
   const queryClient = useQueryClient()
   const form = useForm<FieldValues>({
     resolver: zodResolver(newCurriculumSchema),
+    defaultValues: {
+      parts: [{ name: '', number: '', from: '', to: '' }],
+    },
   })
+
+  const {
+    fields: parts,
+    append,
+    remove,
+  } = useFieldArray({
+    control: form.control,
+    name: 'parts',
+  })
+
   const curriculumCreate = api.curricula.create.useMutation()
 
   const { toast } = useToast()
 
   const { data: tracks, isLoading: isTracksLoading } =
-    api.tracks.findMany.useQuery()
+    api.tracks.findMany.useQuery<any, (Track & { course: { name: string } })[]>(
+      { include: { course: true } }
+    )
 
   const onSubmit = (data: FieldValues) => {
     const t = toast({ title: 'جاري إضافة المنهج' })
     curriculumCreate
-      .mutateAsync(data)
+      .mutateAsync(data as z.infer<typeof newCurriculumSchema>)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم إضافة المنهج بنجاح' })
@@ -86,6 +112,16 @@ const AddCurriculumDialog = () => {
         queryClient.invalidateQueries([['curricula']])
       })
   }
+
+  const appendPart = () => {
+    append({
+      name: '',
+      number: '',
+      from: '',
+      to: '',
+    })
+  }
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
@@ -97,7 +133,12 @@ const AddCurriculumDialog = () => {
               <FormLabel>المقرر</FormLabel>
               <FormControl>
                 <Combobox
-                  items={tracks || []}
+                  items={
+                    tracks?.map((t) => ({
+                      ...t,
+                      name: `${t.course.name}: ${t.name}`,
+                    })) || []
+                  }
                   loading={isTracksLoading}
                   value={field.value}
                   labelKey='name'
@@ -124,34 +165,80 @@ const AddCurriculumDialog = () => {
             </FormItem>
           )}
         />
-        <div className='grid grid-cols-2 gap-4'>
-          <FormField
-            control={form.control}
-            name='fromPage'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>من صفحة</FormLabel>
-                <FormControl>
-                  <Input type='number' min={1} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name='toPage'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>إلى صفحة</FormLabel>
-                <FormControl>
-                  <Input type='number' min={1} {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <h3 className='font-semibold'>التقسيمات</h3>
+        {parts.map(({ id }, index) => (
+          <div className='flex gap-4' key={id}>
+            <div className='space-y-2'>
+              <FormField
+                control={form.control}
+                name={`parts.${index}.name`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>اسم الجزء أو المجلد</FormLabel>
+                    <FormControl>
+                      <Input placeholder='مثال: الجزء الأول' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name={`parts.${index}.number`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>رقم الجزء</FormLabel>
+                    <FormControl>
+                      <Input type='number' min={1} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className='grid grid-cols-2 gap-4'>
+                <FormField
+                  control={form.control}
+                  name={`parts.${index}.from`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>من الحديث رقم</FormLabel>
+                      <FormControl>
+                        <Input type='number' min={1} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`parts.${index}.to`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>إلى الحديث رقم</FormLabel>
+                      <FormControl>
+                        <Input type='number' min={1} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </div>
+            <Separator orientation='vertical' className='h-auto' />
+            <Button
+              size='icon'
+              variant='destructive'
+              type='button'
+              onClick={() => remove(index)}
+              className='flex-shrink-0 self-center'
+            >
+              <Trash className='h-4 w-4' />
+            </Button>
+          </div>
+        ))}
+        <Button type='button' onClick={appendPart}>
+          إضافة جزء آخر
+        </Button>
         <DialogFooter>
           <Button type='submit' loading={curriculumCreate.isLoading}>
             إضافة
@@ -206,121 +293,173 @@ type Props = {
   page: number
 }
 
-type RowType = Curriculum & { track: { name: string } }
+type RowType = Curriculum & {
+  track: Track & { course: { name: string } }
+  parts: Part[]
+}
 
 const columnHelper = createColumnHelper<RowType>()
 
-const PAGE_SIZE = 50
+const columns = [
+  columnHelper.accessor('name', {
+    header: 'المنهج',
+    meta: {
+      className: 'text-center',
+    },
+  }),
+  columnHelper.accessor(
+    (row) => `${row.track.course.name}: ${row.track.name}`,
+    {
+      id: 'track',
+      header: ({ column }) => {
+        const { data: tracks, isLoading } = api.tracks.findMany.useQuery<
+          any,
+          (Track & { course: { name: string } })[]
+        >({
+          include: { course: true },
+        })
 
-const CurriculaPage = ({ page: initialPage }: Props) => {
+        const filterValue = column.getFilterValue() as string | undefined
+
+        return (
+          <div className='flex items-center'>
+            المسار
+            <Popover>
+              <PopoverTrigger className='mr-4'>
+                <Button
+                  size='icon'
+                  variant={filterValue ? 'secondary' : 'ghost'}
+                >
+                  <Filter className='h-4 w-4' />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <Combobox
+                  items={[
+                    { name: 'الكل', id: '' },
+                    ...(tracks?.map((t) => ({
+                      ...t,
+                      name: `${t.course.name}: ${t.name}`,
+                    })) || []),
+                  ]}
+                  loading={isLoading}
+                  labelKey='name'
+                  valueKey='id'
+                  onSelect={column.setFilterValue}
+                  value={filterValue}
+                  triggerText='الكل'
+                  triggerClassName='w-full'
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )
+      },
+      meta: {
+        className: 'text-center',
+      },
+    }
+  ),
+  columnHelper.accessor('parts', {
+    header: 'الصفحات',
+    cell: ({ row }) =>
+      row.original.parts.map((part) => (
+        <div key={part.id}>
+          {part.name}: من الحديث {part.from} إلى {part.to}
+        </div>
+      )),
+    meta: {
+      className: 'text-center',
+    },
+  }),
+  columnHelper.display({
+    id: 'actions',
+    header: 'الإجراءات',
+    cell: ({ row }) => (
+      <div className='flex justify-center gap-2'>
+        {/* <Button variant='primary'>عرض المناهج</Button> */}
+        <AlertDialog>
+          <AlertDialogTrigger>
+            <Button variant='ghost' size='icon' className='hover:bg-red-50'>
+              <Trash className='h-4 w-4 text-red-600' />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <DeleteCurriculumDialog id={row.original.id} />
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
+    ),
+    meta: {
+      className: 'text-center',
+    },
+  }),
+]
+
+const PAGE_SIZE = 25
+
+const CurriculaPage = () => {
   const router = useRouter()
 
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-    pageIndex: initialPage - 1,
-    pageSize: PAGE_SIZE,
-  })
+  const pageIndex = z
+    .preprocess((v) => Number(v), z.number().positive().int())
+    .safeParse(router.query.page).success
+    ? Number(router.query.page) - 1
+    : 0
 
-  const pagination = useMemo(
-    () => ({
-      pageIndex,
-      pageSize: PAGE_SIZE,
-    }),
-    [pageSize, pageIndex]
-  )
+  const pageSize = PAGE_SIZE
+
+  const pagination: PaginationState = {
+    pageIndex,
+    pageSize,
+  }
+
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const filters = columnFilters.map((filter) => {
+    if (filter.id === 'track')
+      return { trackId: { equals: filter.value as string } }
+    return { [filter.id]: { equals: filter.value } }
+  })
 
   const { data: curricula, isFetching: isFetchingCurricula } =
     api.curricula.findMany.useQuery<any, RowType[]>(
       {
         skip: pageIndex * pageSize,
         take: pageSize,
-        include: { track: true },
+        include: { track: { include: { course: true } }, parts: true },
+        where: { AND: filters },
       },
       { networkMode: 'always' }
     )
 
-  const { data: count, isLoading: isCountLoading } = api.cycles.count.useQuery(
-    undefined,
-    // { where: { AND: filters } },
-    { networkMode: 'always' }
-  )
+  const { data: count, isLoading: isCountLoading } =
+    api.curricula.count.useQuery(
+      { where: { AND: filters } },
+      { networkMode: 'always' }
+    )
 
   const pageCount =
     curricula !== undefined && count !== undefined
       ? Math.ceil(count / pageSize)
       : -1
 
-  const columns = useMemo(
-    () => [
-      columnHelper.accessor('name', {
-        header: 'الاسم',
-        meta: {
-          className: 'text-center',
-        },
-      }),
-      columnHelper.accessor('track.name', {
-        header: 'المسار',
-        meta: {
-          className: 'text-center',
-        },
-      }),
-      columnHelper.display({
-        id: 'pages',
-        header: 'الصفحات',
-        cell: ({ row }) =>
-          'من ' + row.original.fromPage + ' إلى ' + row.original.toPage,
-        meta: {
-          className: 'text-center',
-        },
-      }),
-      columnHelper.display({
-        id: 'actions',
-        header: 'الإجراءات',
-        cell: ({ row }) => (
-          <div className='flex justify-center gap-2'>
-            {/* <Button variant='primary'>عرض المناهج</Button> */}
-            <AlertDialog>
-              <AlertDialogTrigger>
-                <Button variant='ghost'>
-                  <Trash className='h-4 w-4 text-red-600' />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <DeleteCurriculumDialog id={row.original.id} />
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        ),
-        meta: {
-          className: 'text-center',
-        },
-      }),
-    ],
-    []
-  )
-
   const table = useReactTable({
     data: curricula || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
+    state: { pagination, columnFilters },
     manualPagination: true,
-    state: {
-      pagination,
+    onPaginationChange: (updater) => {
+      const newPagination: PaginationState = (updater as CallableFunction)(
+        pagination
+      )
+      router.query.page = `${newPagination.pageIndex + 1}`
+      router.push(router)
     },
-    onPaginationChange: setPagination,
+    manualFiltering: true,
+    onColumnFiltersChange: setColumnFilters,
   })
-
-  useEffect(() => {
-    router.query.page = `${pageIndex + 1}`
-    router.push(router)
-  }, [pageIndex])
-
-  useEffect(() => {
-    setPagination((pagination) => ({
-      ...pagination,
-      pageIndex: Number(router.query.page) - 1,
-    }))
-  }, [router.query.page])
 
   return (
     <>
@@ -348,16 +487,5 @@ const CurriculaPage = ({ page: initialPage }: Props) => {
 CurriculaPage.getLayout = (page: any) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const _page = context.query.page
-  const pageData = z.number().positive().int().safeParse(Number(_page))
-
-  return {
-    props: {
-      page: pageData.success ? pageData.data : 1,
-    },
-  }
-}
 
 export default CurriculaPage

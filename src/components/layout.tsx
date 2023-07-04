@@ -6,7 +6,7 @@ import { MdMenu } from 'react-icons/md'
 import { getFirstName } from '~/utils/users'
 
 const Navbar = () => {
-  const [isMenuOpen, toggleMenu] = useReducer(isOpen => !isOpen, false)
+  const [isMenuOpen, toggleMenu] = useReducer((isOpen) => !isOpen, false)
   const { data: session, status } = useSession()
   return (
     <nav className='bg-white py-4 shadow-xl'>
@@ -25,7 +25,7 @@ const Navbar = () => {
               'container mt-4 flex-col gap-5 md:mr-auto md:mt-0 md:flex md:flex-row md:px-0',
               {
                 hidden: !isMenuOpen,
-                flex: isMenuOpen
+                flex: isMenuOpen,
               }
             )}
           >
@@ -72,7 +72,7 @@ const Navbar = () => {
   )
 }
 
-export default function WebsiteLayout ({ children }: { children: ReactNode }) {
+export default function WebsiteLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <style global jsx>{`
@@ -87,7 +87,7 @@ export default function WebsiteLayout ({ children }: { children: ReactNode }) {
           background-repeat: no-repeat;
           background-attachment: scroll;
           background-size: cover;
-          height: 100vh;
+          min-height: 100vh;
         }
       `}</style>
       <Navbar />

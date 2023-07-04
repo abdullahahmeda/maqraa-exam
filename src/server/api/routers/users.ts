@@ -15,9 +15,13 @@
 
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
-import { UserSchema } from './schemas/User.schema'
+import { UserInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, db, checkRead } from './helper'
-import { UserWhereInputObjectSchema } from './schemas/objects'
+import { UserWhereInputObjectSchema } from '.zenstack/zod/objects'
+import { updateUserSchema } from '~/validation/updateUserSchema'
+import { Prisma } from '@prisma/client'
+import { TRPCError } from '@trpc/server'
+import { newUserSchema } from '~/validation/newUserSchema'
 
 // export const usersRouter = createTRPCRouter({
 //   list: adminOnlyProcedure
@@ -103,9 +107,9 @@ import { UserWhereInputObjectSchema } from './schemas/objects'
 
 export const usersRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(UserSchema.create)
+    .input(newUserSchema)
     .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).user.create(input))
+      checkMutate(db(ctx).user.create({ data: input }))
     ),
 
   count: protectedProcedure
@@ -119,16 +123,36 @@ export const usersRouter = createTRPCRouter({
     ),
 
   findFirst: protectedProcedure
-    .input(UserSchema.findFirst)
+    .input(UserInputSchema.findFirst.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).user.findFirst(input))),
 
+  findFirstOrThrow: protectedProcedure
+    .input(UserInputSchema.findFirst.optional())
+    .query(({ ctx, input }) => checkRead(db(ctx).user.findFirstOrThrow(input))),
+
   findMany: protectedProcedure
-    .input(UserSchema.findMany)
+    .input(UserInputSchema.findMany.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).user.findMany(input))),
 
   update: protectedProcedure
-    .input(UserSchema.update)
-    .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).user.update(input))
-    ),
+    .input(updateUserSchema)
+    .mutation(async ({ ctx, input }) => {
+      try {
+        const { id, ...data } = input
+        checkMutate(db(ctx).user.update({ where: { id }, data }))
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError) {
+          if (error.code === 'P2002')
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'هذا البريد الإلكتروني مسجل بالفعل',
+            })
+        }
+
+        throw new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: 'حدث خطأ غير متوقع',
+        })
+      }
+    }),
 })

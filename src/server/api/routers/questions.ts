@@ -2,14 +2,14 @@ import { ZodError, z } from 'zod'
 
 import { createTRPCRouter, protectedProcedure } from '../trpc'
 import { checkMutate, checkRead, db } from './helper'
-import { QuestionSchema } from './schemas/Question.schema'
+import { QuestionInputSchema } from '@zenstackhq/runtime/zod/input'
 import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
 import { questionSchema } from '~/validation/questionSchema'
 import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { getFields } from '~/services/sheets'
 import { TRPCError } from '@trpc/server'
 import { GaxiosError } from 'gaxios'
-import { QuestionWhereInputObjectSchema } from './schemas/objects'
+import { QuestionWhereInputObjectSchema } from '.zenstack/zod/objects'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -49,10 +49,10 @@ export const questionsRouter = createTRPCRouter({
           questions.push(
             questionSchema.parse(
               {
-                number: Number(row[0]),
-                pageNumber: Number(row[1]),
-                partNumber: Number(row[2]),
-                hadithNumber: Number(row[3]),
+                number: row[0],
+                pageNumber: row[1],
+                partNumber: row[2],
+                hadithNumber: row[3],
                 type: row[4],
                 style: row[5],
                 difficulty: row[6],
@@ -64,6 +64,9 @@ export const questionsRouter = createTRPCRouter({
                 option3: row[12],
                 option4: row[13],
                 answer: row[14],
+                anotherAnswer: row[15],
+                isInsideShaded: row[16],
+                objective: row[17],
                 courseId: input.course,
               },
               { path: [i + 1] }
@@ -105,10 +108,16 @@ export const questionsRouter = createTRPCRouter({
     ),
 
   findFirst: protectedProcedure
-    .input(QuestionSchema.findFirst.optional())
+    .input(QuestionInputSchema.findFirst.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).question.findFirst(input))),
 
+  findFirstOrThrow: protectedProcedure
+    .input(QuestionInputSchema.findFirst.optional())
+    .query(({ ctx, input }) =>
+      checkRead(db(ctx).question.findFirstOrThrow(input))
+    ),
+
   findMany: protectedProcedure
-    .input(QuestionSchema.findMany.optional())
+    .input(QuestionInputSchema.findMany.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).question.findMany(input))),
 })

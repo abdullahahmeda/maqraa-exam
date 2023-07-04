@@ -1,9 +1,10 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
-import { CycleSchema } from './schemas/Cycle.schema'
 import { checkMutate, db, checkRead } from './helper'
-import { CycleWhereInputObjectSchema } from './schemas/objects'
+import { CycleWhereInputObjectSchema } from '.zenstack/zod/objects'
 import { newCycleSchema } from '~/validation/newCycleSchema'
+import { editCycleSchema } from '~/validation/editCycleSchema'
+import { CycleInputSchema } from '@zenstackhq/runtime/zod/input'
 
 export const cyclesRouter = createTRPCRouter({
   create: protectedProcedure
@@ -23,16 +24,23 @@ export const cyclesRouter = createTRPCRouter({
     ),
 
   findFirst: protectedProcedure
-    .input(CycleSchema.findFirst.optional())
+    .input(CycleInputSchema.findFirst.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).cycle.findFirst(input))),
 
+  findFirstOrThrow: protectedProcedure
+    .input(CycleInputSchema.findFirst.optional())
+    .query(({ ctx, input }) =>
+      checkRead(db(ctx).cycle.findFirstOrThrow(input))
+    ),
+
   findMany: protectedProcedure
-    .input(CycleSchema.findMany.optional())
+    .input(CycleInputSchema.findMany.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).cycle.findMany(input))),
 
   update: protectedProcedure
-    .input(CycleSchema.update)
-    .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).cycle.update(input))
-    ),
+    .input(editCycleSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { id, ...data } = input
+      return checkMutate(db(ctx).cycle.update({ where: { id }, data }))
+    }),
 })

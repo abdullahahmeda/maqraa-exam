@@ -27,6 +27,7 @@ type CreateContextOptions = {
         user: { role?: string }
       })
     | null
+  prisma: PrismaClient
 }
 
 /**
@@ -42,7 +43,7 @@ type CreateContextOptions = {
 const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   return {
     session: opts.session,
-    prisma: await withPresets(prisma, { user: opts.session?.user }),
+    prisma,
   }
 }
 
@@ -58,7 +59,10 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
   // Get the session from the server using the getServerSession wrapper function
   const session = await getServerAuthSession({ req, res })
 
-  return createInnerTRPCContext({ session })
+  return createInnerTRPCContext({
+    session,
+    prisma: await withPresets(prisma, { user: session?.user }),
+  })
 }
 
 /**
@@ -72,6 +76,7 @@ import superjson from 'superjson'
 import { UserRole } from '../../constants'
 import { withPresets } from '@zenstackhq/runtime'
 import { ZodError } from 'zod'
+import { PrismaClient } from '@prisma/client'
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
@@ -126,7 +131,7 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
   if (!ctx.session || !ctx.session.user) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
-      message: 'ليس لديك الصلاحيات لهذه العملية',
+      message: 'هذه العملية غير مصرحة لك، يجب تسجيل الدخول أولاً',
     })
   }
   return next({
@@ -156,7 +161,7 @@ const enforceUserIsAdmin = t.middleware(({ ctx, next }) => {
   ) {
     throw new TRPCError({
       code: 'UNAUTHORIZED',
-      message: 'ليس لديك الصلاحيات لهذه العملية',
+      message: 'هذه العملية غير مصرحة لك، يجب تسجيل الدخول أولاً',
     })
   }
   return next({

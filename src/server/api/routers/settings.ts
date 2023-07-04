@@ -6,7 +6,7 @@
 
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
-import { SettingSchema } from './schemas/Setting.schema'
+import { SettingInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, db, checkRead } from './helper'
 
 // export const settingsRouter = createTRPCRouter({
@@ -31,7 +31,7 @@ import { checkMutate, db, checkRead } from './helper'
 
 export const settingsRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(SettingSchema.create)
+    .input(SettingInputSchema.create)
     .mutation(async ({ ctx, input }) =>
       checkMutate(db(ctx).setting.create(input))
     ),
@@ -43,15 +43,21 @@ export const settingsRouter = createTRPCRouter({
     ),
 
   findFirst: protectedProcedure
-    .input(SettingSchema.findFirst)
+    .input(SettingInputSchema.findFirst)
     .query(({ ctx, input }) => checkRead(db(ctx).setting.findFirst(input))),
 
+  findFirstOrThrow: protectedProcedure
+    .input(SettingInputSchema.findFirst.optional())
+    .query(({ ctx, input }) =>
+      checkRead(db(ctx).setting.findFirstOrThrow(input))
+    ),
+
   findMany: protectedProcedure
-    .input(SettingSchema.findMany)
+    .input(SettingInputSchema.findMany)
     .query(({ ctx, input }) => checkRead(db(ctx).setting.findMany(input))),
 
   update: protectedProcedure
-    .input(SettingSchema.update)
+    .input(SettingInputSchema.update)
     .mutation(async ({ ctx, input }) =>
       checkMutate(db(ctx).setting.update(input))
     ),

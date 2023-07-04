@@ -2,8 +2,7 @@ import {
   QuestionDifficulty as EnDifficulty,
   QuestionType as EnType,
   QuestionStyle,
-  QuestionDifficulty,
-} from '../constants'
+} from '@prisma/client'
 import invert from 'lodash.invert'
 
 export const typeMapping = {
@@ -20,13 +19,13 @@ export const difficultyMapping = {
 export const styleMapping = {
   'صح أو خطأ': QuestionStyle.TRUE_OR_FALSE,
   اختر: QuestionStyle.CHOOSE,
-  الراوي: 'RAWI',
-  أجب: 'ANSWER',
-  اذكر: 'MENTION',
-  أكمل: 'COMPLETE',
-  عدد: 'NUMBER',
-  استدل: 'EVIDENCE',
-  'من القائل': 'WHO_SAID',
+  الراوي: QuestionStyle.RAWI,
+  أجب: QuestionStyle.ANSWER,
+  اذكر: QuestionStyle.MENTION,
+  أكمل: QuestionStyle.COMPLETE,
+  عدد: QuestionStyle.NUMBER,
+  استدل: QuestionStyle.EVIDENCE,
+  'من القائل': QuestionStyle.WHO_SAID,
 }
 
 type ArType = keyof typeof typeMapping
@@ -58,13 +57,13 @@ export const enStyleToAr = (enStyle: string): ArStyle | string => {
   return inverted[enStyle as keyof typeof inverted] ?? enStyle
 }
 
-export const getDifficultyVariant = (difficulty: QuestionDifficulty) => {
+export const getDifficultyVariant = (difficulty: EnDifficulty) => {
   switch (difficulty) {
-    case QuestionDifficulty.EASY:
+    case EnDifficulty.EASY:
       return 'success'
-    case QuestionDifficulty.MEDIUM:
+    case EnDifficulty.MEDIUM:
       return 'warning'
-    case QuestionDifficulty.HARD:
+    case EnDifficulty.HARD:
       return 'error'
     default:
       return undefined

@@ -21,7 +21,7 @@ type FieldValues = {
   email: string
 }
 
-export default function RegisterPage () {
+export default function RegisterPage() {
   const studentCreate = api.users.createStudent.useMutation()
   const router = useRouter()
 
@@ -29,11 +29,9 @@ export default function RegisterPage () {
     handleSubmit,
     register,
     formState: { errors: fieldsErrors },
-    setError
+    setError,
   } = useForm<FieldValues>({
-    resolver: zodResolver(registerSchema, {
-      errorMap: customErrorMap
-    })
+    resolver: zodResolver(registerSchema),
   })
 
   const onSubmit = (data: FieldValues) => {
@@ -41,14 +39,14 @@ export default function RegisterPage () {
       .mutateAsync(data)
       .then(() => {
         toast.success('تم التسجيل بنجاح. يمكنك الآن تسجيل الدخول', {
-          duration: 5000
+          duration: 5000,
         })
         router.push('/login')
       })
-      .catch(error => {
+      .catch((error) => {
         setError('root.serverError', {
           message: error.message || 'حدث خطأ غير متوقع',
-          type: 'custom'
+          type: 'custom',
         })
       })
   }
@@ -120,7 +118,7 @@ export default function RegisterPage () {
 
 RegisterPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
 
-export async function getServerSideProps (context: GetServerSidePropsContext) {
+export async function getServerSideProps(context: GetServerSidePropsContext) {
   const session = await getServerSession(context.req, context.res, authOptions)
 
   if (session) {
@@ -128,6 +126,6 @@ export async function getServerSideProps (context: GetServerSidePropsContext) {
   }
 
   return {
-    props: {}
+    props: {},
   }
 }

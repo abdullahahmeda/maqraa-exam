@@ -7,7 +7,6 @@ import { useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
-import toast from 'react-hot-toast'
 import { Button } from '~/components/ui/button'
 import { Question, User } from '@prisma/client'
 import Spinner from '~/components/spinner'
@@ -16,13 +15,15 @@ import {
   useReactTable,
   getCoreRowModel,
   PaginationState,
+  ColumnFiltersState,
+  getFilteredRowModel,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
 import { UserRole } from '~/constants'
 import Pagination from '~/components/pagination'
 import { customErrorMap } from '~/validation/customErrorMap'
 import DashboardTable from '~/components/dashboard/table'
-import { enUserRoleToAr } from '~/utils/users'
+import { enUserRoleToAr, userRoleMapping } from '~/utils/users'
 import { updateUserSchema } from '~/validation/updateUserSchema'
 import { importUsersSchema } from '~/validation/importUsersSchema'
 import { newUserSchema } from '~/validation/newUserSchema'
@@ -52,6 +53,14 @@ import {
 import { useQueryClient } from '@tanstack/react-query'
 import { Badge } from '~/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { DataTable } from '~/components/ui/data-table'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
+import { Edit, Filter, Eye } from 'lucide-react'
+import { useToast } from '~/components/ui/use-toast'
 
 type EditUserFieldValues = {
   id: string
@@ -60,26 +69,16 @@ type EditUserFieldValues = {
   role: string
 }
 
-const EditUserDialog = ({
-  open,
-  setOpen,
-  refetch,
-  id,
-}: {
-  open: boolean
-  setOpen: any
-  refetch: any
-  id: string | null
-}) => {
+const EditUserDialog = ({ id }: { id: string }) => {
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const form = useForm<EditUserFieldValues>({
     resolver: zodResolver(updateUserSchema, {
       errorMap: customErrorMap,
     }),
   })
-  const { isLoading: isLoadingUser } = api.users.get.useQuery(
-    {
-      id: id!,
-    },
+  const { isLoading: isLoadingUser } = api.users.findFirstOrThrow.useQuery(
+    { where: { id } },
     {
       enabled: id != null,
       onSuccess: (user) => {
@@ -94,7 +93,6 @@ const EditUserDialog = ({
     }
   )
   const userUpdate = api.users.update.useMutation()
-  const closeModal = () => setOpen(false)
 
   const onSubmit = (data: EditUserFieldValues) => {
     userUpdate
@@ -103,20 +101,21 @@ const EditUserDialog = ({
         role: data.role as UserRole,
       })
       .then(() => {
-        toast.success('تم تعديل بيانات المستخدم بنجاح')
-        closeModal()
-        refetch()
+        toast({ title: 'تم تعديل بيانات المستخدم بنجاح' })
       })
       .catch((error) => {
         form.setError('root.serverError', {
           message: error.message || 'حدث خطأ غير متوقع',
         })
       })
+      .finally(() => {
+        queryClient.invalidateQueries([['users']])
+      })
   }
 
   return (
     <>
-      {isLoadingUser && id != null ? (
+      {isLoadingUser ? (
         <div className='flex items-center justify-center gap-2 text-center'>
           <Spinner />
           <p>جاري التحميل</p>
@@ -153,7 +152,7 @@ const EditUserDialog = ({
             />
             <FormField
               control={form.control}
-              name='name'
+              name='role'
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>الصلاحيات</FormLabel>
@@ -175,9 +174,6 @@ const EditUserDialog = ({
                 </FormItem>
               )}
             />
-            {/* <FieldErrorMessage className='mb-2'>
-              {fieldsErrors.root?.serverError?.message}
-            </FieldErrorMessage> */}
             <DialogFooter>
               <Button type='submit' loading={userUpdate.isLoading}>
                 تعديل
@@ -201,6 +197,8 @@ const AddUsersFromSheetForm = () => {
       errorMap: customErrorMap,
     }),
   })
+
+  const { toast } = useToast()
 
   const usersImport = api.sheets.importUsers.useMutation()
 
@@ -235,17 +233,17 @@ const AddUsersFromSheetForm = () => {
   }
 
   const onSubmit = (data: AddUsersSheetFieldValues) => {
-    const t = toast.loading('جاري إضافة الطلبة')
+    const t = toast({ title: 'جاري إضافة الطلبة' })
     usersImport
       .mutateAsync(data as z.infer<typeof importUsersSchema>)
       .then(() => {
-        toast.dismiss(t)
+        t.dismiss()
         form.reset()
-        toast.success('تم إضافة الطلبة بنجاح')
+        toast({ title: 'تم إضافة الطلبة بنجاح' })
       })
       .catch((error) => {
-        toast.dismiss(t)
-        toast.error(error.message)
+        t.dismiss()
+        toast({ title: error.message })
       })
       .finally(() => {
         queryClient.invalidateQueries([['sheets']])
@@ -321,32 +319,28 @@ type AddUsersSingleFieldValues = {
 }
 
 const AddUsersDialog = () => {
-  const [type, setType] = useState('SINGLE')
+  const { toast } = useToast()
   const queryClient = useQueryClient()
 
   const form = useForm<AddUsersSingleFieldValues>({
-    defaultValues: {
-      role: UserRole.STUDENT,
-    },
-    resolver: zodResolver(newUserSchema, {
-      errorMap: customErrorMap,
-    }),
+    defaultValues: { role: UserRole.STUDENT },
+    resolver: zodResolver(newUserSchema),
   })
 
   const userCreate = api.users.create.useMutation()
 
   const onSubmit = (data: AddUsersSingleFieldValues) => {
-    const t = toast.loading('جاري إضافة المستخدم')
+    const t = toast({ title: 'جاري إضافة المستخدم' })
     userCreate
-      .mutateAsync(data as z.infer<typeof newUserSchema>)
+      .mutateAsync(data)
       .then(() => {
-        toast.dismiss(t)
+        t.dismiss()
         form.reset()
-        toast.success('تم إضافة المستخدم بنجاح')
+        toast({ title: 'تم إضافة المستخدم بنجاح' })
       })
       .catch((error) => {
-        toast.dismiss(t)
-        toast.error(error.message)
+        t.dismiss()
+        toast({ title: error.message })
       })
       .finally(() => {
         queryClient.invalidateQueries([['users']])
@@ -354,8 +348,8 @@ const AddUsersDialog = () => {
   }
 
   return (
-    <Tabs defaultValue='single'>
-      <TabsList>
+    <Tabs defaultValue='single' className='w-full'>
+      <TabsList className='grid w-full grid-cols-2'>
         <TabsTrigger value='single'>مستخدم واحد</TabsTrigger>
         <TabsTrigger value='sheet'>من اكسل شيت</TabsTrigger>
       </TabsList>
@@ -390,7 +384,7 @@ const AddUsersDialog = () => {
             />
             <FormField
               control={form.control}
-              name='name'
+              name='role'
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>الصلاحيات</FormLabel>
@@ -436,41 +430,45 @@ const columnHelper = createColumnHelper<User>()
 const PAGE_SIZE = 50
 
 const UsersPage = ({ page: initialPage }: Props) => {
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [userToEdit, setUserToEdit] = useState<boolean | string>(false)
-
   const router = useRouter()
 
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-    pageIndex: initialPage - 1,
-    pageSize: PAGE_SIZE,
+  const pageIndex = z
+    .preprocess((v) => Number(v), z.number().positive().int())
+    .safeParse(router.query.page).success
+    ? Number(router.query.page) - 1
+    : 0
+
+  const pageSize = PAGE_SIZE
+
+  const pagination: PaginationState = {
+    pageIndex,
+    pageSize,
+  }
+
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+  const filters = columnFilters.map((filter) => {
+    return { [filter.id]: { equals: filter.value } }
   })
 
-  const pagination = useMemo(
-    () => ({
-      pageIndex,
-      pageSize: PAGE_SIZE,
-    }),
-    [pageSize, pageIndex]
+  const { data: users, isFetching: isFetchingUsers } =
+    api.users.findMany.useQuery(
+      {
+        skip: pageIndex * pageSize,
+        take: pageSize,
+        where: { AND: filters },
+      },
+      { networkMode: 'always' }
+    )
+
+  const { data: count, isLoading: isCountLoading } = api.users.count.useQuery(
+    { where: { AND: filters } },
+    { networkMode: 'always' }
   )
 
-  const {
-    data,
-    isLoading: isLoadingQuestions,
-    isRefetching: isRefetchingQuestions,
-    refetch,
-    isLoadingError,
-    isRefetchError,
-  } = api.users.list.useQuery(
-    {
-      page: pageIndex + 1,
-    },
-    {
-      networkMode: 'always',
-    }
-  )
-
-  const pageCount = data !== undefined ? Math.ceil(data.count / pageSize) : -1
+  const pageCount =
+    users !== undefined && count !== undefined
+      ? Math.ceil(count / pageSize)
+      : -1
 
   const columns = useMemo(
     () => [
@@ -487,7 +485,42 @@ const UsersPage = ({ page: initialPage }: Props) => {
         },
       }),
       columnHelper.accessor('role', {
-        header: 'الصلاحيات',
+        header: ({ column }) => {
+          const filterValue = column.getFilterValue() as string | undefined
+          return (
+            <div className='flex items-center'>
+              الصلاحيات
+              <Popover>
+                <PopoverTrigger className='mr-4'>
+                  <Button
+                    size='icon'
+                    variant={filterValue ? 'secondary' : 'ghost'}
+                  >
+                    <Filter className='h-4 w-4' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Select
+                    value={filterValue === undefined ? '' : filterValue}
+                    onValueChange={column.setFilterValue}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value=''>الكل</SelectItem>
+                      {Object.entries(userRoleMapping).map(([label, value]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )
+        },
         cell: (info) => (
           <Badge
           // variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
@@ -503,10 +536,19 @@ const UsersPage = ({ page: initialPage }: Props) => {
         id: 'actions',
         cell: ({ row }) => (
           <div className='flex justify-center gap-2'>
-            <Button>عرض</Button>
-            <Button onClick={() => setUserToEdit(row.original.id)}>
-              تعديل
+            <Button size='icon' variant='ghost'>
+              <Eye className='h-4 w-4' />
             </Button>
+            <Dialog>
+              <DialogTrigger>
+                <Button size='icon' variant='ghost'>
+                  <Edit className='h-4 w-4' />
+                </Button>
+              </DialogTrigger>
+              <DialogContent>
+                <EditUserDialog id={row.original.id} />
+              </DialogContent>
+            </Dialog>
           </div>
         ),
       }),
@@ -515,31 +557,23 @@ const UsersPage = ({ page: initialPage }: Props) => {
   )
 
   const table = useReactTable({
-    data: data?.users || [],
+    data: users || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getFilteredRowModel: getFilteredRowModel(),
     pageCount,
     manualPagination: true,
-    state: {
-      pagination,
+    state: { pagination, columnFilters },
+    manualFiltering: true,
+    onPaginationChange: (updater) => {
+      const newPagination: PaginationState = (updater as CallableFunction)(
+        pagination
+      )
+      router.query.page = `${newPagination.pageIndex + 1}`
+      router.push(router)
     },
-    onPaginationChange: setPagination,
+    onColumnFiltersChange: setColumnFilters,
   })
-
-  const openModal = () => setIsModalOpen(true)
-
-  const changePageIndex = (pageIndex: number) => {
-    table.setPageIndex(pageIndex)
-    router.replace(
-      {
-        query: { ...router.query, page: pageIndex + 1 },
-      },
-      undefined,
-      {
-        shallow: true,
-      }
-    )
-  }
 
   return (
     <>
@@ -565,23 +599,7 @@ const UsersPage = ({ page: initialPage }: Props) => {
         refetch={refetch}
         id={typeof userToEdit === 'string' ? userToEdit : null}
       /> */}
-      {isRefetchingQuestions && (
-        <span className='mt-2 flex items-center gap-1 rounded bg-blue-200 p-2'>
-          <Spinner />
-          جاري تحديث البيانات...
-        </span>
-      )}
-      {isRefetchError && (
-        <span className='mt-2 flex items-center rounded bg-red-200 p-2'>
-          حدث خطأ أثناء تحديث البيانات، تأكد من اتصال الانترنت
-        </span>
-      )}
-      <DashboardTable
-        table={table}
-        isLoading={isLoadingQuestions}
-        isLoadingError={isLoadingError}
-        refetch={refetch}
-      />
+      <DataTable table={table} fetching={isFetchingUsers} />
     </>
   )
 }

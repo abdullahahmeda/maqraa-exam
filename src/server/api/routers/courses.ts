@@ -1,61 +1,10 @@
-import { createTRPCRouter, protectedProcedure } from '../trpc'
+import { createTRPCRouter, protectedProcedure, publicProcedure } from '../trpc'
 import { checkRead, checkMutate, db } from './helper'
-import { CourseSchema } from './schemas/Course.schema'
 import { newCourseSchema } from '~/validation/newCourseSchema'
 import { z } from 'zod'
-import { CourseWhereInputObjectSchema } from './schemas/objects'
+import { CourseInputSchema } from '@zenstackhq/runtime/zod/input'
+import { CourseWhereInputObjectSchema } from '.zenstack/zod/objects'
 import { editCourseSchema } from '~/validation/editCourseSchema'
-
-// export const coursesRouter = createTRPCRouter({
-//   list: adminOnlyProcedure
-//     .input(
-//       z.object({
-//         page: z.number().positive().int().optional()
-//       })
-//     )
-//     .query(async ({ input }) => {
-//       const pageSize = 50
-//       const page = input.page || 1
-
-//       return await getPaginatedCourses({ page, pageSize })
-//     }),
-//   fetchAll: protectedProcedure.query(async () => {
-//     return await fetchAllCourses()
-//   }),
-//   create: adminOnlyProcedure
-//     .input(newCourseSchema)
-//     .mutation(async ({ input }) => {
-//       let course
-//       try {
-//         course = await createCourse(input)
-//       } catch (error) {
-//
-//         throw new TRPCError({
-//           code: 'INTERNAL_SERVER_ERROR',
-//           message: 'حدث خطأ غير متوقع'
-//         })
-//       }
-//       return course
-//     }),
-//   delete: adminOnlyProcedure
-//     .input(
-//       z.object({
-//         id: z.number().positive().int()
-//       })
-//     )
-//     .mutation(async ({ input }) => {
-//       try {
-//         await deleteCourse(input.id)
-//       } catch (error) {
-//
-//         throw new TRPCError({
-//           code: 'INTERNAL_SERVER_ERROR',
-//           message: 'حدث خطأ غير متوقع'
-//         })
-//       }
-//       return true
-//     })
-// })
 
 export const coursesRouter = createTRPCRouter({
   create: protectedProcedure
@@ -75,11 +24,17 @@ export const coursesRouter = createTRPCRouter({
     ),
 
   findFirst: protectedProcedure
-    .input(CourseSchema.findFirst.optional())
+    .input(CourseInputSchema.findFirst.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).course.findFirst(input))),
 
-  findMany: protectedProcedure
-    .input(CourseSchema.findMany.optional())
+  findFirstOrThrow: protectedProcedure
+    .input(CourseInputSchema.findFirst.optional())
+    .query(({ ctx, input }) =>
+      checkRead(db(ctx).course.findFirstOrThrow(input))
+    ),
+
+  findMany: publicProcedure
+    .input(CourseInputSchema.findMany.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).course.findMany(input))),
 
   update: protectedProcedure

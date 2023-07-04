@@ -24,9 +24,9 @@
 
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
-import { ExamSchema } from './schemas/Exam.schema'
+import { ExamInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, checkRead, db } from './helper'
-import { ExamWhereInputObjectSchema } from './schemas/objects'
+import { ExamWhereInputObjectSchema } from '.zenstack/zod/objects'
 
 // const filtersSchema = z
 //   .object({
@@ -219,8 +219,9 @@ import { ExamWhereInputObjectSchema } from './schemas/objects'
 // })
 
 export const examsRouter = createTRPCRouter({
+  // TODO: `select distinct pageNumber` so only 1 question fron each hadith
   create: protectedProcedure
-    .input(ExamSchema.create)
+    .input(ExamInputSchema.create)
     .mutation(async ({ ctx, input }) =>
       checkMutate(db(ctx).exam.create(input))
     ),
@@ -236,15 +237,19 @@ export const examsRouter = createTRPCRouter({
     ),
 
   findFirst: protectedProcedure
-    .input(ExamSchema.findFirst)
+    .input(ExamInputSchema.findFirst.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).exam.findFirst(input))),
 
+  findFirstOrThrow: protectedProcedure
+    .input(ExamInputSchema.findFirst.optional())
+    .query(({ ctx, input }) => checkRead(db(ctx).exam.findFirstOrThrow(input))),
+
   findMany: protectedProcedure
-    .input(ExamSchema.findMany)
+    .input(ExamInputSchema.findMany.optional())
     .query(({ ctx, input }) => checkRead(db(ctx).exam.findMany(input))),
 
   update: protectedProcedure
-    .input(ExamSchema.update)
+    .input(ExamInputSchema.update)
     .mutation(async ({ ctx, input }) =>
       checkMutate(db(ctx).exam.update(input))
     ),

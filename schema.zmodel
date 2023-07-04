@@ -17,7 +17,8 @@ datasource db {
 plugin trpc {
     provider = '@zenstackhq/trpc'
     output = 'src/server/routers/generated'
-    generateModelActions = 'create,count,delete,findFirst,findMany,update'
+    generateModelActions = 'create,count,delete,findFirst,findFirstOrThrow,findMany,update'
+    generateClientHelpers = 'next'
 }
 
 // Necessary for Next auth
@@ -56,10 +57,26 @@ model User {
   emailVerified DateTime?
   password      String?
   image         String?
-  role          String?
+  role          UserRole
   accounts      Account[]
   sessions      Session[]
   exams         Exam[]
+  student Student?
+
+  @@allow('all', auth() != null)
+}
+
+enum UserRole {
+  ADMIN
+  STUDENT
+  CORRECTOR
+}
+
+model Student {
+  id String @id @default(cuid())
+  name String
+  userId String @unique
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// @@Gen.model(hide: true)
@@ -77,30 +94,57 @@ model Question {
   pageNumber   Int
   partNumber   Int
   hadithNumber Int
+  type         QuestionType
+  style        QuestionStyle
+  difficulty   QuestionDifficulty
   text         String         @db.Text()
-  type         String
-  style        String
-  difficulty   String
+  textForTrue     String?        @db.Text()
+  textForFalse    String?        @db.Text()
   option1      String?        @db.Text()
   option2      String?        @db.Text()
   option3      String?        @db.Text()
   option4      String?        @db.Text()
-  textForTrue     String?        @db.Text()
-  textForFalse    String?        @db.Text()
   answer       String         @db.Text()
+  anotherAnswer String?
+  isInsideShaded Boolean
+  objective String
   courseId     String
   course       Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
   exams        ExamQuestion[]
 
+  @@index([partNumber])
+  @@index([hadithNumber])
   @@index([difficulty])
   @@index([type])
-  @@index([pageNumber])
   @@index([style])
   @@index([courseId])
 
   @@allow('create,update,delete', auth() != null)
   // But you should hide `answer` for students
   @@allow('read', true)
+}
+
+enum QuestionType {
+  WRITTEN
+  MCQ
+}
+
+enum QuestionStyle {
+  TRUE_OR_FALSE
+  CHOOSE
+  RAWI
+  ANSWER
+  MENTION
+  COMPLETE
+  NUMBER 
+  EVIDENCE 
+  WHO_SAID
+}
+
+enum QuestionDifficulty {
+  EASY
+  MEDIUM
+  HARD
 }
 
 model Setting {
@@ -197,15 +241,28 @@ model Track {
 model Curriculum {
   id String @id @default(cuid())
   name String
-  fromPage Int
-  toPage   Int
   trackId String
   track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  parts Part[]
 
   @@index([trackId])
-  @@index([fromPage])
-  @@index([toPage])
 
+  @@allow('create,update,delete', auth() != null)
+  @@allow('read', true)
+}
+
+/// @@Gen.model(hide: true)
+model Part {
+  id Int @id @default(autoincrement())
+  name String
+  number Int // Part number
+  from Int
+  to Int
+  curriculumId String
+  curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+
+  @@index([curriculumId])
+  
   @@allow('create,update,delete', auth() != null)
   @@allow('read', true)
 }

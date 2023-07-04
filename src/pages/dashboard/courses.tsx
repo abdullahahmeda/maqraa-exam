@@ -3,7 +3,7 @@ import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { UseFormReturn, useForm } from 'react-hook-form'
+import { FieldPath, UseFormReturn, useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
@@ -54,9 +54,9 @@ import { Edit, Loader2, Trash } from 'lucide-react'
 
 type CreateFieldValues = { name: string }
 type UpdateFieldValues = { id: string } & CreateFieldValues
-type FieldValues = CreateFieldValues | UpdateFieldValues
+// type FieldValues = CreateFieldValues | UpdateFieldValues
 
-const BaseCourseDialog = <T extends FieldValues>({
+const CourseForm = <T extends CreateFieldValues | UpdateFieldValues>({
   form,
   onSubmit,
   loading = false,
@@ -72,8 +72,7 @@ const BaseCourseDialog = <T extends FieldValues>({
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
         <FormField
           control={form.control}
-          // @ts-ignore
-          name='name'
+          name={'name' as FieldPath<T>}
           render={({ field }) => (
             <FormItem>
               <FormLabel>اسم المقرر</FormLabel>
@@ -121,7 +120,7 @@ const AddCourseDialog = () => {
       })
   }
   return (
-    <BaseCourseDialog
+    <CourseForm
       form={form}
       onSubmit={onSubmit}
       loading={courseCreate.isLoading}
@@ -143,9 +142,7 @@ const EditCourseDialog = ({ id }: { id: string }) => {
     data: course,
     isLoading,
     error,
-  } = api.courses.findFirst.useQuery({
-    where: { id },
-  })
+  } = api.courses.findFirst.useQuery({ where: { id } })
 
   const courseUpdate = api.courses.update.useMutation()
 
@@ -184,10 +181,8 @@ const EditCourseDialog = ({ id }: { id: string }) => {
       </p>
     )
 
-  return course === null ? (
-    <p className='text-center text-red-600'>هذا المقرر غير موجود</p>
-  ) : (
-    <BaseCourseDialog
+  return (
+    <CourseForm
       form={form}
       onSubmit={onSubmit}
       loading={courseUpdate.isLoading}
@@ -242,21 +237,21 @@ const columnHelper = createColumnHelper<Course>()
 
 const PAGE_SIZE = 25
 
-const CoursesPage = ({ page: initialPage }: Props) => {
+const CoursesPage = () => {
   const router = useRouter()
 
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-    pageIndex: initialPage - 1,
-    pageSize: PAGE_SIZE,
-  })
+  const pageIndex = z
+    .preprocess((v) => Number(v), z.number().positive().int())
+    .safeParse(router.query.page).success
+    ? Number(router.query.page) - 1
+    : 0
 
-  const pagination = useMemo(
-    () => ({
-      pageIndex,
-      pageSize: PAGE_SIZE,
-    }),
-    [pageSize, pageIndex]
-  )
+  const pageSize = PAGE_SIZE
+
+  const pagination: PaginationState = {
+    pageIndex,
+    pageSize,
+  }
 
   const {
     data: courses,
@@ -282,14 +277,8 @@ const CoursesPage = ({ page: initialPage }: Props) => {
 
   const columns = useMemo(
     () => [
-      columnHelper.accessor('id', {
-        header: 'ID',
-        meta: {
-          className: 'text-center',
-        },
-      }),
       columnHelper.accessor('name', {
-        header: 'الاسم',
+        header: 'المقرر',
         meta: {
           className: 'text-center',
         },
@@ -309,8 +298,12 @@ const CoursesPage = ({ page: initialPage }: Props) => {
             {/* <Button>عرض المناهج</Button> */}
             <Dialog>
               <DialogTrigger>
-                <Button variant='ghost' size='icon'>
-                  <Edit className='h-4 w-4' />
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='hover:bg-orange-50'
+                >
+                  <Edit className='h-4 w-4 text-orange-500' />
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -320,7 +313,7 @@ const CoursesPage = ({ page: initialPage }: Props) => {
             </Dialog>
             <AlertDialog>
               <AlertDialogTrigger>
-                <Button variant='ghost' size='icon'>
+                <Button variant='ghost' size='icon' className='hover:bg-red-50'>
                   <Trash className='h-4 w-4 text-red-600' />
                 </Button>
               </AlertDialogTrigger>
@@ -345,20 +338,14 @@ const CoursesPage = ({ page: initialPage }: Props) => {
     pageCount,
     manualPagination: true,
     state: { pagination },
-    onPaginationChange: setPagination,
+    onPaginationChange: (updater) => {
+      const newPagination: PaginationState = (updater as CallableFunction)(
+        pagination
+      )
+      router.query.page = `${newPagination.pageIndex + 1}`
+      router.push(router)
+    },
   })
-
-  useEffect(() => {
-    router.query.page = `${pageIndex + 1}`
-    router.push(router)
-  }, [pageIndex])
-
-  useEffect(() => {
-    setPagination((pagination) => ({
-      ...pagination,
-      pageIndex: Number(router.query.page) - 1,
-    }))
-  }, [router.query.page])
 
   return (
     <>
@@ -383,16 +370,5 @@ const CoursesPage = ({ page: initialPage }: Props) => {
 }
 
 CoursesPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const _page = context.query.page
-  const pageData = z.number().positive().int().safeParse(Number(_page))
-
-  return {
-    props: {
-      page: pageData.success ? pageData.data : 1,
-    },
-  }
-}
 
 export default CoursesPage

@@ -3,7 +3,7 @@ import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { FieldPath, UseFormReturn, useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
@@ -35,7 +35,7 @@ import {
   FormMessage,
 } from '~/components/ui/form'
 import { Checkbox } from '~/components/ui/checkbox'
-import { Trash } from 'lucide-react'
+import { Edit, Loader2, Trash } from 'lucide-react'
 import { DataTable } from '~/components/ui/data-table'
 import { Eye } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
@@ -52,11 +52,54 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
+import { editCycleSchema } from '~/validation/editCycleSchema'
 
-type FieldValues = { name: string }
+type CreateFieldValues = { name: string }
+type UpdateFieldValues = { id: string } & CreateFieldValues
+
+const CycleForm = <T extends CreateFieldValues | UpdateFieldValues>({
+  form,
+  onSubmit,
+  loading = false,
+  submitText,
+}: {
+  form: UseFormReturn<T>
+  onSubmit: (data: T) => void
+  loading?: boolean
+  submitText: string
+}) => {
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+        <FormField
+          control={form.control}
+          name={'name' as FieldPath<T>}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>اسم الدورة</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button
+            type='submit'
+            // variant='success'
+            loading={loading}
+          >
+            {submitText}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  )
+}
 
 const AddCycleDialog = () => {
-  const form = useForm<FieldValues>({
+  const form = useForm<CreateFieldValues>({
     resolver: zodResolver(newCycleSchema),
   })
 
@@ -65,13 +108,13 @@ const AddCycleDialog = () => {
 
   const cycleCreate = api.cycles.create.useMutation()
 
-  const onSubmit = (data: FieldValues) => {
-    const t = toast({ title: 'جاري إضافة الأسئلة' })
+  const onSubmit = (data: CreateFieldValues) => {
+    const t = toast({ title: 'جاري إضافة الدورة' })
     cycleCreate
-      .mutateAsync(data as z.infer<typeof newCycleSchema>)
+      .mutateAsync(data)
       .then(() => {
         t.dismiss()
-        toast({ title: 'تم إضافة الأسئلة بنجاح' })
+        toast({ title: 'تم إضافة الدورة بنجاح' })
         // closeModal()
       })
       .catch((error) => {
@@ -84,35 +127,74 @@ const AddCycleDialog = () => {
   }
 
   return (
-    <>
-      <DialogHeader>إضافة دورة</DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-          <FormField
-            control={form.control}
-            name='name'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>اسم الدورة</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <DialogFooter>
-            <Button
-              type='submit'
-              // variant='success'
-              loading={cycleCreate.isLoading}
-            >
-              إضافة
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </>
+    <CycleForm
+      form={form}
+      loading={cycleCreate.isLoading}
+      submitText='إضافة'
+      onSubmit={onSubmit}
+    />
+  )
+}
+
+const EditCycleDialog = ({ id }: { id: string }) => {
+  const form = useForm<UpdateFieldValues>({
+    resolver: zodResolver(editCycleSchema),
+  })
+
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
+
+  const {
+    data: cycle,
+    isLoading,
+    error,
+  } = api.cycles.findFirstOrThrow.useQuery({ where: { id } })
+
+  useEffect(() => {
+    if (cycle) form.reset(cycle)
+  }, [cycle])
+
+  const cycleUpdate = api.cycles.update.useMutation()
+
+  const onSubmit = (data: UpdateFieldValues) => {
+    const t = toast({ title: 'جاري تعديل الدورة' })
+    cycleUpdate
+      .mutateAsync(data)
+      .then(() => {
+        t.dismiss()
+        toast({ title: 'تم تعديل الدورة بنجاح' })
+        // closeModal()
+      })
+      .catch((error) => {
+        t.dismiss()
+        toast({ title: error.message, variant: 'destructive' })
+      })
+      .finally(() => {
+        queryClient.invalidateQueries([['cycles']])
+      })
+  }
+
+  if (isLoading)
+    return (
+      <div className='flex justify-center'>
+        <Loader2 className='h-4 w-4 animate-spin' />
+      </div>
+    )
+
+  if (error)
+    return (
+      <p className='text-center text-red-600'>
+        {error.message || 'حدث خطأ ما'}
+      </p>
+    )
+
+  return (
+    <CycleForm
+      form={form}
+      onSubmit={onSubmit}
+      loading={cycleUpdate.isLoading}
+      submitText='تعديل'
+    />
   )
 }
 
@@ -178,7 +260,7 @@ const columns = [
       />
     ),
   }),
-  columnHelper.accessor('name', { header: 'الاسم' }),
+  columnHelper.accessor('name', { header: 'الدورة' }),
   columnHelper.display({
     id: 'actions',
     cell: ({ row }) => (
@@ -187,9 +269,20 @@ const columns = [
         <Button size='icon' variant='ghost'>
           <Eye className='h-4 w-4' />
         </Button>
+        <Dialog>
+          <DialogTrigger>
+            <Button variant='ghost' size='icon' className='hover:bg-orange-50'>
+              <Edit className='h-4 w-4 text-orange-500' />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>تعديل المقرر</DialogHeader>
+            <EditCycleDialog id={row.original.id} />
+          </DialogContent>
+        </Dialog>
         <AlertDialog>
           <AlertDialogTrigger>
-            <Button variant='ghost' size='icon'>
+            <Button variant='ghost' size='icon' className='hover:bg-red-50'>
               <Trash className='h-4 w-4 text-red-600' />
             </Button>
           </AlertDialogTrigger>
@@ -204,23 +297,23 @@ const columns = [
 
 const PAGE_SIZE = 25
 
-const CyclesPage = ({ page: initialPage }: Props) => {
+const CyclesPage = () => {
   const router = useRouter()
 
-  const [{ pageIndex, pageSize }, setPagination] = useState<PaginationState>({
-    pageIndex: initialPage - 1,
-    pageSize: PAGE_SIZE,
-  })
+  const pageIndex = z
+    .preprocess((v) => Number(v), z.number().positive().int())
+    .safeParse(router.query.page).success
+    ? Number(router.query.page) - 1
+    : 0
+
+  const pageSize = PAGE_SIZE
+
+  const pagination: PaginationState = {
+    pageIndex,
+    pageSize,
+  }
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-
-  const pagination = useMemo(
-    () => ({
-      pageIndex,
-      pageSize: PAGE_SIZE,
-    }),
-    [pageIndex, pageSize]
-  )
 
   const filters = columnFilters.map((filter) => {
     return { [filter.id]: { equals: filter.value } }
@@ -255,21 +348,15 @@ const CyclesPage = ({ page: initialPage }: Props) => {
     manualPagination: true,
     state: { pagination, columnFilters },
     manualFiltering: true,
-    onPaginationChange: setPagination,
+    onPaginationChange: (updater) => {
+      const newPagination: PaginationState = (updater as CallableFunction)(
+        pagination
+      )
+      router.query.page = `${newPagination.pageIndex + 1}`
+      router.push(router)
+    },
     onColumnFiltersChange: setColumnFilters,
   })
-
-  useEffect(() => {
-    router.query.page = `${pageIndex + 1}`
-    router.push(router)
-  }, [pageIndex])
-
-  useEffect(() => {
-    setPagination((pagination) => ({
-      ...pagination,
-      pageIndex: Number(router.query.page) - 1,
-    }))
-  }, [router.query.page])
 
   return (
     <>
@@ -283,6 +370,7 @@ const CyclesPage = ({ page: initialPage }: Props) => {
             <Button>إضافة دورة</Button>
           </DialogTrigger>
           <DialogContent>
+            <DialogHeader>إضافة دورة</DialogHeader>
             <AddCycleDialog />
           </DialogContent>
         </Dialog>
@@ -293,16 +381,5 @@ const CyclesPage = ({ page: initialPage }: Props) => {
 }
 
 CyclesPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const _page = context.query.page
-  const pageData = z.number().positive().int().safeParse(Number(_page))
-
-  return {
-    props: {
-      page: pageData.success ? pageData.data : 1,
-    },
-  }
-}
 
 export default CyclesPage

@@ -12,6 +12,35 @@ generator client {
     provider = "prisma-client-js"
 }
 
+enum UserRole {
+    ADMIN
+    STUDENT
+    CORRECTOR
+}
+
+enum QuestionType {
+    WRITTEN
+    MCQ
+}
+
+enum QuestionStyle {
+    TRUE_OR_FALSE
+    CHOOSE
+    RAWI
+    ANSWER
+    MENTION
+    COMPLETE
+    NUMBER
+    EVIDENCE
+    WHO_SAID
+}
+
+enum QuestionDifficulty {
+    EASY
+    MEDIUM
+    HARD
+}
+
 /// @@Gen.model(hide: true)
 model Account {
     id String @id() @default(cuid())
@@ -27,6 +56,11 @@ model Account {
     id_token String? @db.Text()
     session_state String?
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+
+    @@index([zenstack_transaction])
     @@unique([provider, providerAccountId])
 }
 
@@ -37,8 +71,14 @@ model Session {
     userId String
     expires DateTime
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+
+    @@index([zenstack_transaction])
 }
 
+/// @@allow('all', auth() != null)
 model User {
     id String @id() @default(cuid())
     name String?
@@ -46,10 +86,23 @@ model User {
     emailVerified DateTime?
     password String?
     image String?
-    role String?
+    role UserRole
     accounts Account[]
     sessions Session[]
     exams Exam[]
+    student Student?
+
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+
+    @@index([zenstack_transaction])
+}
+
+model Student {
+    id String @id() @default(cuid())
+    name String
+    userId String @unique()
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -73,17 +126,20 @@ model Question {
     pageNumber Int
     partNumber Int
     hadithNumber Int
+    type QuestionType
+    style QuestionStyle
+    difficulty QuestionDifficulty
     text String @db.Text()
-    type String
-    style String
-    difficulty String
+    textForTrue String? @db.Text()
+    textForFalse String? @db.Text()
     option1 String? @db.Text()
     option2 String? @db.Text()
     option3 String? @db.Text()
     option4 String? @db.Text()
-    textForTrue String? @db.Text()
-    textForFalse String? @db.Text()
     answer String @db.Text()
+    anotherAnswer String?
+    isInsideShaded Boolean
+    objective String
     courseId String
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
     exams ExamQuestion[]
@@ -92,9 +148,10 @@ model Question {
     zenstack_transaction String?
 
     @@index([zenstack_transaction])
+    @@index([partNumber])
+    @@index([hadithNumber])
     @@index([difficulty])
     @@index([type])
-    @@index([pageNumber])
     @@index([style])
     @@index([courseId])
 }
@@ -222,16 +279,32 @@ model Track {
 model Curriculum {
     id String @id() @default(cuid())
     name String
-    fromPage Int
-    toPage Int
     trackId String
     track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
+    parts Part[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
 
     @@index([zenstack_transaction])
     @@index([trackId])
-    @@index([fromPage])
-    @@index([toPage])
+}
+
+/// @@allow('create,update,delete', auth() != null)
+/// @@allow('read', true)
+/// @@Gen.model(hide: true)
+model Part {
+    id Int @id() @default(autoincrement())
+    name String
+    number Int
+    from Int
+    to Int
+    curriculumId String
+    curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+
+    @@index([zenstack_transaction])
+    @@index([curriculumId])
 }

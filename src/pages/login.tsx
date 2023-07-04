@@ -6,12 +6,9 @@ import { useForm } from 'react-hook-form'
 import { loginSchema } from '../validation/loginSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
 // import Button from '../components/button'
-import { customErrorMap } from '../validation/customErrorMap'
-import { getProviders, signIn } from 'next-auth/react'
-import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import WebsiteLayout from '../components/layout'
-import { getServerAuthSession } from '../server/auth'
 import {
   Form,
   FormControl,
@@ -27,19 +24,10 @@ type FieldValues = {
   email: string
 }
 
-const defaultValues: FieldValues = {
-  email: '',
-}
-
-export default function LoginPage({
-  providers,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) {
+export default function LoginPage() {
   const router = useRouter()
   const form = useForm<FieldValues>({
-    defaultValues,
-    resolver: zodResolver(loginSchema, {
-      errorMap: customErrorMap,
-    }),
+    resolver: zodResolver(loginSchema),
   })
 
   const onSubmit = (data: FieldValues) => {
@@ -103,7 +91,7 @@ export default function LoginPage({
               قم بتسجيل الدخول للمتابعة
             </div>
           )}
-          <div className='bg-white p-5 shadow'>
+          <div className='rounded-md bg-white p-4 shadow'>
             <h1 className='mb-4 text-center text-2xl font-bold text-neutral-800'>
               تسجيل الدخول
             </h1>
@@ -128,18 +116,3 @@ export default function LoginPage({
   )
 }
 LoginPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
-
-export async function getServerSideProps(context: GetServerSidePropsContext) {
-  const { req, res } = context
-  const session = await getServerAuthSession({ req, res })
-
-  if (session) {
-    return { redirect: { destination: '/' } }
-  }
-
-  const providers = await getProviders()
-
-  return {
-    props: { providers: providers ?? [] },
-  }
-}

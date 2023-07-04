@@ -1,9 +1,9 @@
 import { UserRole as EnUserRole } from '../constants'
 import invert from 'lodash.invert'
 
-const userRoleMapping = {
+export const userRoleMapping = {
   أدمن: EnUserRole.ADMIN,
-  طالب: EnUserRole.STUDENT
+  طالب: EnUserRole.STUDENT,
 }
 
 type ArUserRole = keyof typeof userRoleMapping
