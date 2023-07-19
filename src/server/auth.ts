@@ -3,13 +3,14 @@ import {
   getServerSession,
   type NextAuthOptions,
   type DefaultSession,
-  Theme
+  Theme,
 } from 'next-auth'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import EmailProvider from 'next-auth/providers/email'
 import { env } from '../env.mjs'
 import { prisma } from './db'
 import { sendMail } from '../utils/email'
+import { UserRole } from '@prisma/client'
 
 /**
  * Module augmentation for `next-auth` types.
@@ -22,12 +23,12 @@ declare module 'next-auth' {
   interface Session extends DefaultSession {
     user: {
       id: string
-      role?: string
+      role: UserRole
     } & DefaultSession['user']
   }
 
   interface User {
-    role?: string
+    role: UserRole
   }
 }
 
@@ -40,12 +41,12 @@ declare module 'next-auth' {
 export const authOptions: NextAuthOptions = {
   pages: {
     signIn: '/login',
-    verifyRequest: '/verify-request'
+    verifyRequest: '/verify-request',
   },
   debug: env.NODE_ENV === 'development',
 
   callbacks: {
-    async signIn ({ user }) {
+    async signIn({ user }) {
       const isAllowedToSignIn = user.role != null
       if (isAllowedToSignIn) {
         return true
@@ -53,19 +54,19 @@ export const authOptions: NextAuthOptions = {
         return false
       }
     },
-    async session ({ session, user }) {
+    async session({ session, user }) {
       if (session.user) {
         session.user.id = user.id
         session.user.role = user.role
       }
       return session
-    }
+    },
   },
   adapter: PrismaAdapter(prisma),
   providers: [
     EmailProvider({
       from: env.DEFAULT_SENDER_EMAIL,
-      sendVerificationRequest: async function sendVerificationRequest (params) {
+      sendVerificationRequest: async function sendVerificationRequest(params) {
         const { identifier, url, provider, theme } = params
         const { host } = new URL(url)
         try {
@@ -73,17 +74,17 @@ export const authOptions: NextAuthOptions = {
             to: [{ email: identifier }],
             subject: `تسجيل الدخول إلى ${host}`,
             textContent: text({ url, host }),
-            htmlContent: html({ url, host, theme })
+            htmlContent: html({ url, host, theme }),
           })
         } catch (error) {
           throw new Error(`فشل ارسال رابط الدخول`)
         }
-      }
-    })
-  ]
+      },
+    }),
+  ],
 }
 
-function html (params: { url: string; host: string; theme: Theme }) {
+function html(params: { url: string; host: string; theme: Theme }) {
   const { url, host, theme } = params
 
   const escapedHost = host.replace(/\./g, '&#8203;.')
@@ -99,7 +100,7 @@ function html (params: { url: string; host: string; theme: Theme }) {
     mainBackground: '#fff',
     buttonBackground: brandColor,
     buttonBorder: brandColor,
-    buttonText
+    buttonText,
   }
 
   return `
@@ -137,7 +138,7 @@ function html (params: { url: string; host: string; theme: Theme }) {
 }
 
 /** Email Text body (fallback for email clients that don't render HTML, e.g. feature phones) */
-function text ({ url, host }: { url: string; host: string }) {
+function text({ url, host }: { url: string; host: string }) {
   return `تسجيل الدخول إلى ${host}\n${url}\n\n`
 }
 

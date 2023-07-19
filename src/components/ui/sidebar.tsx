@@ -1,68 +1,27 @@
-import { Construction, Home, Settings, Users } from 'lucide-react'
-
 import { cn } from '~/lib/utils'
 import { buttonVariants } from '~/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
+import { ReactNode } from 'react'
 
-const menuLinks = [
-  {
-    icon: <Home className='ml-2 h-4 w-4' />,
-    label: 'الرئيسية',
-    href: '/dashboard',
-  },
-  {
-    icon: <Construction className='ml-2 h-4 w-4' />,
-    label: 'المستخدمون',
-    href: '/dashboard/users',
-  },
-  {
-    icon: <Construction className='ml-2 h-4 w-4' />,
-    label: 'الأسئلة',
-    href: '/dashboard/questions',
-  },
-  {
-    icon: <Construction className='ml-2 h-4 w-4' />,
-    label: 'الإختبارات',
-    href: '/dashboard/exams',
-  },
-  {
-    icon: <Construction className='ml-2 h-4 w-4' />,
-    label: 'المقررات',
-    href: '/dashboard/courses',
-  },
-  {
-    icon: <Construction className='ml-2 h-4 w-4' />,
-    label: 'المناهج',
-    href: '/dashboard/curricula',
-  },
-  {
-    icon: <Home className='ml-2 h-4 w-4' />,
-    label: 'الدورات',
-    href: '/dashboard/cycles',
-  },
-  {
-    icon: <Home className='ml-2 h-4 w-4' />,
-    label: 'المسارات',
-    href: '/dashboard/tracks',
-  },
-  {
-    icon: <Settings className='ml-2 h-4 w-4' />,
-    label: 'الإعدادات',
-    href: '/dashboard/settings',
-  },
-]
+type MenuLink = {
+  icon: ReactNode
+  label: ReactNode
+  href: string
+}
 
-interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {}
+interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
+  links: MenuLink[]
+}
 
-export function Sidebar({ className }: SidebarProps) {
+export function Sidebar({ className, links }: SidebarProps) {
   const router = useRouter()
 
   return (
     <div className={cn('pb-12', className)}>
       <div className='px-3 py-2'>
         <div className='space-y-1'>
-          {menuLinks.map((link) => (
+          {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}

@@ -1,9 +1,10 @@
-import { UserRole as EnUserRole } from '../constants'
+import { UserRole as EnUserRole } from '@prisma/client'
 import invert from 'lodash.invert'
 
 export const userRoleMapping = {
   أدمن: EnUserRole.ADMIN,
   طالب: EnUserRole.STUDENT,
+  مصحح: EnUserRole.CORRECTOR,
 }
 
 type ArUserRole = keyof typeof userRoleMapping

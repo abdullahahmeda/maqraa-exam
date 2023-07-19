@@ -3,246 +3,335 @@ import Head from 'next/head'
 import { useRouter } from 'next/router'
 import { ReactNode, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
-import toast from 'react-hot-toast'
 import { compareTwoStrings } from 'string-similarity'
 import { Button } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
-import Spinner from '~/components/spinner'
 import { QuestionType } from '~/constants'
 import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
 import { enStyleToAr, enTypeToAr } from '~/utils/questions'
 import { isCorrectAnswer, normalizeText } from '~/utils/strings'
 import { Badge } from '~/components/ui/badge'
+import {
+  Exam,
+  ExamQuestionGroup,
+  GroupQuestion,
+  Question,
+  User,
+} from '@prisma/client'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+} from '~/components/ui/form'
+import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
+import { prisma as _prisma } from '~/server/db'
+import { withPresets } from '@zenstackhq/runtime'
+import { getServerAuthSession } from '~/server/auth'
+import { Checkbox } from '~/components/ui/checkbox'
+import { formatDate } from '~/utils/formatDate'
+import { CheckedState } from '@radix-ui/react-checkbox'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { correctExamSchema } from '~/validation/correctExamSchema'
+import { z } from 'zod'
+import { useToast } from '~/components/ui/use-toast'
 
-type FieldValues = Record<string, boolean>
+type FieldValues = {
+  id: string
+  groups: Record<
+    string,
+    {
+      questions: Record<string, CheckedState>
+    }
+  >
+  student: User | null
+}
 
-const ExamPage = () => {
-  const { handleSubmit, reset, register } = useForm<FieldValues>()
+const ExamPage = ({
+  exam,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
+  const { toast } = useToast()
+  const form = useForm<FieldValues>({
+    resolver: zodResolver(correctExamSchema),
+  })
   const router = useRouter()
 
-  const {
-    data: exam,
-    isLoadingError,
-    isLoading: _isLoading,
-    isPaused,
-    error,
-    refetch,
-  } = api.exams.get.useQuery(
-    {
-      id: router.query.id as string,
-    },
-    {
-      enabled: router.isReady,
-    }
-  )
-
-  const examSave = api.exams.save.useMutation()
+  const examCorrect = api.exams.correct.useMutation()
   const gradeEmailSend = api.emails.sendGradeEmail.useMutation()
 
   useEffect(() => {
     if (exam) {
-      const fieldValues = exam.questions.reduce(
-        (obj, question) => ({
-          ...obj,
-          [question.id]: question.isCorrect,
-        }),
-        {}
-      )
-      reset(fieldValues)
+      form.reset({
+        id: exam.id,
+        groups: exam.groups.reduce(
+          (groupAcc, group) => ({
+            ...groupAcc,
+            [group.id]: {
+              questions: group.questions.reduce(
+                (questionAcc, question) => ({
+                  ...questionAcc,
+                  [question.id]: question.isCorrect,
+                }),
+                {}
+              ),
+            },
+          }),
+          {}
+        ),
+      })
     }
-  }, [reset, exam])
+  }, [exam])
 
-  const isLoading = _isLoading || isPaused
+  // const isLoading = _isLoading || isPaused
 
   const onSubmit = (data: FieldValues) => {
-    examSave
+    examCorrect
       .mutateAsync({
-        id: exam?.id as string,
-        questions: data,
+        id: exam.id,
+        groups: form.getValues('groups') as any,
       })
       .then((isEmailSent) => {
         if (isEmailSent) {
-          toast.success('تم حفظ الاختبار وارسال الدرجة بنجاح')
+          toast({ title: 'تم حفظ الاختبار وارسال الدرجة بنجاح' })
           router.push('/dashboard/exams')
-        } else
-          toast(
-            (t) => (
-              <div className='flex flex-col items-center justify-between gap-3'>
-                <p>
-                  تم حفظ الدرجة لكن حدث خطأ أثناء ارسال الايميل، هل تريد إعادة
-                  المحاولة؟
-                </p>
-                <div className='flex gap-2'>
-                  <Button
-                    variant='success'
-                    onClick={() => {
-                      toast.dismiss(t.id)
-                      const newToast = toast.loading('جاري ارسال الإيميل')
-                      gradeEmailSend
-                        .mutateAsync({
-                          id: exam!.id,
-                        })
-                        .then(() => {
-                          toast.dismiss(newToast)
-                          toast.success('تم ارسال الإيميل بنجاح!')
-                        })
-                        .catch(() => {
-                          toast.dismiss(newToast)
-                          toast.error(
-                            'فشل ارسال الإيميل، ربما تم تخطي الحد المسموح به من الرسائل. الرجاء المحاولة لاحقاً'
-                          )
-                        })
-                        .finally(() => router.push('/dashboard/exams'))
-                    }}
-                  >
-                    نعم
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      toast.dismiss(t.id)
-                      router.push('/dashboard/exams')
-                    }}
-                  >
-                    لا
-                  </Button>
-                </div>
-              </div>
-            ),
-            {
-              duration: Infinity,
-            }
-          )
+        }
+        // TODO: fix this toast
+        else 'nothing'
+        // toast(
+        //   (t) => (
+        //     <div className='flex flex-col items-center justify-between gap-3'>
+        //       <p>
+        //         تم حفظ الدرجة لكن حدث خطأ أثناء ارسال الايميل، هل تريد إعادة
+        //         المحاولة؟
+        //       </p>
+        //       <div className='flex gap-2'>
+        //         <Button
+        //           variant='success'
+        //           onClick={() => {
+        //             toast.dismiss(t.id)
+        //             const newToast = toast.loading('جاري ارسال الإيميل')
+        //             gradeEmailSend
+        //               .mutateAsync({
+        //                 id: exam!.id,
+        //               })
+        //               .then(() => {
+        //                 toast.dismiss(newToast)
+        //                 toast.success('تم ارسال الإيميل بنجاح!')
+        //               })
+        //               .catch(() => {
+        //                 toast.dismiss(newToast)
+        //                 toast.error(
+        //                   'فشل ارسال الإيميل، ربما تم تخطي الحد المسموح به من الرسائل. الرجاء المحاولة لاحقاً'
+        //                 )
+        //               })
+        //               .finally(() => router.push('/dashboard/exams'))
+        //           }}
+        //         >
+        //           نعم
+        //         </Button>
+        //         <Button
+        //           onClick={() => {
+        //             toast.dismiss(t.id)
+        //             router.push('/dashboard/exams')
+        //           }}
+        //         >
+        //           لا
+        //         </Button>
+        //       </div>
+        //     </div>
+        //   ),
+        //   {
+        //     duration: Infinity,
+        //   }
+        // )
       })
       .catch((error) => {
-        if (error.message) toast.error(error.message)
-        else toast.error('حدث خطأ غير متوقع')
+        if (error.message) toast({ title: error.message })
+        else toast({ title: 'حدث خطأ غير متوقع' })
       })
   }
 
-  const correctAnswers = exam?.questions.filter(({ isCorrect }) => isCorrect)
+  const allQuestions = exam.groups.flatMap((g) => g.questions)
+
+  const correctAnswers = exam.groups.flatMap((g) =>
+    g.questions.filter(({ isCorrect }) => isCorrect)
+  )
 
   let possibleGrade: null | number = null
-  if (exam && exam.grade === null)
-    possibleGrade = exam.questions.reduce((acc, { answer, question }) => {
-      return acc + Number(isCorrectAnswer(question, answer))
-    }, 0)
+  if (exam.grade === null)
+    possibleGrade = exam.groups.reduce(
+      (groupAcc, group) =>
+        groupAcc +
+        group.questions.reduce((acc, { answer, question }) => {
+          return acc + Number(isCorrectAnswer(question, answer))
+        }, 0),
+      0
+    )
 
   return (
     <>
       <Head>
         <title>تصحيح اختبار</title>
       </Head>
-      <div className='mb-3 rounded bg-gray-100 p-3'>
-        {isLoading ? (
-          <span className='flex items-center justify-center gap-2 text-center'>
-            <Spinner variant='primary' />
-            جاري التحميل..
-          </span>
-        ) : isLoadingError ? (
-          <div className='flex flex-col items-center justify-center gap-2 text-center'>
-            <p className='text-red-500'>
-              حدث خطأ أثناء تحميل البيانات، يرجى إعادة المحاولة
-            </p>
-            <Button onClick={() => refetch()}>إعادة المحاولة</Button>
+
+      <div className='space-y-4'>
+        <div className='space-y-2 rounded-md bg-slate-50 p-4 shadow'>
+          <h2 className='text-xl font-bold'>معلومات عن الإختبار</h2>
+          <div>
+            <p>وقت فتح الإختبار: {formatDate(exam.createdAt)}</p>
+            <p>وقت غلق الإختبار: kofta</p>
+            <p>وقت بدأ الإختبار: koow</p>
+            <p>وقت تسليم الإختبار: {formatDate(exam.submittedAt!)}</p>
           </div>
-        ) : (
-          <form onSubmit={handleSubmit(onSubmit)}>
-            <h3 className='mb-4 inline-block text-center text-2xl font-semibold'>
-              الإختبار
-            </h3>
-            <Badge
-              className='sticky top-3 float-left mr-auto mt-1 shadow'
-              // variant={exam?.grade !== null ? 'primary' : 'warning'}
-            >
-              {exam?.grade === null
-                ? `لم يتم التصحيح - ${possibleGrade} من ${
-                    exam?.questions.length
-                  } (${percentage(possibleGrade!, exam?.questions.length)}%)`
-                : `${correctAnswers?.length} من ${
-                    exam?.questions.length
-                  } (${percentage(
-                    correctAnswers!.length,
-                    exam!.questions.length
-                  )}%)`}
-            </Badge>
-            <div className='mb-4'>
-              <p>اسم الطالب: {exam?.user.name}</p>
-              <p>الإيميل: {exam?.user.email}</p>
-            </div>
-            <div>
-              <h4 className='mb-1 text-xl font-semibold'>الأسئلة</h4>
-              {exam?.questions.map(({ id, question, isCorrect, answer }) => (
-                <div
-                  key={id}
-                  className={clsx('mb-2 rounded p-3', {
-                    'bg-green-200': isCorrect,
-                    'bg-red-200':
-                      !isCorrect &&
-                      (exam.grade !== null ||
-                        question.type === QuestionType.MCQ),
-                    'bg-gray-300':
-                      !isCorrect &&
-                      exam.grade === null &&
-                      question.type === QuestionType.WRITTEN,
-                  })}
-                >
-                  <p>
-                    <Badge className='ml-1'>{enTypeToAr(question.type)}</Badge>
-                    <Badge className='ml-2'>
-                      {enStyleToAr(question.style)}
-                    </Badge>
-                    {question.text}
-                  </p>
-                  <p
-                    className={clsx(
-                      answer === question.answer && 'text-green-600',
-                      question.type === QuestionType.MCQ &&
-                        answer !== question.answer &&
-                        'text-red-500'
-                    )}
-                  >
-                    إجابة الطالب: {answer || '(لا يوجد إجابة)'}
-                  </p>
-                  <p>الإجابة الصحيحة: {question.answer}</p>
-                  {question.type === QuestionType.WRITTEN && (
-                    <p>
-                      نسبة التطابق مع الإجابة الصحيحة:{' '}
-                      {(
-                        compareTwoStrings(
-                          normalizeText(question.answer),
-                          normalizeText('' + answer)
-                        ) * 100
-                      ).toFixed(2)}
-                      %
-                    </p>
-                  )}
-                  <div className='flex items-center gap-2'>
-                    <input
-                      type='checkbox'
-                      id={`is-correct-${id}`}
-                      {...register('' + id)}
-                    />
-                    <label htmlFor={`is-correct-${id}`}>
-                      تعيين كإجابة صحيحة
-                    </label>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <Button
-              variant='success'
-              className='mt-2'
-              type='submit'
-              loading={examSave.isLoading}
-            >
-              حفظ
-            </Button>
-          </form>
-        )}
+          <div>
+            <h3 className='text-lg font-semibold'>المستخدم</h3>
+            {exam.student ? (
+              <div>
+                <p>اسم الطالب: {exam.student.name}</p>
+                <p>البريد الإلكتروني للطالب: {exam.student.email}</p>
+              </div>
+            ) : (
+              <p className='text-slate-500'>هذا الإختبار من زائر </p>
+            )}
+          </div>
+        </div>
+        <div className='mb-3 rounded bg-slate-50 p-3 shadow'>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <h2 className='mb-4 inline-block text-center text-xl font-bold'>
+                الأسئلة
+              </h2>
+              <Badge
+                className='sticky top-20 float-left mr-auto mt-1 shadow'
+                // variant={exam?.grade !== null ? 'primary' : 'warning'}
+              >
+                {exam?.grade === null
+                  ? `لم يتم التصحيح - ${possibleGrade} من ${
+                      allQuestions?.length
+                    } (${percentage(possibleGrade!, allQuestions?.length)}%)`
+                  : `${correctAnswers?.length} من ${
+                      allQuestions?.length
+                    } (${percentage(
+                      correctAnswers!.length,
+                      allQuestions?.length
+                    )}%)`}
+              </Badge>
+              <div>
+                {exam.groups.map((group) =>
+                  group.questions.map(
+                    ({ id, question, isCorrect, order, answer }) => (
+                      <div
+                        key={id}
+                        className={clsx('mb-2 rounded p-3', {
+                          'bg-green-200': isCorrect,
+                          'bg-red-200':
+                            !isCorrect &&
+                            (exam?.grade !== null ||
+                              question.type === QuestionType.MCQ),
+                          'bg-gray-300':
+                            !isCorrect &&
+                            exam?.grade === null &&
+                            question.type === QuestionType.WRITTEN,
+                        })}
+                      >
+                        <div className='flex items-center'>
+                          {order}.
+                          <Badge className='ml-2 mr-1'>
+                            {enStyleToAr(question.style)}
+                          </Badge>
+                          <p>{question.text}</p>
+                        </div>
+                        <p
+                          className={clsx(
+                            answer === question.answer && 'text-green-600',
+                            question.type === QuestionType.MCQ &&
+                              answer !== question.answer &&
+                              'text-red-500'
+                          )}
+                        >
+                          إجابة الطالب: {answer || '(لا يوجد إجابة)'}
+                        </p>
+                        <p>الإجابة الصحيحة: {question.answer}</p>
+                        {question.type === QuestionType.WRITTEN && (
+                          <p>
+                            نسبة التطابق مع الإجابة الصحيحة:{' '}
+                            {(
+                              compareTwoStrings(
+                                normalizeText(question.answer),
+                                normalizeText('' + answer)
+                              ) * 100
+                            ).toFixed(2)}
+                            %
+                          </p>
+                        )}
+                        <FormField
+                          control={form.control}
+                          name={`groups.${group.id}.questions.${id}`}
+                          render={({ field }) => (
+                            <FormItem className='flex flex-row items-start space-x-3 space-y-0 space-x-reverse'>
+                              <FormControl>
+                                <Checkbox
+                                  checked={field.value}
+                                  onCheckedChange={field.onChange}
+                                />
+                              </FormControl>
+                              <div className='space-y-1 leading-none'>
+                                <FormLabel>تعيين كإجابة صحيحة</FormLabel>
+                              </div>
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                    )
+                  )
+                )}
+              </div>
+              <Button
+                variant='success'
+                className='mt-2'
+                type='submit'
+                loading={examCorrect.isLoading}
+              >
+                حفظ
+              </Button>
+            </form>
+          </Form>
+        </div>
       </div>
     </>
   )
+}
+
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  // TODO: auth check
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+  const prisma = withPresets(_prisma, { user: session?.user })
+
+  const exam = await prisma.exam.findFirst({
+    where: { id: ctx.params!.id as string },
+    include: {
+      groups: {
+        include: {
+          questions: { include: { question: true }, orderBy: { order: 'asc' } },
+        },
+        orderBy: { order: 'asc' },
+      },
+      student: true,
+    },
+  })
+
+  if (!exam)
+    return {
+      notFound: true,
+    }
+
+  return {
+    props: {
+      exam,
+    },
+  }
 }
 
 ExamPage.getLayout = (page: ReactNode) => (

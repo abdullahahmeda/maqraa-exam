@@ -1,14 +1,19 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { QuestionDifficulty } from '../constants'
 import Head from 'next/head'
-import { useFieldArray, useForm, useWatch } from 'react-hook-form'
+import {
+  UseFieldArrayRemove,
+  UseFormReturn,
+  useFieldArray,
+  useForm,
+  useWatch,
+} from 'react-hook-form'
 import { api } from '../utils/api'
 import { newExamSchema } from '../validation/newExamSchema'
 import { useRouter } from 'next/router'
 import WebsiteLayout from '../components/layout'
 import { GetServerSideProps } from 'next'
 import { getServerAuthSession } from '../server/auth'
-import { getBaseUrl } from '../utils/api'
 import { useToast } from '~/components/ui/use-toast'
 import {
   Form,
@@ -18,7 +23,6 @@ import {
   FormLabel,
   FormMessage,
 } from '~/components/ui/form'
-import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -29,24 +33,209 @@ import {
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { CheckedState } from '@radix-ui/react-checkbox'
-import { Curriculum, Part, QuestionStyle, QuestionType } from '@prisma/client'
+import {
+  Curriculum,
+  CurriculumPart,
+  QuestionStyle,
+  QuestionType,
+} from '@prisma/client'
 import { Input } from '~/components/ui/input'
 import { difficultyMapping, styleMapping, typeMapping } from '~/utils/questions'
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '~/components/ui/accordion'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
+import { Trash } from 'lucide-react'
+import { z } from 'zod'
 
 type Group = {
   number: number
-  degreePerQuestion: number
-  difficulty: QuestionDifficulty | string
-  type: QuestionType | string
-  style: QuestionStyle | string
+  gradePerQuestion: number
+  difficulty: QuestionDifficulty | string | undefined
+  styleOrType: QuestionStyle | QuestionType | string | undefined
 }
 
 type FieldValues = {
   courseId: string
   trackId: string
   curriculumId: string
-  distinct: CheckedState
+  repeatFromSameHadith: CheckedState
   groups: Group[]
+}
+
+const QuestionGroup = ({
+  id,
+  index,
+  form,
+  remove,
+}: {
+  id: string
+  index: number
+  form: UseFormReturn<FieldValues>
+  remove: UseFieldArrayRemove
+}) => {
+  const {
+    attributes: { role, ...attributes },
+    listeners,
+    setNodeRef,
+    transform,
+  } = useSortable({ id })
+
+  const style = { transform: CSS.Transform.toString(transform) }
+
+  return (
+    <AccordionItem
+      value={id}
+      ref={setNodeRef}
+      {...attributes}
+      style={style}
+      className='transition-transform last-of-type:border-b-0'
+    >
+      <AccordionTrigger {...listeners} className='bg-gray-50 p-3'>
+        المجموعة {index + 1}
+      </AccordionTrigger>
+      <AccordionContent className='bg-gray-50/50'>
+        <div className='space-y-4 p-3'>
+          <div className='flex justify-end'>
+            <Button
+              size='icon'
+              variant='destructive'
+              onClick={() => remove(index)}
+            >
+              <Trash className='h-4 w-4' />
+            </Button>
+          </div>
+          <div className='flex gap-2'>
+            <FormField
+              control={form.control}
+              name={`groups.${index}.number`}
+              render={({ field }) => (
+                <FormItem className='flex-grow'>
+                  <FormLabel>عدد الأسئلة</FormLabel>
+                  <FormControl>
+                    <Input type='number' min={1} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name={`groups.${index}.gradePerQuestion`}
+              render={({ field }) => (
+                <FormItem className='flex-grow'>
+                  <FormLabel>الدرجة للسؤال</FormLabel>
+                  <FormControl>
+                    <Input min={1} {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+          <FormField
+            control={form.control}
+            name={`groups.${index}.difficulty`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>المستوى</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder='اختر المستوى' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value=''>عشوائي</SelectItem>
+                    {Object.entries(difficultyMapping).map(([label, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          {/* <FormField
+            control={form.control}
+            name={`groups.${index}.type`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>نوع الأسئلة</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder='اختر نوع الأسئلة' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value=''>عشوائي</SelectItem>
+                    {Object.entries(typeMapping).map(([label, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          /> */}
+          <FormField
+            control={form.control}
+            name={`groups.${index}.styleOrType`}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>طريقة الأسئلة</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder='اختر طريقة الأسئلة' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value=''>عشوائي</SelectItem>
+                    {Object.entries(typeMapping).map(([label, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                    {Object.entries(styleMapping).map(([label, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      </AccordionContent>
+    </AccordionItem>
+  )
 }
 
 const HomePage = () => {
@@ -54,13 +243,13 @@ const HomePage = () => {
   const form = useForm<FieldValues>({
     resolver: zodResolver(newExamSchema),
     defaultValues: {
+      repeatFromSameHadith: false,
       groups: [
         {
           number: 25,
-          degreePerQuestion: 4,
+          gradePerQuestion: 1,
           difficulty: '',
-          type: '',
-          style: '',
+          styleOrType: '',
         },
       ],
     },
@@ -72,7 +261,12 @@ const HomePage = () => {
   const trackId = useWatch({ control: form.control, name: 'trackId' })
   const curriculumId = useWatch({ control: form.control, name: 'curriculumId' })
 
-  const { fields: groups } = useFieldArray({
+  const {
+    fields: groups,
+    append,
+    remove,
+    swap,
+  } = useFieldArray({
     control: form.control,
     name: 'groups',
   })
@@ -93,8 +287,14 @@ const HomePage = () => {
     isLoading: isCurriculaLoading,
     data: curricula,
     fetchStatus: curriculaFetchStatus,
-  } = api.curricula.findMany.useQuery<any, (Curriculum & { parts: Part[] })[]>(
-    { where: { trackId: trackId }, include: { parts: true } },
+  } = api.curricula.findMany.useQuery<
+    any,
+    (Curriculum & { parts: CurriculumPart[] })[]
+  >(
+    {
+      where: { trackId: trackId },
+      include: { parts: true },
+    },
     {
       enabled: !!trackId,
       queryKey: [
@@ -107,26 +307,13 @@ const HomePage = () => {
     }
   )
 
-  const selectedCurriculum = curricula?.filter(
-    (c) => c.id === curriculumId
-  )?.[0]
-
-  const { data: questionsCount, isLoading } = api.questions.count.useQuery({
-    where: {
-      OR: selectedCurriculum?.parts.map((part) => ({
-        partNumber: part.number,
-        hadithNumber: { gte: part.from, lte: part.to },
-      })),
-    },
-  })
-
   const router = useRouter()
 
   const onSubmit = (data: FieldValues) => {
     examCreate
-      .mutateAsync(data)
+      .mutateAsync(data as z.infer<typeof newExamSchema>)
       .then((exam) => {
-        router.push(`/exams/${exam.id}`)
+        if (exam) router.push(`/exams/${exam.id}`)
       })
       .catch((error) => {
         if (error.message) {
@@ -141,13 +328,38 @@ const HomePage = () => {
       })
   }
 
+  const appendGroup = () => {
+    append({
+      number: 25,
+      gradePerQuestion: 1,
+      difficulty: '',
+      styleOrType: '',
+    })
+  }
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 10 },
+    })
+  )
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event
+
+    if (over !== null && active.id !== over.id) {
+      const oldIndex = groups.findIndex((g) => g.id === active.id)
+      const newIndex = groups.findIndex((g) => g.id === over.id)
+      swap(oldIndex, newIndex)
+    }
+  }
+
   return (
     <>
       <Head>
         <title>بدأ اختبار</title>
       </Head>
       <div className='container mx-auto py-10'>
-        <div className='mx-auto max-w-[360px] rounded-md bg-white p-4 shadow'>
+        <div className='mx-auto max-w-md rounded-md bg-white p-4 shadow'>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
               <FormField
@@ -156,10 +368,7 @@ const HomePage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>المقرر</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger loading={isCoursesLoading}>
                           <SelectValue placeholder='اختر المقرر' />
@@ -183,10 +392,7 @@ const HomePage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>المسار</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger
                           loading={
@@ -214,10 +420,7 @@ const HomePage = () => {
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>المنهج</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                    >
+                    <Select onValueChange={field.onChange} value={field.value}>
                       <FormControl>
                         <SelectTrigger
                           loading={
@@ -242,7 +445,7 @@ const HomePage = () => {
               />
               <FormField
                 control={form.control}
-                name='distinct'
+                name='repeatFromSameHadith'
                 render={({ field }) => (
                   <FormItem className='flex flex-row items-start space-x-3 space-y-0 space-x-reverse'>
                     <FormControl>
@@ -262,130 +465,46 @@ const HomePage = () => {
               </p>
               <div>
                 <h3>تقسيمة الأسئلة</h3>
-                {groups.map(({ id }, index) => (
-                  <div key={id} className='space-y-4'>
-                    <div className='flex gap-2'>
-                      <FormField
-                        control={form.control}
-                        name={`groups.${index}.number`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>عدد الأسئلة</FormLabel>
-                            <FormControl>
-                              <Input type='number' min={1} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      <FormField
-                        control={form.control}
-                        name={`groups.${index}.degreePerQuestion`}
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>عدد الأسئلة</FormLabel>
-                            <FormControl>
-                              <Input type='number' min={1} {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    <FormField
-                      control={form.control}
-                      name={`groups.${index}.difficulty`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>المستوى</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger loading={isCoursesLoading}>
-                                <SelectValue placeholder='اختر المستوى' />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value=''>عشوائي</SelectItem>
-                              {Object.entries(difficultyMapping).map(
-                                ([label, value]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {label}
-                                  </SelectItem>
-                                )
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`groups.${index}.type`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>نوع الأسئلة</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger loading={isCoursesLoading}>
-                                <SelectValue placeholder='اختر نوع الأسئلة' />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value=''>عشوائي</SelectItem>
-                              {Object.entries(typeMapping).map(
-                                ([label, value]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {label}
-                                  </SelectItem>
-                                )
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`groups.${index}.style`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>طريقة الأسئلة</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
-                            <FormControl>
-                              <SelectTrigger loading={isCoursesLoading}>
-                                <SelectValue placeholder='اختر طريقة الأسئلة' />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value=''>عشوائي</SelectItem>
-                              {Object.entries(styleMapping).map(
-                                ([label, value]) => (
-                                  <SelectItem key={value} value={value}>
-                                    {label}
-                                  </SelectItem>
-                                )
-                              )}
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                ))}
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={onDragEnd}
+                >
+                  <SortableContext
+                    items={groups}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <Accordion
+                      type='single'
+                      collapsible
+                      className='overflow-hidden rounded-md shadow'
+                    >
+                      {groups.map(({ id }, index) => (
+                        <QuestionGroup
+                          id={id}
+                          index={index}
+                          form={form}
+                          remove={remove}
+                          key={id}
+                        />
+                      ))}
+                    </Accordion>
+                  </SortableContext>
+                </DndContext>
+                <FormField
+                  control={form.control}
+                  name='groups'
+                  render={() => (
+                    <FormItem>
+                      <FormMessage className='mt-2' />
+                    </FormItem>
+                  )}
+                />
+                <Button type='button' className='mt-2' onClick={appendGroup}>
+                  إضافة مجموعة أخرى
+                </Button>
               </div>
-              <Button type='submit'>بدأ الاختبار</Button>
+              <Button>بدأ الاختبار</Button>
             </form>
           </Form>
         </div>

@@ -181,7 +181,7 @@ const AddQuestionsDialog = () => {
                 <Select
                   disabled={!sheets || sheets.length === 0}
                   onValueChange={field.onChange}
-                  defaultValue={field.value}
+                  value={field.value}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -206,10 +206,7 @@ const AddQuestionsDialog = () => {
             render={({ field }) => (
               <FormItem>
                 <FormLabel>المقرر</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
+                <Select onValueChange={field.onChange} value={field.value}>
                   <FormControl>
                     <SelectTrigger loading={isCoursesLoading}>
                       <SelectValue placeholder='اختر المقرر' />

@@ -53,7 +53,7 @@ import { editCourseSchema } from '~/validation/editCourseSchema'
 import { Edit, Loader2, Trash } from 'lucide-react'
 
 type CreateFieldValues = { name: string }
-type UpdateFieldValues = { id: string } & CreateFieldValues
+type UpdateFieldValues = CreateFieldValues & { id: string }
 // type FieldValues = CreateFieldValues | UpdateFieldValues
 
 const CourseForm = <T extends CreateFieldValues | UpdateFieldValues>({
@@ -62,8 +62,8 @@ const CourseForm = <T extends CreateFieldValues | UpdateFieldValues>({
   loading = false,
   submitText,
 }: {
-  form: UseFormReturn<T>
-  onSubmit: (data: T) => void
+  form: UseFormReturn<CreateFieldValues | UpdateFieldValues>
+  onSubmit: (data: CreateFieldValues | UpdateFieldValues) => void
   loading?: boolean
   submitText: string
 }) => {
@@ -132,10 +132,8 @@ const AddCourseDialog = () => {
 const EditCourseDialog = ({ id }: { id: string }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const form = useForm<UpdateFieldValues>({
-    resolver: zodResolver(editCourseSchema, {
-      errorMap: customErrorMap,
-    }),
+  const form = useForm<CreateFieldValues>({
+    resolver: zodResolver(editCourseSchema),
   })
 
   const {
@@ -150,10 +148,10 @@ const EditCourseDialog = ({ id }: { id: string }) => {
     if (course) form.reset(course)
   }, [course])
 
-  const onSubmit = (data: UpdateFieldValues) => {
+  const onSubmit = (data: CreateFieldValues) => {
     const t = toast({ title: 'جاري تعديل المقرر' })
     courseUpdate
-      .mutateAsync(data)
+      .mutateAsync(data as z.infer<typeof editCourseSchema>)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم تعديل المقرر بنجاح' })
@@ -217,10 +215,10 @@ const DeleteCourseDialog = ({ id }: { id: string }) => {
     <>
       <AlertDialogHeader>
         <AlertDialogTitle>هل تريد حقاً حذف هذا المقرر؟</AlertDialogTitle>
+        <AlertDialogDescription>
+          هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً
+        </AlertDialogDescription>
       </AlertDialogHeader>
-      <AlertDialogDescription>
-        هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً
-      </AlertDialogDescription>
       <AlertDialogFooter>
         <AlertDialogAction onClick={deleteCourse}>تأكيد</AlertDialogAction>
         <AlertDialogCancel>إلغاء</AlertDialogCancel>

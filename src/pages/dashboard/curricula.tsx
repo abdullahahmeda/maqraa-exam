@@ -3,7 +3,12 @@ import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useFieldArray, useForm } from 'react-hook-form'
+import {
+  FieldPath,
+  UseFormReturn,
+  useFieldArray,
+  useForm,
+} from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
@@ -50,15 +55,16 @@ import {
 import { DataTable } from '~/components/ui/data-table'
 import { Combobox } from '~/components/ui/combobox'
 import { useToast } from '~/components/ui/use-toast'
-import { Filter, Trash } from 'lucide-react'
+import { Edit, Filter, Loader2, Trash } from 'lucide-react'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
+import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
 
-type FieldValues = {
+type CreateFieldValues = {
   trackId: string
   name: string
   parts: {
@@ -68,16 +74,23 @@ type FieldValues = {
     to: number | string
   }[]
 }
+type UpdateFieldValues = CreateFieldValues & { id: string }
 
-const AddCurriculumDialog = () => {
-  const queryClient = useQueryClient()
-  const form = useForm<FieldValues>({
-    resolver: zodResolver(newCurriculumSchema),
-    defaultValues: {
-      parts: [{ name: '', number: '', from: '', to: '' }],
-    },
-  })
-
+const CurriculumForm = <T extends CreateFieldValues | UpdateFieldValues>({
+  form,
+  onSubmit,
+  loading = false,
+  submitText,
+}: {
+  form: UseFormReturn<CreateFieldValues | UpdateFieldValues>
+  onSubmit: (data: CreateFieldValues | UpdateFieldValues) => void
+  loading?: boolean
+  submitText: string
+}) => {
+  const { data: tracks, isLoading: isTracksLoading } =
+    api.tracks.findMany.useQuery<any, (Track & { course: { name: string } })[]>(
+      { include: { course: true } }
+    )
   const {
     fields: parts,
     append,
@@ -86,33 +99,6 @@ const AddCurriculumDialog = () => {
     control: form.control,
     name: 'parts',
   })
-
-  const curriculumCreate = api.curricula.create.useMutation()
-
-  const { toast } = useToast()
-
-  const { data: tracks, isLoading: isTracksLoading } =
-    api.tracks.findMany.useQuery<any, (Track & { course: { name: string } })[]>(
-      { include: { course: true } }
-    )
-
-  const onSubmit = (data: FieldValues) => {
-    const t = toast({ title: 'جاري إضافة المنهج' })
-    curriculumCreate
-      .mutateAsync(data as z.infer<typeof newCurriculumSchema>)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المنهج بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['curricula']])
-      })
-  }
-
   const appendPart = () => {
     append({
       name: '',
@@ -121,7 +107,6 @@ const AddCurriculumDialog = () => {
       to: '',
     })
   }
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
@@ -240,12 +225,116 @@ const AddCurriculumDialog = () => {
           إضافة جزء آخر
         </Button>
         <DialogFooter>
-          <Button type='submit' loading={curriculumCreate.isLoading}>
-            إضافة
+          <Button type='submit' loading={loading}>
+            {submitText}
           </Button>
         </DialogFooter>
       </form>
     </Form>
+  )
+}
+
+const AddCurriculumDialog = () => {
+  const queryClient = useQueryClient()
+  const form = useForm<CreateFieldValues>({
+    resolver: zodResolver(newCurriculumSchema),
+    defaultValues: {
+      parts: [{ name: '', number: '', from: '', to: '' }],
+    },
+  })
+
+  const curriculumCreate = api.curricula.create.useMutation()
+
+  const { toast } = useToast()
+
+  const onSubmit = (data: CreateFieldValues) => {
+    const t = toast({ title: 'جاري إضافة المنهج' })
+    curriculumCreate
+      .mutateAsync(data as z.infer<typeof newCurriculumSchema>)
+      .then(() => {
+        t.dismiss()
+        toast({ title: 'تم إضافة المنهج بنجاح' })
+      })
+      .catch((error) => {
+        t.dismiss()
+        toast({ title: error.message })
+      })
+      .finally(() => {
+        queryClient.invalidateQueries([['curricula']])
+      })
+  }
+
+  return (
+    <CurriculumForm
+      form={form}
+      onSubmit={onSubmit}
+      loading={curriculumCreate.isLoading}
+      submitText='إضافة'
+    />
+  )
+}
+
+const EditCurriculumDialog = ({ id }: { id: string }) => {
+  const queryClient = useQueryClient()
+  const form = useForm<CreateFieldValues>({
+    resolver: zodResolver(editCurriculumSchema),
+  })
+
+  const curriculumUpdate = api.curricula.update.useMutation()
+
+  const { toast } = useToast()
+
+  const onSubmit = (data: CreateFieldValues) => {
+    const t = toast({ title: 'جاري إضافة المنهج' })
+    curriculumUpdate
+      .mutateAsync(data as z.infer<typeof editCurriculumSchema>)
+      .then(() => {
+        t.dismiss()
+        toast({ title: 'تم إضافة المنهج بنجاح' })
+      })
+      .catch((error) => {
+        t.dismiss()
+        toast({ title: error.message })
+      })
+      .finally(() => {
+        queryClient.invalidateQueries([['curricula']])
+      })
+  }
+
+  const {
+    data: course,
+    isLoading,
+    error,
+  } = api.curricula.findFirst.useQuery({
+    where: { id },
+    include: { parts: true },
+  })
+
+  useEffect(() => {
+    if (course) form.reset(course)
+  }, [course])
+
+  if (isLoading)
+    return (
+      <div className='flex justify-center'>
+        <Loader2 className='h-4 w-4 animate-spin' />
+      </div>
+    )
+
+  if (error)
+    return (
+      <p className='text-center text-red-600'>
+        {error.message || 'حدث خطأ ما'}
+      </p>
+    )
+
+  return (
+    <CurriculumForm
+      form={form}
+      onSubmit={onSubmit}
+      loading={curriculumUpdate.isLoading}
+      submitText='تعديل'
+    />
   )
 }
 
@@ -378,6 +467,17 @@ const columns = [
     cell: ({ row }) => (
       <div className='flex justify-center gap-2'>
         {/* <Button variant='primary'>عرض المناهج</Button> */}
+        <Dialog>
+          <DialogTrigger>
+            <Button variant='ghost' size='icon' className='hover:bg-orange-50'>
+              <Edit className='h-4 w-4 text-orange-500' />
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogHeader>تعديل المنهج</DialogHeader>
+            <EditCurriculumDialog id={row.original.id} />
+          </DialogContent>
+        </Dialog>
         <AlertDialog>
           <AlertDialogTrigger>
             <Button variant='ghost' size='icon' className='hover:bg-red-50'>

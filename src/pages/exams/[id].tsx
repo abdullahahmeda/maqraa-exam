@@ -1,62 +1,114 @@
 import Head from 'next/head'
 import { api } from '~/utils/api'
 import { useForm } from 'react-hook-form'
-import Badge from '~/components/badge'
+import { Badge } from '~/components/ui/badge'
 import { enStyleToAr } from '~/utils/questions'
 import { QuestionStyle, QuestionType } from '~/constants'
 import { useRouter } from 'next/router'
-import Spinner from '~/components/spinner'
-import Button from '~/components/button'
-import { toast } from 'react-hot-toast'
+import { Button } from '~/components/ui/button'
+import { useState, useEffect } from 'react'
 import WebsiteLayout from '~/components/layout'
+import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
+import { checkRead } from '~/server/api/routers/helper'
+import { withPresets } from '@zenstackhq/runtime'
+import { prisma as _prisma } from '~/server/db'
+import { getServerAuthSession } from '~/server/auth'
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '~/components/ui/form'
+import { Textarea } from '~/components/ui/textarea'
+import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
+import { cn } from '~/lib/utils'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/alert-dialog'
+import { useToast } from '~/components/ui/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
 
-type FieldValues = Record<string, string>
-
-const ExamPage = () => {
-  const router = useRouter()
-  const { register, handleSubmit, reset: resetForm } = useForm<FieldValues>()
-
-  const {
-    data: exam,
-    isLoadingError,
-    isLoading,
-    isPaused,
-    error: examError,
-  } = api.exams.getToSolve.useQuery(
+type FieldValues = {
+  id: string
+  groups: Record<
+    string,
     {
-      id: router.query.id as string,
-    },
-    {
-      enabled: typeof router.query.id === 'string',
-      refetchOnReconnect: false,
-      onSuccess: (exam) => {
-        const questionsValues = exam.questions.reduce(
-          (obj, q) => ({ ...obj, [q.id]: q.answer }),
-          {}
-        )
-        if (exam.submittedAt) resetForm(questionsValues)
-      },
+      questions: Record<string, string>
     }
-  )
+  >
+}
+
+const ExamPage = ({
+  exam,
+}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
+  const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false)
+  const router = useRouter()
+  const form = useForm<FieldValues>()
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
 
   const examSubmit = api.exams.submit.useMutation()
 
+  useEffect(() => {
+    form.reset({
+      id: exam.id,
+      groups: exam.groups.reduce(
+        (groupAcc, group) => ({
+          ...groupAcc,
+          [group.id]: {
+            questions: group.questions.reduce(
+              (questionAcc, question) => ({
+                ...questionAcc,
+                [question.id]: question.answer || undefined,
+              }),
+              {}
+            ),
+          },
+        }),
+        {}
+      ),
+    })
+  }, [])
+
   const onSubmit = (data: FieldValues) => {
-    // maybe confirm modal?
+    for (let group of Object.values(data.groups)) {
+      for (let question of Object.values(group.questions)) {
+        if ([undefined, ''].includes(question))
+          return setConfirmationDialogOpen(true)
+      }
+    }
+    submitForm()
+  }
+
+  const submitForm = () => {
     examSubmit
       .mutateAsync({
         id: exam!.id,
         // id: 'clet8uawe000g356lbmte45my',
-        answers: data,
+        groups: form.getValues('groups'),
       })
       .then(() => {
-        router.replace('/exams/submitted')
+        router.reload()
       })
       .catch((error) => {
-        if (error.message) toast.error(error.message)
-        else toast.error('حدث خطأ غير متوقع')
+        if (error.message) toast({ title: error.message })
+        else toast({ title: 'حدث خطأ غير متوقع' })
       })
   }
+
+  const totalQuestions = exam.groups.reduce(
+    (acc, group) => acc + group.questions.length,
+    0
+  )
 
   return (
     <>
@@ -72,163 +124,184 @@ const ExamPage = () => {
           background-repeat: no-repeat;
           background-attachment: scroll;
           background-size: cover;
-          height: 100vh;
+          min-height: 100vh;
           background-attachment: fixed;
         }
       `}</style>
       <Head>
         <title>اختبار</title>
       </Head>
+      <AlertDialog
+        open={confirmationDialogOpen}
+        onOpenChange={setConfirmationDialogOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
+            <AlertDialogDescription>
+              لديك بعض الأسئلة التي لم تقم بإجابتها
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={submitForm}>تسليم</AlertDialogAction>
+            <AlertDialogCancel>إلغاء</AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <div className='container mx-auto py-4'>
-        <div className='bg-white p-5 shadow'>
-          {(isLoading || isPaused) && (
-            <div className='flex items-center gap-2'>
-              <Spinner />
-              جاري التحميل
+        <div className='rounded-md bg-white p-2 shadow'>
+          {exam.grade !== null && (
+            <div className='sticky top-3 z-10 float-left'>
+              <Badge className='shadow'>
+                الدرجة: {exam.grade} من {totalQuestions}
+              </Badge>
             </div>
           )}
-          {isLoadingError && (
-            <p className='text-red-600'>
-              {examError.message || 'حدث خطأ غير متوفع'}
-            </p>
-          )}
-          {exam && (
+          <Form {...form}>
             <form
               onSubmit={
-                exam.submittedAt ? () => undefined : handleSubmit(onSubmit)
+                exam.submittedAt ? () => undefined : form.handleSubmit(onSubmit)
               }
             >
-              {exam?.questions.map(({ question, id }, i) => (
-                <div key={id} className='mb-4'>
-                  <p className='block'>
-                    {i + 1}. <Badge text={enStyleToAr(question.style)} />{' '}
-                    {question.text}
-                  </p>
-                  <div className='mt-2'>
-                    {question.type === QuestionType.WRITTEN ? (
-                      <>
-                        <label htmlFor={`question-${id}-answer`}>الإجابة</label>
-                        <textarea
-                          className='block w-full'
-                          id={`question-${id}-answer`}
-                          {...register('' + id, {
-                            disabled: !!exam.submittedAt,
-                          })}
-                        />
-                      </>
-                    ) : (
-                      <>
-                        <h3>اختر الإجابة</h3>
-                        <div className='flex flex-col'>
-                          {question.style === QuestionStyle.CHOOSE ? (
-                            <>
-                              {question.option1 && (
-                                <div className='flex items-center gap-2'>
-                                  <input
-                                    type='radio'
-                                    id={`quesion-${id}-option-1`}
-                                    {...register('' + id, {
-                                      disabled: !!exam.submittedAt,
-                                    })}
-                                    value={question.option1}
-                                  />
-                                  <label htmlFor={`quesion-${id}-option-1`}>
-                                    {question.option1}
-                                  </label>
-                                </div>
-                              )}
-                              {question.option2 && (
-                                <div className='flex items-center gap-2'>
-                                  <input
-                                    type='radio'
-                                    id={`quesion-${id}-option-2`}
-                                    {...register('' + id, {
-                                      disabled: !!exam.submittedAt,
-                                    })}
-                                    value={question.option2}
-                                  />
-                                  <label htmlFor={`quesion-${id}-option-2`}>
-                                    {question.option2}
-                                  </label>
-                                </div>
-                              )}
-                              {question.option3 && (
-                                <div className='flex items-center gap-2'>
-                                  <input
-                                    type='radio'
-                                    id={`quesion-${id}-option-3`}
-                                    {...register('' + id, {
-                                      disabled: !!exam.submittedAt,
-                                    })}
-                                    value={question.option3}
-                                  />
-                                  <label htmlFor={`quesion-${id}-option-3`}>
-                                    {question.option3}
-                                  </label>
-                                </div>
-                              )}
-                              {question.option4 && (
-                                <div className='flex items-center gap-2'>
-                                  <input
-                                    type='radio'
-                                    id={`quesion-${id}-option-4`}
-                                    {...register('' + id, {
-                                      disabled: !!exam.submittedAt,
-                                    })}
-                                    value={question.option4}
-                                  />
-                                  <label htmlFor={`quesion-${id}-option-4`}>
-                                    {question.option4}
-                                  </label>
-                                </div>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              <div className='flex items-center gap-2'>
-                                <input
-                                  type='radio'
-                                  id={`quesion-${i + 1}-option-true`}
-                                  {...register('' + id, {
-                                    disabled: !!exam.submittedAt,
-                                  })}
-                                  value={question.textForTrue!}
+              {exam.groups.map((group, i) =>
+                group.questions.map(({ question, id, order, isCorrect }) => (
+                  <div
+                    key={id}
+                    className={cn(
+                      'mb-4 rounded p-2',
+                      exam.grade !== null &&
+                        isCorrect === true &&
+                        'bg-success/20',
+                      exam.grade !== null &&
+                        isCorrect === false &&
+                        'bg-destructive/20'
+                    )}
+                  >
+                    <div className='flex items-center'>
+                      {order}.
+                      <Badge className='ml-2 mr-1'>
+                        {enStyleToAr(question.style)}
+                      </Badge>
+                      <p>{question.text}</p>
+                    </div>
+                    <div className='mt-2'>
+                      <FormField
+                        control={form.control}
+                        name={`groups.${group.id}.questions.${id}`}
+                        render={({ field }) => (
+                          <FormItem
+                            className={cn(
+                              question.type === QuestionType.MCQ && 'space-y-2'
+                            )}
+                          >
+                            <FormLabel>
+                              {exam.submittedAt
+                                ? 'الإجابة الخاصة بك'
+                                : 'الإجابة'}
+                            </FormLabel>
+                            {question.type === QuestionType.WRITTEN ? (
+                              <FormControl>
+                                <Textarea
+                                  {...field}
+                                  disabled={!!exam.submittedAt}
+                                  className='bg-white'
                                 />
-                                <label htmlFor={`quesion-${i + 1}-option-true`}>
-                                  {question.textForTrue}
-                                </label>
-                              </div>
-                              <div className='flex items-center gap-2'>
-                                <input
-                                  type='radio'
-                                  id={`quesion-${i + 1}-option-false`}
-                                  {...register('' + id, {
-                                    disabled: !!exam.submittedAt,
-                                  })}
-                                  value={question.textForFalse!}
-                                />
-                                <label
-                                  htmlFor={`quesion-${i + 1}-option-false`}
+                              </FormControl>
+                            ) : question.style === QuestionStyle.CHOOSE ? (
+                              <FormControl>
+                                <RadioGroup
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                  disabled={!!exam.submittedAt}
                                 >
-                                  {question.textForFalse}
-                                </label>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </>
+                                  {question.option1 && (
+                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                      <FormControl>
+                                        <RadioGroupItem
+                                          value={question.option1}
+                                        />
+                                      </FormControl>
+                                      <FormLabel>{question.option1}</FormLabel>
+                                    </FormItem>
+                                  )}
+                                  {question.option2 && (
+                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                      <FormControl>
+                                        <RadioGroupItem
+                                          value={question.option2}
+                                        />
+                                      </FormControl>
+                                      <FormLabel>{question.option2}</FormLabel>
+                                    </FormItem>
+                                  )}
+                                  {question.option3 && (
+                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                      <FormControl>
+                                        <RadioGroupItem
+                                          value={question.option3}
+                                        />
+                                      </FormControl>
+                                      <FormLabel>{question.option3}</FormLabel>
+                                    </FormItem>
+                                  )}
+                                  {question.option4 && (
+                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                      <FormControl>
+                                        <RadioGroupItem
+                                          value={question.option4}
+                                        />
+                                      </FormControl>
+                                      <FormLabel>{question.option4}</FormLabel>
+                                    </FormItem>
+                                  )}
+                                </RadioGroup>
+                              </FormControl>
+                            ) : (
+                              <FormControl>
+                                <RadioGroup
+                                  value={field.value}
+                                  onValueChange={field.onChange}
+                                  disabled={!!exam.submittedAt}
+                                >
+                                  <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                    <FormControl>
+                                      <RadioGroupItem
+                                        value={question.textForTrue!}
+                                      />
+                                    </FormControl>
+                                    <FormLabel>
+                                      {question.textForTrue}
+                                    </FormLabel>
+                                  </FormItem>
+                                  <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                    <FormControl>
+                                      <RadioGroupItem
+                                        value={question.textForFalse!}
+                                      />
+                                    </FormControl>
+                                    <FormLabel>
+                                      {question.textForFalse}
+                                    </FormLabel>
+                                  </FormItem>
+                                </RadioGroup>
+                              </FormControl>
+                            )}
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+                    {question.answer && (
+                      <p className='mt-2'>الإجابة الصحيحة: {question.answer}</p>
                     )}
                   </div>
-                  {question.answer && <p>الإجابة الصحيحة: {question.answer}</p>}
-                </div>
-              ))}
+                ))
+              )}
               {!exam.submittedAt && (
-                <Button loading={examSubmit.isLoading} variant='primary'>
-                  تسليم
-                </Button>
+                <Button loading={examSubmit.isLoading}>تسليم</Button>
               )}
             </form>
-          )}
+          </Form>
         </div>
       </div>
     </>
@@ -236,27 +309,60 @@ const ExamPage = () => {
 }
 ExamPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
 
-// export const getServerSideProps: GetServerSideProps = async context => {
-//   if (!context.params?.id)
-//     return {
-//       notFound: true
-//     }
-//   const id = context.params.id as string
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const id = ctx.params!.id as string
 
-//   const exam = await getExam(id)
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+  const prisma = await withPresets(_prisma, { user: session?.user })
 
-//   if (!exam)
-//     return {
-//       notFound: true
-//     }
+  const _exam = await checkRead(
+    prisma.exam.findFirst({
+      where: { id },
+      include: {
+        groups: {
+          include: {
+            questions: {
+              select: {
+                question: true,
+                order: true,
+                id: true,
+                answer: true,
+                isCorrect: true,
+              },
+              orderBy: { order: 'asc' },
+            },
+          },
+          orderBy: { order: 'asc' },
+        },
+      },
+    })
+  )
 
-//   console.log(exam)
+  if (!_exam) return { notFound: true }
 
-//   return {
-//     props: {
-//       exam: JSON.stringify(exam)
-//     }
-//   }
-// }
+  let exam
+  // hide answers if exam is not submitted
+  if (!_exam.submittedAt)
+    exam = {
+      ..._exam,
+      groups: _exam.groups.map((g) => ({
+        ...g,
+        questions: g.questions.map((q) => ({
+          ...q,
+          question: {
+            ...q.question,
+            answer: undefined,
+            anotherAnswer: undefined,
+            isInsideShaded: undefined,
+          },
+        })),
+      })),
+    }
+  else exam = _exam // same reference no problem
+
+  return {
+    props: { exam },
+  }
+}
 
 export default ExamPage

@@ -89,7 +89,8 @@ model User {
     role UserRole
     accounts Account[]
     sessions Session[]
-    exams Exam[]
+    correctedExams Exam[] @relation("Exam_corrector")
+    exams Exam[] @relation("Exam_student")
     student Student?
 
     zenstack_guard Boolean @default(true)
@@ -142,7 +143,7 @@ model Question {
     objective String
     courseId String
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-    exams ExamQuestion[]
+    exams GroupQuestion[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -168,41 +169,67 @@ model Setting {
     @@index([zenstack_transaction])
 }
 
-/// @@allow('create,read', true)
-/// @@allow('update,delete', auth() != null)
+/// @@allow('create,read,update', true)
+/// @@allow('delete', auth() != null)
 model Exam {
     id String @id() @default(cuid())
-    difficulty String
-    userId String?
     grade Int?
     submittedAt DateTime?
     createdAt DateTime @default(now())
+    correctedAt DateTime?
+    repeatFromSameHadith Boolean @default(false)
     courseId String
     curriculumId String
-    user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+    studentId String?
+    correctorId String?
+    corrector User? @relation("Exam_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
+    student User? @relation("Exam_student", fields: [studentId], references: [id], onDelete: Cascade)
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-    curriculum Track @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
-    questions ExamQuestion[]
+    curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+    groups ExamQuestionGroup[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
 
     @@index([zenstack_transaction])
     @@index([grade])
-    @@index([difficulty])
-    @@index([userId])
+    @@index([studentId])
+    @@index([correctorId])
     @@index([curriculumId])
     @@index([courseId])
 }
 
+/// @@allow('create,read,update', true)
 /// @@Gen.model(hide: true)
-model ExamQuestion {
-    id Int @id() @default(autoincrement())
+model ExamQuestionGroup {
+    id String @id() @default(cuid())
+    number Int
+    gradePerQuestion Float
+    order Int
+    difficulty QuestionDifficulty?
+    styleOrType String?
     examId String
-    questionId String
-    answer String? @db.Text()
-    isCorrect Boolean @default(false)
     exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
+    questions GroupQuestion[]
+
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+
+    @@index([zenstack_transaction])
+    @@index([examId])
+    @@index([order])
+}
+
+/// @@allow('create,read,update', true)
+/// @@Gen.model(hide: true)
+model GroupQuestion {
+    id Int @id() @default(autoincrement())
+    answer String? @db.Text()
+    order Int @default(1)
+    isCorrect Boolean @default(false)
+    groupId String
+    questionId String
+    group ExamQuestionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
     question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
     zenstack_guard Boolean @default(true)
@@ -210,7 +237,8 @@ model ExamQuestion {
 
     @@index([zenstack_transaction])
     @@index([questionId])
-    @@index([examId])
+    @@index([order])
+    @@index([groupId])
 }
 
 /// @@allow('all', auth() != null)
@@ -264,7 +292,6 @@ model Track {
     name String
     courseId String
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-    exams Exam[]
     curricula Curriculum[]
 
     zenstack_guard Boolean @default(true)
@@ -281,7 +308,8 @@ model Curriculum {
     name String
     trackId String
     track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
-    parts Part[]
+    parts CurriculumPart[]
+    exams Exam[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -293,7 +321,7 @@ model Curriculum {
 /// @@allow('create,update,delete', auth() != null)
 /// @@allow('read', true)
 /// @@Gen.model(hide: true)
-model Part {
+model CurriculumPart {
     id Int @id() @default(autoincrement())
     name String
     number Int

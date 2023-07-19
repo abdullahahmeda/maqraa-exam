@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { UserRole } from '~/constants'
+import { UserRole } from '@prisma/client'
 
 export const newUserSchema = z.object({
   name: z.string().min(1),
@@ -7,6 +7,6 @@ export const newUserSchema = z.object({
     .string()
     .email()
     .min(1)
-    .transform(val => val.toLowerCase()),
-  role: z.nativeEnum(UserRole)
+    .transform((val) => val.toLowerCase()),
+  role: z.nativeEnum(UserRole),
 })

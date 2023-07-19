@@ -21,6 +21,7 @@ import { CurriculumInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, checkRead, db } from './helper'
 import { CurriculumWhereInputObjectSchema } from '.zenstack/zod/objects'
 import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
+import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
 
 export const curriculaRouter = createTRPCRouter({
   create: protectedProcedure
@@ -64,8 +65,17 @@ export const curriculaRouter = createTRPCRouter({
     .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findMany(input))),
 
   update: protectedProcedure
-    .input(CurriculumInputSchema.update)
-    .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).curriculum.update(input))
-    ),
+    .input(editCurriculumSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { id, parts, ...data } = input
+      return checkMutate(
+        db(ctx).curriculum.update({
+          where: { id },
+          data: {
+            ...data,
+            parts: { deleteMany: {}, create: parts },
+          },
+        })
+      )
+    }),
 })

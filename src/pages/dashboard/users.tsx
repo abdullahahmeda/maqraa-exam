@@ -3,12 +3,12 @@ import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '../../pages/_app'
 import { useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
+import { FieldValues, UseFormReturn, useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { Question, User } from '@prisma/client'
+import { User, UserRole } from '@prisma/client'
 import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
@@ -19,8 +19,6 @@ import {
   getFilteredRowModel,
 } from '@tanstack/react-table'
 import { useRouter } from 'next/router'
-import { UserRole } from '~/constants'
-import Pagination from '~/components/pagination'
 import { customErrorMap } from '~/validation/customErrorMap'
 import DashboardTable from '~/components/dashboard/table'
 import { enUserRoleToAr, userRoleMapping } from '~/utils/users'
@@ -62,20 +60,97 @@ import {
 import { Edit, Filter, Eye } from 'lucide-react'
 import { useToast } from '~/components/ui/use-toast'
 
-type EditUserFieldValues = {
-  id: string
+type AddUsersSingleFieldValues = {
   name: string
   email: string
-  role: string
+  role: UserRole | string
+}
+
+type EditUserFieldValues = { id: string } & AddUsersSingleFieldValues
+
+type FormValues = AddUsersSingleFieldValues | EditUserFieldValues
+
+type UserFormProps = {
+  form: UseFormReturn<AddUsersSingleFieldValues | EditUserFieldValues>
+  onSubmit: (data: AddUsersSingleFieldValues | EditUserFieldValues) => void
+  isLoading?: boolean
+  submitText: string
+}
+
+const UserForm = <T,>({
+  form,
+  onSubmit,
+  isLoading = false,
+  submitText,
+}: UserFormProps) => {
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+        <FormField
+          control={form.control}
+          name='name'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel htmlFor='name'>الاسم</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='email'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>البريد الإلكتروني</FormLabel>
+              <FormControl>
+                <Input type='email' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='role'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>الصلاحيات</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder='اختر الصلاحية' />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.entries(userRoleMapping).map(([label, value]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <DialogFooter>
+          <Button type='submit' loading={isLoading}>
+            {submitText}
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  )
 }
 
 const EditUserDialog = ({ id }: { id: string }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const form = useForm<EditUserFieldValues>({
-    resolver: zodResolver(updateUserSchema, {
-      errorMap: customErrorMap,
-    }),
+    resolver: zodResolver(updateUserSchema),
   })
   const { isLoading: isLoadingUser } = api.users.findFirstOrThrow.useQuery(
     { where: { id } },
@@ -113,76 +188,21 @@ const EditUserDialog = ({ id }: { id: string }) => {
       })
   }
 
+  if (isLoadingUser)
+    return (
+      <div className='flex items-center justify-center gap-2 text-center'>
+        <Spinner />
+        <p>جاري التحميل</p>
+      </div>
+    )
+
   return (
-    <>
-      {isLoadingUser ? (
-        <div className='flex items-center justify-center gap-2 text-center'>
-          <Spinner />
-          <p>جاري التحميل</p>
-        </div>
-      ) : (
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-            <input type='hidden' {...form.register('id')} />
-            <FormField
-              control={form.control}
-              name='name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel htmlFor='name'>الاسم</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>البريد الإلكتروني</FormLabel>
-                  <FormControl>
-                    <Input type='email' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='role'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الصلاحيات</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='اختر الصلاحية' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={UserRole.STUDENT}>طالب</SelectItem>
-                      <SelectItem value={UserRole.ADMIN}>أدمن</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type='submit' loading={userUpdate.isLoading}>
-                تعديل
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      )}
-    </>
+    <UserForm
+      form={form}
+      onSubmit={onSubmit}
+      submitText='تعديل'
+      isLoading={userUpdate.isLoading}
+    />
   )
 }
 
@@ -283,7 +303,7 @@ const AddUsersFromSheetForm = () => {
               <Select
                 disabled={!sheets || sheets.length === 0}
                 onValueChange={field.onChange}
-                defaultValue={field.value}
+                value={field.value}
               >
                 <FormControl>
                   <SelectTrigger>
@@ -312,12 +332,6 @@ const AddUsersFromSheetForm = () => {
   )
 }
 
-type AddUsersSingleFieldValues = {
-  name: string
-  email: string
-  role: UserRole
-}
-
 const AddUsersDialog = () => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
@@ -332,7 +346,7 @@ const AddUsersDialog = () => {
   const onSubmit = (data: AddUsersSingleFieldValues) => {
     const t = toast({ title: 'جاري إضافة المستخدم' })
     userCreate
-      .mutateAsync(data)
+      .mutateAsync(data as z.infer<typeof newUserSchema>)
       .then(() => {
         t.dismiss()
         form.reset()
@@ -354,65 +368,12 @@ const AddUsersDialog = () => {
         <TabsTrigger value='sheet'>من اكسل شيت</TabsTrigger>
       </TabsList>
       <TabsContent value='single'>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-            <FormField
-              control={form.control}
-              name='name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel htmlFor='name'>الاسم</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>البريد الإلكتروني</FormLabel>
-                  <FormControl>
-                    <Input type='email' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='role'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الصلاحيات</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder='اختر الصلاحية' />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value={UserRole.STUDENT}>طالب</SelectItem>
-                      <SelectItem value={UserRole.ADMIN}>أدمن</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter>
-              <Button type='submit' loading={userCreate.isLoading}>
-                إضافة
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+        <UserForm
+          form={form}
+          onSubmit={onSubmit}
+          isLoading={userCreate.isLoading}
+          submitText='إضافة'
+        />
       </TabsContent>
       <TabsContent value='sheet'>
         <AddUsersFromSheetForm />
@@ -541,8 +502,12 @@ const UsersPage = ({ page: initialPage }: Props) => {
             </Button>
             <Dialog>
               <DialogTrigger>
-                <Button size='icon' variant='ghost'>
-                  <Edit className='h-4 w-4' />
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='hover:bg-orange-50'
+                >
+                  <Edit className='h-4 w-4 text-orange-500' />
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -606,15 +571,15 @@ const UsersPage = ({ page: initialPage }: Props) => {
 
 UsersPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const _page = context.query.page
-  const pageData = z.number().positive().int().safeParse(Number(_page))
+// export const getServerSideProps: GetServerSideProps = async (context) => {
+//   const _page = context.query.page
+//   const pageData = z.number().positive().int().safeParse(Number(_page))
 
-  return {
-    props: {
-      page: pageData.success ? pageData.data : 1,
-    },
-  }
-}
+//   return {
+//     props: {
+//       page: pageData.success ? pageData.data : 1,
+//     },
+//   }
+// }
 
 export default UsersPage
