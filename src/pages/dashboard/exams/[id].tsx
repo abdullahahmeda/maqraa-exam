@@ -220,7 +220,7 @@ const ExamPage = ({
                     )}%)`}
               </Badge>
               <div>
-                {exam.groups.map((group) =>
+                {exam.groups.map((group, i) =>
                   group.questions.map(
                     ({ id, question, isCorrect, order, answer }) => (
                       <div
