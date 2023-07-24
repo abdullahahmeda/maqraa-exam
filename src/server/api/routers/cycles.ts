@@ -15,7 +15,9 @@ export const cyclesRouter = createTRPCRouter({
 
   count: protectedProcedure
     .input(z.object({ where: CycleWhereInputObjectSchema }).optional())
-    .query(async ({ ctx, input }) => checkRead(db(ctx).cycle.count(input))),
+    .query(async ({ ctx, input }) =>
+      checkRead(db(ctx).cycle.count(input as any))
+    ),
 
   delete: protectedProcedure
     .input(z.string().min(1))

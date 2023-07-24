@@ -58,11 +58,11 @@ const Navbar = () => {
                     دخول
                   </Link>
                 </li>
-                <li className='block font-bold'>
+                {/* <li className='block font-bold'>
                   <Link href='/register' className='block'>
                     تسجيل
                   </Link>
-                </li>
+                </li> */}
               </>
             )}
           </ul>

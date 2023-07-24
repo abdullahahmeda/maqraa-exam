@@ -296,7 +296,7 @@ const AddExamDialog = ({
   const trackId = useWatch({ control: form.control, name: 'trackId' })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery()
+    api.courses.findMany.useQuery({})
 
   const {
     data: tracks,

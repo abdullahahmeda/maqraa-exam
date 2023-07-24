@@ -4,7 +4,7 @@ import {
   getFields,
   getSheets,
   // importQuestions,
-  importUsers,
+  // importUsers,
 } from '~/services/sheets'
 import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import {
@@ -98,38 +98,38 @@ export const sheetsRouter = createTRPCRouter({
   //     }
   //     return true
   //   }),
-  importUsers: adminOnlyProcedure
-    .input(importUsersSchema)
-    .mutation(async ({ input }) => {
-      const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
+  // importUsers: adminOnlyProcedure
+  //   .input(importUsersSchema)
+  //   .mutation(async ({ input }) => {
+  //     const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
 
-      let rows
-      try {
-        rows = await getFields(spreadsheetId, input.sheet)
-      } catch (error) {
-        throw googleSheetErrorHandler(error)
-      }
+  //     let rows
+  //     try {
+  //       rows = await getFields(spreadsheetId, input.sheet)
+  //     } catch (error) {
+  //       throw googleSheetErrorHandler(error)
+  //     }
 
-      try {
-        await importUsers(rows)
-      } catch (error: any) {
-        if (error instanceof ZodError) {
-          const issue = error.issues[0]!
+  //     try {
+  //       await importUsers(rows)
+  //     } catch (error: any) {
+  //       if (error instanceof ZodError) {
+  //         const issue = error.issues[0]!
 
-          const [rowNumber, field] = issue.path
+  //         const [rowNumber, field] = issue.path
 
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
-            cause: issue,
-          })
-        }
+  //         throw new TRPCError({
+  //           code: 'BAD_REQUEST',
+  //           message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
+  //           cause: issue,
+  //         })
+  //       }
 
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'حدث خطأ غير متوقع',
-        })
-      }
-      return true
-    }),
+  //       throw new TRPCError({
+  //         code: 'INTERNAL_SERVER_ERROR',
+  //         message: 'حدث خطأ غير متوقع',
+  //       })
+  //     }
+  //     return true
+  //   }),
 })

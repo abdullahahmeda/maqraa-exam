@@ -100,7 +100,7 @@ export const usersRouter = createTRPCRouter({
               },
             })
           )
-        } catch (error) {
+        } catch (error: any) {
           if (error instanceof ZodError) {
             const issue = error.issues[0]!
 
@@ -139,7 +139,9 @@ export const usersRouter = createTRPCRouter({
 
   count: protectedProcedure
     .input(z.object({ where: UserWhereInputObjectSchema }).optional())
-    .query(async ({ ctx, input }) => checkRead(db(ctx).user.count(input))),
+    .query(async ({ ctx, input }) =>
+      checkRead(db(ctx).user.count(input as any))
+    ),
 
   delete: protectedProcedure
     .input(z.string().min(1))

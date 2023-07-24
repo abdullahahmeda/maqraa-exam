@@ -199,8 +199,8 @@ const EditUserDialog = ({ id }: { id: string }) => {
 
   return (
     <UserForm
-      form={form}
-      onSubmit={onSubmit}
+      form={form as any}
+      onSubmit={onSubmit as any}
       submitText='تعديل'
       isLoading={userUpdate.isLoading}
     />

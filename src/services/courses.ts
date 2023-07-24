@@ -1,34 +1,36 @@
-import { z } from 'zod'
-import { prisma } from '../server/db'
-import { PageOptions } from '../types'
-import { newCourseSchema } from '../validation/newCourseSchema'
+export const a = 'a'
 
-export const getPaginatedCourses = async ({ page, pageSize }: PageOptions) => {
-  return {
-    courses: await prisma.course.findMany({
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-      include: {
-        questions: {
-          select: {
-            id: true
-          }
-        }
-      }
-    }),
-    count: await prisma.course.count()
-  }
-}
+// import { z } from 'zod'
+// import { prisma } from '../server/db'
+// import { PageOptions } from '../types'
+// import { newCourseSchema } from '../validation/newCourseSchema'
 
-export const fetchAllCourses = () => {
-  return prisma.course.findMany()
-}
+// export const getPaginatedCourses = async ({ page, pageSize }: PageOptions) => {
+//   return {
+//     courses: await prisma.course.findMany({
+//       skip: (page - 1) * pageSize,
+//       take: pageSize,
+//       include: {
+//         questions: {
+//           select: {
+//             id: true
+//           }
+//         }
+//       }
+//     }),
+//     count: await prisma.course.count()
+//   }
+// }
 
-export const createCourse = (data: z.infer<typeof newCourseSchema>) => {
-  return prisma.course.create({
-    data
-  })
-}
+// export const fetchAllCourses = () => {
+//   return prisma.course.findMany()
+// }
 
-export const deleteCourse = (id: number) =>
-  prisma.course.delete({ where: { id } })
+// export const createCourse = (data: z.infer<typeof newCourseSchema>) => {
+//   return prisma.course.create({
+//     data
+//   })
+// }
+
+// export const deleteCourse = (id: number) =>
+//   prisma.course.delete({ where: { id } })

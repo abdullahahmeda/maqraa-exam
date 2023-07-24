@@ -10,21 +10,21 @@ export const customErrorMap: z.ZodErrorMap = (issue, ctx) => {
     if (issue.type === 'string') {
       if (issue.minimum === 1) return { message: `هذا الحقل إجباري` }
       return {
-        message: `هذا الحقل يجب أن يكون ${issue.minimum} حروف على الأقل`
+        message: `هذا الحقل يجب أن يكون ${issue.minimum} حروف على الأقل`,
       }
     }
     if (issue.type === 'number') {
       return {
         message: `أقل قيمة مسموحة لهذا الحقل هي ${
-          issue.minimum + Number(!issue.inclusive)
-        }`
+          (issue.minimum as number) + Number(!issue.inclusive)
+        }`,
       }
     }
   }
   if (issue.code === z.ZodIssueCode.invalid_string) {
     if (issue.validation === 'email')
       return {
-        message: 'بريد الكتروني غير صالح'
+        message: 'بريد الكتروني غير صالح',
       }
   }
   // if (issue.code === _z.ZodIssueCode.invalid_union) {

@@ -94,12 +94,16 @@ export const questionsRouter = createTRPCRouter({
 
       // console.log(rows, questions)
 
-      return checkMutate(db(ctx).question.createMany({ data: questions }))
+      return checkMutate(
+        db(ctx).question.createMany({ data: questions as any })
+      )
     }),
 
   count: protectedProcedure
     .input(z.object({ where: QuestionWhereInputObjectSchema }).optional())
-    .query(async ({ ctx, input }) => checkRead(db(ctx).question.count(input))),
+    .query(async ({ ctx, input }) =>
+      checkRead(db(ctx).question.count(input as any))
+    ),
 
   delete: protectedProcedure
     .input(z.string().min(1))

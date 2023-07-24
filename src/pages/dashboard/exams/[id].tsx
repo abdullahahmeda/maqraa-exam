@@ -60,7 +60,7 @@ const ExamPage = ({
   const router = useRouter()
 
   const examCorrect = api.exams.correct.useMutation()
-  const gradeEmailSend = api.emails.sendGradeEmail.useMutation()
+  // const gradeEmailSend = api.emails.sendGradeEmail.useMutation()
 
   useEffect(() => {
     if (exam) {
@@ -95,11 +95,12 @@ const ExamPage = ({
       })
       .then((isEmailSent) => {
         if (isEmailSent) {
-          toast({ title: 'تم حفظ الاختبار وارسال الدرجة بنجاح' })
-          router.push('/dashboard/exams')
+          // toast({ title: 'تم حفظ الاختبار وارسال الدرجة بنجاح' })
         }
         // TODO: fix this toast
         else 'nothing'
+        toast({ title: 'تم حفظ الاختبار' })
+        router.push('/dashboard/exams')
         // toast(
         //   (t) => (
         //     <div className='flex flex-col items-center justify-between gap-3'>

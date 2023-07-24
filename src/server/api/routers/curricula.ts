@@ -41,7 +41,7 @@ export const curriculaRouter = createTRPCRouter({
   count: protectedProcedure
     .input(z.object({ where: CurriculumWhereInputObjectSchema }).optional())
     .query(async ({ ctx, input }) =>
-      checkRead(db(ctx).curriculum.count(input))
+      checkRead(db(ctx).curriculum.count(input as any))
     ),
 
   delete: protectedProcedure

@@ -74,26 +74,26 @@ import { userSchema } from '../validation/userSchema'
 //   } else await createQuestions
 // }
 
-export const importUsers = async (rows: string[][]) => {
-  const users: z.infer<typeof userSchema>[] = []
-  for (const [i, row] of rows.entries()) {
-    if (i === 0) continue // TODO: validate sheet headers are equal to `headers` 👆
-    const _user = {
-      name: row[0],
-      email: row[1],
-      role: row[2],
-    }
+// export const importUsers = async (rows: string[][]) => {
+//   const users: z.infer<typeof userSchema>[] = []
+//   for (const [i, row] of rows.entries()) {
+//     if (i === 0) continue // TODO: validate sheet headers are equal to `headers` 👆
+//     const _user = {
+//       name: row[0],
+//       email: row[1],
+//       role: row[2],
+//     }
 
-    const user = userSchema.parse(_user, {
-      path: [i + 1],
-    })
-    users.push(user)
-  }
+//     const user = userSchema.parse(_user, {
+//       path: [i + 1],
+//     })
+//     users.push(user)
+//   }
 
-  await prisma.user.createMany({
-    data: users,
-  })
-}
+//   await prisma.user.createMany({
+//     data: users,
+//   })
+// }
 
 export const getFields = async (spreadsheetId: string, sheet: string) => {
   const response = await sheets.spreadsheets.values.get({

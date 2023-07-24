@@ -14,7 +14,9 @@ export const tracksRouter = createTRPCRouter({
 
   count: protectedProcedure
     .input(z.object({ where: TrackWhereInputObjectSchema }).optional())
-    .query(async ({ ctx, input }) => checkRead(db(ctx).track.count(input))),
+    .query(async ({ ctx, input }) =>
+      checkRead(db(ctx).track.count(input as any))
+    ),
 
   delete: protectedProcedure
     .input(z.string().min(1))

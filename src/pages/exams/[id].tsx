@@ -61,11 +61,11 @@ const ExamPage = ({
   useEffect(() => {
     form.reset({
       id: exam.id,
-      groups: exam.groups.reduce(
+      groups: (exam.groups as any[]).reduce(
         (groupAcc, group) => ({
           ...groupAcc,
           [group.id]: {
-            questions: group.questions.reduce(
+            questions: (group.questions as any[]).reduce(
               (questionAcc, question) => ({
                 ...questionAcc,
                 [question.id]: question.answer || undefined,
@@ -105,7 +105,7 @@ const ExamPage = ({
       })
   }
 
-  const totalQuestions = exam.groups.reduce(
+  const totalQuestions = (exam.groups as any[]).reduce(
     (acc, group) => acc + group.questions.length,
     0
   )
@@ -299,8 +299,10 @@ const ExamPage = ({
                         )}
                       />
                     </div>
-                    {question?.answer && (
-                      <p className='mt-2'>الإجابة الصحيحة: {question.answer}</p>
+                    {(question as any)?.answer && (
+                      <p className='mt-2'>
+                        الإجابة الصحيحة: {(question as any).answer}
+                      </p>
                     )}
                   </div>
                 ))
