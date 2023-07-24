@@ -8,7 +8,7 @@ import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { User, UserRole } from '@prisma/client'
+import { Course, Cycle, StudentCycle, User, UserRole } from '@prisma/client'
 import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
@@ -60,6 +60,7 @@ import {
 import { Edit, Filter, Eye } from 'lucide-react'
 import { useToast } from '~/components/ui/use-toast'
 import { getServerAuthSession } from '~/server/auth'
+import { Combobox } from '~/components/ui/combobox'
 
 type AddUsersSingleFieldValues = {
   name: string
@@ -274,7 +275,7 @@ const AddUsersFromSheetForm = ({
         toast({ title: error.message })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['sheets']])
+        queryClient.invalidateQueries([['users']])
       })
   }
   return (
@@ -423,7 +424,13 @@ type Props = {
   page: number
 }
 
-const columnHelper = createColumnHelper<User>()
+type Row = User & {
+  cycles: (StudentCycle & { cycle: Cycle })[]
+  cycle: Cycle
+  course: Course
+}
+
+const columnHelper = createColumnHelper<Row>()
 
 const PAGE_SIZE = 50
 
@@ -447,16 +454,22 @@ const UsersPage = ({ page: initialPage }: Props) => {
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const filters = columnFilters.map((filter) => {
+    if (filter.id === 'cycles')
+      return { cycles: { some: { cycleId: filter.value as string } } }
     return { [filter.id]: { equals: filter.value } }
   })
 
   const { data: users, isFetching: isFetchingUsers } =
-    api.users.findMany.useQuery(
+    api.users.findMany.useQuery<any, Row[]>(
       {
         skip: pageIndex * pageSize,
         take: pageSize,
         where: { AND: filters },
-        include: { cycles: true, cycle: true, course: true },
+        include: {
+          cycles: { include: { cycle: true } },
+          cycle: true,
+          course: true,
+        },
       },
       { networkMode: 'always' }
     )
@@ -533,54 +546,47 @@ const UsersPage = ({ page: initialPage }: Props) => {
           className: 'text-center',
         },
       }),
-      // columnHelper.accessor('cycle.name', {
-      //   header: ({ column }) => {
-      //     const filterValue = column.getFilterValue() as string | undefined
-      //     return (
-      //       <div className='flex items-center'>
-      //         الدورة
-      //         <Popover>
-      //           <PopoverTrigger className='mr-4'>
-      //             <Button
-      //               size='icon'
-      //               variant={filterValue ? 'secondary' : 'ghost'}
-      //             >
-      //               <Filter className='h-4 w-4' />
-      //             </Button>
-      //           </PopoverTrigger>
-      //           <PopoverContent>
-      //             <Select
-      //               value={filterValue === undefined ? '' : filterValue}
-      //               onValueChange={column.setFilterValue}
-      //             >
-      //               <SelectTrigger>
-      //                 <SelectValue />
-      //               </SelectTrigger>
-      //               <SelectContent>
-      //                 <SelectItem value=''>الكل</SelectItem>
-      //                 {Object.entries(userRoleMapping).map(([label, value]) => (
-      //                   <SelectItem key={value} value={value}>
-      //                     {label}
-      //                   </SelectItem>
-      //                 ))}
-      //               </SelectContent>
-      //             </Select>
-      //           </PopoverContent>
-      //         </Popover>
-      //       </div>
-      //     )
-      //   },
-      //   cell: (info) => (
-      //     <Badge
-      //     // variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
-      //     >
-      //       {enUserRoleToAr(info.getValue() || '')}
-      //     </Badge>
-      //   ),
-      //   meta: {
-      //     className: 'text-center',
-      //   },
-      // }),
+      columnHelper.accessor(
+        (row) => row.cycles.map((c) => c.cycle.name).join('، '),
+        {
+          id: 'cycles',
+          header: ({ column }) => {
+            const { data: cycles, isLoading } = api.cycles.findMany.useQuery({})
+            const filterValue = column.getFilterValue() as string | undefined
+            return (
+              <div className='flex items-center'>
+                الدورة
+                <Popover>
+                  <PopoverTrigger className='mr-4'>
+                    <Button
+                      size='icon'
+                      variant={filterValue ? 'secondary' : 'ghost'}
+                    >
+                      <Filter className='h-4 w-4' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Combobox
+                      items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
+                      loading={isLoading}
+                      labelKey='name'
+                      valueKey='id'
+                      onSelect={column.setFilterValue}
+                      value={filterValue}
+                      triggerText='الكل'
+                      triggerClassName='w-full'
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )
+          },
+          cell: (info) => info.getValue() || '-',
+          meta: {
+            className: 'text-center',
+          },
+        }
+      ),
       columnHelper.display({
         id: 'actions',
         cell: ({ row }) => (

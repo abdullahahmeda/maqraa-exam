@@ -89,7 +89,7 @@ export const usersRouter = createTRPCRouter({
                 student: {
                   connectOrCreate: {
                     where: {
-                      email: 'user.email',
+                      email: student.email,
                     },
                     create: {
                       ...student,
@@ -114,6 +114,7 @@ export const usersRouter = createTRPCRouter({
           } else if (
             error?.cause instanceof Prisma.PrismaClientKnownRequestError
           ) {
+            console.log(error)
             if (error.cause.code === 'P2002')
               throw new TRPCError({
                 code: 'BAD_REQUEST',
