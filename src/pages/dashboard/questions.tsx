@@ -56,11 +56,9 @@ import {
 import { Checkbox } from '~/components/ui/checkbox'
 import { Badge } from '~/components/ui/badge'
 import { DataTable } from '~/components/ui/data-table'
-import { Eye, Filter } from 'lucide-react'
+import { Download, Eye, Filter } from 'lucide-react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '~/components/ui/use-toast'
-
-import fuzzysort from 'fuzzysort'
 import { Combobox } from '~/components/ui/combobox'
 import {
   Popover,
@@ -498,6 +496,8 @@ const QuestionsPage = () => {
 
   const [dialogOpen, setDialogOpen] = useState(false)
 
+  const { toast } = useToast()
+
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
     .safeParse(router.query.page).success
@@ -538,6 +538,8 @@ const QuestionsPage = () => {
       { networkMode: 'always' }
     )
 
+  const questionsExport = api.questions.export.useMutation()
+
   const pageCount =
     questions !== undefined && count !== undefined
       ? Math.ceil(count / pageSize)
@@ -562,6 +564,23 @@ const QuestionsPage = () => {
     onColumnFiltersChange: setColumnFilters,
   })
 
+  const handleDownload = async () => {
+    const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
+    const XLSX = await import('xlsx')
+    questionsExport
+      .mutateAsync()
+      .then(async (workbook) => {
+        XLSX.writeFile(workbook, 'قاعدة بيانات الأسئلة.xlsx')
+        toast({ title: 'تم بدأ تحميل الملف' })
+      })
+      .catch(() => {
+        toast({ title: 'حدث خطأ أثناء تحميل الملف' })
+      })
+      .finally(() => {
+        t.dismiss()
+      })
+  }
+
   return (
     <>
       <Head>
@@ -578,7 +597,18 @@ const QuestionsPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <DataTable table={table} fetching={isFetchingQuestions} />
+      <div>
+        <Button
+          disabled={!questions || questions.length === 0}
+          variant='success'
+          className='mb-2 flex gap-2'
+          onClick={handleDownload}
+        >
+          <Download className='h-4 w-4' />
+          تصدير
+        </Button>
+        <DataTable table={table} fetching={isFetchingQuestions} />
+      </div>
     </>
   )
 }
