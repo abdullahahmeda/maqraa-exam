@@ -1,205 +1,39 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { api } from '~/utils/api'
-import { GetServerSideProps } from 'next'
-import { z } from 'zod'
-import { Question, Track, UserRole } from '@prisma/client'
+import { Track, UserRole } from '@prisma/client'
 import {
-  createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  PaginationState,
   ColumnFiltersState,
+  PaginationState,
+  createColumnHelper,
+  getCoreRowModel,
   getFilteredRowModel,
+  useReactTable,
 } from '@tanstack/react-table'
+import { Eye, Filter, Trash } from 'lucide-react'
+import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
-import { Button } from '~/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTrigger,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '~/components/ui/form'
-import { Checkbox } from '~/components/ui/checkbox'
-import { Filter, Trash } from 'lucide-react'
-import { DataTable } from '~/components/ui/data-table'
-import { Eye } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '~/components/ui/use-toast'
-import { newTrackSchema } from '~/validation/newTrackSchema'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select'
+import { useState } from 'react'
+import { z } from 'zod'
+import { AddTrackDialog } from '~/components/modals/add-track'
+import { DeleteTrackDialog } from '~/components/modals/delete-track'
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
+import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
 import { Combobox } from '~/components/ui/combobox'
+import { DataTable } from '~/components/ui/data-table'
+import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { getServerAuthSession } from '~/server/auth'
-
-type FieldValues = { name: string; courseId: string }
-
-const AddTrackDialog = ({
-  setDialogOpen,
-}: {
-  setDialogOpen: (state: boolean) => void
-}) => {
-  const form = useForm<FieldValues>({
-    resolver: zodResolver(newTrackSchema),
-  })
-
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  const trackCreate = api.tracks.create.useMutation()
-  const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery({})
-
-  const onSubmit = (data: FieldValues) => {
-    const t = toast({ title: 'جاري إضافة المسار' })
-    trackCreate
-      .mutateAsync(data as z.infer<typeof newTrackSchema>)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المسار بنجاح' })
-        setDialogOpen(false)
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['tracks']])
-      })
-  }
-
-  return (
-    <>
-      <DialogHeader>إضافة مسار</DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-          <FormField
-            control={form.control}
-            name='name'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>اسم المسار</FormLabel>
-                <FormControl>
-                  <Input {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name='courseId'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>المقرر</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger loading={isCoursesLoading}>
-                      <SelectValue placeholder='اختر المقرر' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {courses?.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
-          <DialogFooter>
-            <Button
-              type='submit'
-              // variant='success'
-              loading={trackCreate.isLoading}
-            >
-              إضافة
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </>
-  )
-}
-
-const DeleteTrackDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const trackDelete = api.tracks.delete.useMutation()
-  const queryClient = useQueryClient()
-
-  const deleteCourse = () => {
-    const t = toast({ title: 'جاري حذف المسار' })
-    trackDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف المسار بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['tracks']])
-      })
-  }
-
-  return (
-    <>
-      <AlertDialogHeader>
-        <AlertDialogTitle>هل تريد حقاً حذف هذا المسار</AlertDialogTitle>
-      </AlertDialogHeader>
-      <AlertDialogDescription>
-        هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً
-      </AlertDialogDescription>
-      <AlertDialogFooter>
-        <AlertDialogAction onClick={deleteCourse}>تأكيد</AlertDialogAction>
-        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-      </AlertDialogFooter>
-    </>
-  )
-}
-
-type Props = {
-  page: number
-}
+import { api } from '~/utils/api'
 
 const columnHelper = createColumnHelper<Track & { course: { name: string } }>()
 
@@ -259,7 +93,6 @@ const columns = [
     id: 'actions',
     cell: ({ row }) => (
       <div className='flex justify-center'>
-        {/* <Button>عرض</Button> */}
         <Button size='icon' variant='ghost'>
           <Eye className='h-4 w-4' />
         </Button>
