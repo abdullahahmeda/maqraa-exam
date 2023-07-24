@@ -157,7 +157,7 @@ const EditCycleDialog = ({ id }: { id: string }) => {
 
   useEffect(() => {
     if (cycle) form.reset(cycle)
-  }, [cycle])
+  }, [cycle, form])
 
   const cycleUpdate = api.cycles.update.useMutation()
 

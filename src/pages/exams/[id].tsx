@@ -77,7 +77,7 @@ const ExamPage = ({
         {}
       ),
     })
-  }, [])
+  }, [form, exam.id, exam.groups])
 
   const onSubmit = (data: FieldValues) => {
     for (let group of Object.values(data.groups)) {

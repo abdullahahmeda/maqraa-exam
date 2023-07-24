@@ -350,7 +350,7 @@ const EditCurriculumDialog = ({
 
   useEffect(() => {
     if (course) form.reset(course)
-  }, [course])
+  }, [course, form])
 
   if (isLoading)
     return (
@@ -503,7 +503,7 @@ const columns = [
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
-    cell: ({ row }) => {
+    cell: function Cell({ row }) {
       const [dialogOpen, setDialogOpen] = useState(false)
       return (
         <div className='flex justify-center gap-2'>

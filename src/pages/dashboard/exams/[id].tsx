@@ -83,7 +83,7 @@ const ExamPage = ({
         ),
       })
     }
-  }, [exam])
+  }, [exam, form])
 
   // const isLoading = _isLoading || isPaused
 

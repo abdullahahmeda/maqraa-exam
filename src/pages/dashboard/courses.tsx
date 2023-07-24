@@ -152,7 +152,7 @@ const EditCourseDialog = ({ id }: { id: string }) => {
 
   useEffect(() => {
     if (course) form.reset(course)
-  }, [course])
+  }, [course, form])
 
   const onSubmit = (data: CreateFieldValues) => {
     const t = toast({ title: 'جاري تعديل المقرر' })

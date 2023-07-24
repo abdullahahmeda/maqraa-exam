@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
+/* xxxeslint-disable @typescript-eslint/ban-ts-comment */
 import { z } from 'zod'
 
 /**
@@ -15,7 +15,7 @@ const server = z.object({
   NEXTAUTH_URL: z.preprocess(
     // This makes Vercel deployments not fail if you don't set NEXTAUTH_URL
     // Since NextAuth.js automatically uses the VERCEL_URL if present.
-    str => process.env.VERCEL_URL ?? str,
+    (str) => process.env.VERCEL_URL ?? str,
     // VERCEL_URL doesn't include `https` so it cant be validated as a URL
     process.env.VERCEL ? z.string().min(1) : z.string().url()
   ),
@@ -23,7 +23,7 @@ const server = z.object({
   LOGTAIL_SOURCE_TOKEN: z.string(),
   SENDINBLUE_API_KEY: z.string(),
   DEFAULT_SENDER_NAME: z.string().optional(),
-  DEFAULT_SENDER_EMAIL: z.string()
+  DEFAULT_SENDER_EMAIL: z.string(),
   // EMAIL_SERVER: z.string(),
   // EMAIL_FROM: z.string().email()
 })
@@ -51,7 +51,7 @@ const processEnv = {
   LOGTAIL_SOURCE_TOKEN: process.env.LOGTAIL_SOURCE_TOKEN,
   SENDINBLUE_API_KEY: process.env.SENDINBLUE_API_KEY,
   DEFAULT_SENDER_NAME: process.env.DEFAULT_SENDER_NAME,
-  DEFAULT_SENDER_EMAIL: process.env.DEFAULT_SENDER_EMAIL
+  DEFAULT_SENDER_EMAIL: process.env.DEFAULT_SENDER_EMAIL,
   // EMAIL_SERVER: process.env.EMAIL_SERVER,
   // EMAIL_FROM: process.env.EMAIL_FROM
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
@@ -83,7 +83,7 @@ if (!!process.env.SKIP_ENV_VALIDATION == false) {
   /** @type z.infer<merged>
    *  @ts-ignore - can't type this properly in jsdoc */
   env = new Proxy(parsed.data, {
-    get (target, prop) {
+    get(target, prop) {
       if (typeof prop !== 'string') return undefined
       // Throw a descriptive error if a server-side env var is accessed on the client
       // Otherwise it would just be returning `undefined` and be annoying to debug
@@ -95,7 +95,7 @@ if (!!process.env.SKIP_ENV_VALIDATION == false) {
         )
       /*  @ts-ignore - can't type this properly in jsdoc */
       return target[prop]
-    }
+    },
   })
 }
 
