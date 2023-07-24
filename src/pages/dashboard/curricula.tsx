@@ -13,7 +13,13 @@ import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { Course, Curriculum, Part, Track } from '@prisma/client'
+import {
+  Course,
+  Curriculum,
+  CurriculumPart,
+  Track,
+  UserRole,
+} from '@prisma/client'
 import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
@@ -28,6 +34,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -63,6 +70,7 @@ import {
 } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
 import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
+import { getServerAuthSession } from '~/server/auth'
 
 type CreateFieldValues = {
   trackId: string
@@ -72,6 +80,7 @@ type CreateFieldValues = {
     number: number | string
     from: number | string
     to: number | string
+    mid: number | string
   }[]
 }
 type UpdateFieldValues = CreateFieldValues & { id: string }
@@ -105,6 +114,7 @@ const CurriculumForm = <T extends CreateFieldValues | UpdateFieldValues>({
       number: '',
       from: '',
       to: '',
+      mid: '',
     })
   }
   return (
@@ -208,6 +218,22 @@ const CurriculumForm = <T extends CreateFieldValues | UpdateFieldValues>({
                   )}
                 />
               </div>
+              <FormField
+                control={form.control}
+                name={`parts.${index}.mid`}
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>نصف المنهج حتى الحديث (المحور الأول)</FormLabel>
+                    <FormControl>
+                      <Input type='number' min={1} {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      قم بوضعها 0 إذا كان هذا الجزء بالكامل خاص بالمحور الثاني
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             <Separator orientation='vertical' className='h-auto' />
             <Button
@@ -234,12 +260,16 @@ const CurriculumForm = <T extends CreateFieldValues | UpdateFieldValues>({
   )
 }
 
-const AddCurriculumDialog = () => {
+const AddCurriculumDialog = ({
+  setDialogOpen,
+}: {
+  setDialogOpen: (state: boolean) => void
+}) => {
   const queryClient = useQueryClient()
   const form = useForm<CreateFieldValues>({
     resolver: zodResolver(newCurriculumSchema),
     defaultValues: {
-      parts: [{ name: '', number: '', from: '', to: '' }],
+      parts: [{ name: '', number: '', from: '', to: '', mid: '' }],
     },
   })
 
@@ -254,6 +284,7 @@ const AddCurriculumDialog = () => {
       .then(() => {
         t.dismiss()
         toast({ title: 'تم إضافة المنهج بنجاح' })
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -274,7 +305,13 @@ const AddCurriculumDialog = () => {
   )
 }
 
-const EditCurriculumDialog = ({ id }: { id: string }) => {
+const EditCurriculumDialog = ({
+  id,
+  setDialogOpen,
+}: {
+  id: string
+  setDialogOpen: (state: boolean) => void
+}) => {
   const queryClient = useQueryClient()
   const form = useForm<CreateFieldValues>({
     resolver: zodResolver(editCurriculumSchema),
@@ -291,6 +328,7 @@ const EditCurriculumDialog = ({ id }: { id: string }) => {
       .then(() => {
         t.dismiss()
         toast({ title: 'تم إضافة المنهج بنجاح' })
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -384,7 +422,7 @@ type Props = {
 
 type RowType = Curriculum & {
   track: Track & { course: { name: string } }
-  parts: Part[]
+  parts: CurriculumPart[]
 }
 
 const columnHelper = createColumnHelper<RowType>()
@@ -450,11 +488,12 @@ const columns = [
     }
   ),
   columnHelper.accessor('parts', {
-    header: 'الصفحات',
+    header: 'المقدار',
     cell: ({ row }) =>
       row.original.parts.map((part) => (
         <div key={part.id}>
-          {part.name}: من الحديث {part.from} إلى {part.to}
+          {part.name}: من الحديث {part.from} إلى {part.to} ({part.from}-
+          {part.mid}، {Math.min(part.mid + 1, part.to)}-{part.to})
         </div>
       )),
     meta: {
@@ -464,32 +503,42 @@ const columns = [
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
-    cell: ({ row }) => (
-      <div className='flex justify-center gap-2'>
-        {/* <Button variant='primary'>عرض المناهج</Button> */}
-        <Dialog>
-          <DialogTrigger>
-            <Button variant='ghost' size='icon' className='hover:bg-orange-50'>
-              <Edit className='h-4 w-4 text-orange-500' />
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>تعديل المنهج</DialogHeader>
-            <EditCurriculumDialog id={row.original.id} />
-          </DialogContent>
-        </Dialog>
-        <AlertDialog>
-          <AlertDialogTrigger>
-            <Button variant='ghost' size='icon' className='hover:bg-red-50'>
-              <Trash className='h-4 w-4 text-red-600' />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <DeleteCurriculumDialog id={row.original.id} />
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    ),
+    cell: ({ row }) => {
+      const [dialogOpen, setDialogOpen] = useState(false)
+      return (
+        <div className='flex justify-center gap-2'>
+          {/* <Button variant='primary'>عرض المناهج</Button> */}
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger>
+              <Button
+                variant='ghost'
+                size='icon'
+                className='hover:bg-orange-50'
+              >
+                <Edit className='h-4 w-4 text-orange-500' />
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>تعديل المنهج</DialogHeader>
+              <EditCurriculumDialog
+                id={row.original.id}
+                setDialogOpen={setDialogOpen}
+              />
+            </DialogContent>
+          </Dialog>
+          <AlertDialog>
+            <AlertDialogTrigger>
+              <Button variant='ghost' size='icon' className='hover:bg-red-50'>
+                <Trash className='h-4 w-4 text-red-600' />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <DeleteCurriculumDialog id={row.original.id} />
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      )
+    },
     meta: {
       className: 'text-center',
     },
@@ -500,6 +549,8 @@ const PAGE_SIZE = 25
 
 const CurriculaPage = () => {
   const router = useRouter()
+
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -568,13 +619,13 @@ const CurriculaPage = () => {
       </Head>
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المناهج</h2>
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger>
             <Button>إضافة منهج</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>إضافة منهج</DialogHeader>
-            <AddCurriculumDialog />
+            <AddCurriculumDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>
@@ -587,5 +638,17 @@ const CurriculaPage = () => {
 CurriculaPage.getLayout = (page: any) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+
+  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
+
+  return {
+    props: {
+      session,
+    },
+  }
+}
 
 export default CurriculaPage

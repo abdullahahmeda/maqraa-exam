@@ -41,6 +41,13 @@ enum QuestionDifficulty {
     HARD
 }
 
+enum ExamType {
+    PUBLIC
+    FULL
+    FIRST_MEHWARY
+    SECOND_MEHWARY
+}
+
 /// @@Gen.model(hide: true)
 model Account {
     id String @id() @default(cuid())
@@ -86,29 +93,44 @@ model User {
     emailVerified DateTime?
     password String?
     image String?
+    phone String?
     role UserRole
+    cycleId String?
+    courseId String?
+    cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+    course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
     accounts Account[]
     sessions Session[]
-    correctedExams Exam[] @relation("Exam_corrector")
     exams Exam[] @relation("Exam_student")
-    student Student?
+    correctedExams Exam[] @relation("Exam_corrector")
+    cycles StudentCycle[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
 
     @@index([zenstack_transaction])
+    @@index([courseId])
+    @@index([cycleId])
 }
 
-model Student {
-    id String @id() @default(cuid())
-    name String
-    userId String @unique()
-    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+/// @@Gen.model(hide: true)
+model StudentCycle {
+    id Int @id() @default(autoincrement())
+    userId String
+    cycleId String
+    curriculumId String
+    curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+    student User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
 
     @@index([zenstack_transaction])
+    @@unique([cycleId, userId])
+    @@index([userId])
+    @@index([cycleId])
+    @@index([curriculumId])
 }
 
 /// @@Gen.model(hide: true)
@@ -173,19 +195,23 @@ model Setting {
 /// @@allow('delete', auth() != null)
 model Exam {
     id String @id() @default(cuid())
+    type ExamType
     grade Int?
-    submittedAt DateTime?
     createdAt DateTime @default(now())
+    enteredAt DateTime?
+    submittedAt DateTime?
     correctedAt DateTime?
     repeatFromSameHadith Boolean @default(false)
     courseId String
     curriculumId String
     studentId String?
     correctorId String?
+    cycleId String?
     corrector User? @relation("Exam_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
     student User? @relation("Exam_student", fields: [studentId], references: [id], onDelete: Cascade)
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
     curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+    cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
     groups ExamQuestionGroup[]
 
     zenstack_guard Boolean @default(true)
@@ -197,6 +223,7 @@ model Exam {
     @@index([correctorId])
     @@index([curriculumId])
     @@index([courseId])
+    @@index([cycleId])
 }
 
 /// @@allow('create,read,update', true)
@@ -246,6 +273,9 @@ model Cycle {
     id String @id() @default(cuid())
     name String
     courses CycleCourse[]
+    students StudentCycle[]
+    exams Exam[]
+    correctors User[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -262,6 +292,7 @@ model Course {
     questions Question[]
     exams Exam[]
     cycles CycleCourse[]
+    correctors User[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -310,6 +341,7 @@ model Curriculum {
     track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
     parts CurriculumPart[]
     exams Exam[]
+    students StudentCycle[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -326,6 +358,7 @@ model CurriculumPart {
     name String
     number Int
     from Int
+    mid Int
     to Int
     curriculumId String
     curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)

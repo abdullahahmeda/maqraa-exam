@@ -36,6 +36,7 @@ import {
 } from '~/components/ui/alert-dialog'
 import { useToast } from '~/components/ui/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
+import sampleSize from 'lodash.samplesize'
 
 type FieldValues = {
   id: string
@@ -54,7 +55,6 @@ const ExamPage = ({
   const router = useRouter()
   const form = useForm<FieldValues>()
   const { toast } = useToast()
-  const queryClient = useQueryClient()
 
   const examSubmit = api.exams.submit.useMutation()
 
@@ -109,6 +109,8 @@ const ExamPage = ({
     (acc, group) => acc + group.questions.length,
     0
   )
+
+  console.log(exam)
 
   return (
     <>
@@ -178,7 +180,13 @@ const ExamPage = ({
                     )}
                   >
                     <div className='flex items-center'>
-                      {order}.
+                      {exam.groups
+                        .slice(0, i)
+                        .reduce(
+                          (acc, g) => acc + g.order * g.questions.length,
+                          0
+                        ) + order}
+                      .
                       <Badge className='ml-2 mr-1'>
                         {enStyleToAr(question.style)}
                       </Badge>
@@ -291,7 +299,7 @@ const ExamPage = ({
                         )}
                       />
                     </div>
-                    {question.answer && (
+                    {question?.answer && (
                       <p className='mt-2'>الإجابة الصحيحة: {question.answer}</p>
                     )}
                   </div>
@@ -315,7 +323,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
   const prisma = await withPresets(_prisma, { user: session?.user })
 
-  const _exam = await checkRead(
+  const exam = await checkRead(
     prisma.exam.findFirst({
       where: { id },
       include: {
@@ -334,34 +342,144 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
           },
           orderBy: { order: 'asc' },
         },
+        curriculum: { include: { parts: true } },
       },
     })
   )
 
-  if (!_exam) return { notFound: true }
+  if (!exam || exam.studentId !== (session?.user.id || null))
+    return { notFound: true }
 
-  let exam
-  // hide answers if exam is not submitted
-  if (!_exam.submittedAt)
-    exam = {
-      ..._exam,
-      groups: _exam.groups.map((g) => ({
-        ...g,
-        questions: g.questions.map((q) => ({
-          ...q,
-          question: {
-            ...q.question,
-            answer: undefined,
-            anotherAnswer: undefined,
-            isInsideShaded: undefined,
-          },
-        })),
-      })),
+  if (exam.submittedAt)
+    return {
+      props: {
+        exam: {
+          ...exam,
+          curriculum: undefined,
+        },
+      },
     }
-  else exam = _exam // same reference no problem
+
+  // not submitted but questions have been made, so hide answers
+  if (exam.enteredAt)
+    return {
+      props: {
+        exam: {
+          ...exam,
+          groups: exam.groups.map((g) => ({
+            ...g,
+            questions: g.questions.map((q) => ({
+              ...q,
+              question: {
+                ...q.question,
+                answer: undefined,
+                anotherAnswer: undefined,
+                isInsideShaded: undefined,
+              },
+            })),
+          })),
+          curriculum: undefined,
+        },
+      },
+    }
+
+  // exam is entered for the first time, create questions
+  const parts = exam.curriculum.parts.map((part) => ({
+    partNumber: part.number,
+    hadithNumber: {
+      gte: part.from,
+      lte: part.to,
+    },
+  }))
+
+  let usedQuestions: string[] = []
+  let usedHathidths: number[] = []
+
+  await Promise.all(
+    exam.groups.map(async (g) => {
+      let styleQuery =
+        g.styleOrType === QuestionType.MCQ ||
+        g.styleOrType === QuestionType.WRITTEN
+          ? { type: (g.styleOrType as QuestionType) || undefined }
+          : { style: (g.styleOrType as QuestionStyle) || undefined }
+
+      const questions = []
+      const allPossibleQuestions = await _prisma.question.findMany({
+        where: {
+          AND: [
+            { courseId: exam.courseId },
+            { id: { notIn: usedQuestions } },
+            { OR: parts },
+            { difficulty: g.difficulty || undefined },
+            styleQuery,
+            { hadithNumber: { notIn: usedHathidths } },
+          ],
+        },
+        // take: g.number,
+        select: { id: true, hadithNumber: true },
+      })
+
+      const _questions = sampleSize(allPossibleQuestions, g.number)
+
+      for (let [i, q] of _questions.entries()) {
+        usedQuestions.push(q.id)
+        if (!exam.repeatFromSameHadith) usedHathidths.push(q.hadithNumber)
+        questions.push({
+          question: { connect: { id: q.id } },
+          order: i + 1,
+        })
+      }
+
+      return _prisma.examQuestionGroup.update({
+        where: { id: g.id },
+        data: {
+          questions: { create: questions },
+        },
+      })
+    })
+  )
+
+  await _prisma.exam.update({ where: { id }, data: { enteredAt: new Date() } })
 
   return {
-    props: { exam },
+    props: {
+      exam: (await prisma.exam.findFirst({
+        where: { id },
+        include: {
+          groups: {
+            include: {
+              questions: {
+                select: {
+                  question: {
+                    select: {
+                      type: true,
+                      difficulty: true,
+                      id: true,
+                      number: true,
+                      option1: true,
+                      option2: true,
+                      option3: true,
+                      option4: true,
+                      text: true,
+                      textForFalse: true,
+                      textForTrue: true,
+                      style: true,
+                    },
+                  },
+                  order: true,
+                  id: true,
+                  answer: true,
+                  isCorrect: true,
+                },
+                orderBy: { order: 'asc' },
+              },
+            },
+            orderBy: { order: 'asc' },
+          },
+          curriculum: { include: { parts: true } },
+        },
+      }))!,
+    },
   }
 }
 

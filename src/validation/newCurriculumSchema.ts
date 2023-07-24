@@ -20,10 +20,25 @@ export const newCurriculumSchema = z.object({
             (v) => Number(v),
             z.number().positive().int().finite()
           ),
+          mid: z.preprocess(
+            (v) => Number(v),
+            z.number().positive().int().finite()
+          ),
         })
-        .refine(({ from, to }) => to >= from, {
-          message: 'هذا النطاق غير صحيح',
-          path: ['from'],
+        .superRefine(({ from, to, mid }, ctx) => {
+          if (from > to)
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['from'],
+              message: 'هذا النطاق غير صحيح',
+            })
+
+          if (mid !== 0 && !(from <= mid && mid <= to))
+            ctx.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ['mid'],
+              message: 'حقل نصف المنهج يجب أن يكون في نطاق الأحاديث المختارة',
+            })
         })
     )
     .min(1),

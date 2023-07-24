@@ -82,7 +82,11 @@ const defaultValues: FieldValues = {
   removeOldQuestions: false,
 }
 
-const AddQuestionsDialog = () => {
+const AddQuestionsDialog = ({
+  setDialogOpen,
+}: {
+  setDialogOpen: (state: boolean) => void
+}) => {
   const form = useForm<FieldValues>({
     defaultValues,
     resolver: zodResolver(importQuestionsSchema, {
@@ -133,7 +137,7 @@ const AddQuestionsDialog = () => {
       .then(() => {
         t.dismiss()
         toast({ title: 'تم إضافة الأسئلة بنجاح' })
-        // closeModal()
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -492,6 +496,8 @@ const PAGE_SIZE = 25
 const QuestionsPage = () => {
   const router = useRouter()
 
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
     .safeParse(router.query.page).success
@@ -563,12 +569,12 @@ const QuestionsPage = () => {
       </Head>
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>الأسئلة</h2>
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger>
             <Button>إضافة أسئلة</Button>
           </DialogTrigger>
           <DialogContent>
-            <AddQuestionsDialog />
+            <AddQuestionsDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>

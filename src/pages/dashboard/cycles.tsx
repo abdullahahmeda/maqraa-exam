@@ -7,7 +7,7 @@ import { FieldPath, UseFormReturn, useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
-import { Cycle, Question } from '@prisma/client'
+import { Cycle, Question, UserRole } from '@prisma/client'
 import {
   createColumnHelper,
   useReactTable,
@@ -53,6 +53,7 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import { editCycleSchema } from '~/validation/editCycleSchema'
+import { getServerAuthSession } from '~/server/auth'
 
 type CreateFieldValues = { name: string }
 type UpdateFieldValues = { id: string } & CreateFieldValues
@@ -98,7 +99,11 @@ const CycleForm = <T extends CreateFieldValues | UpdateFieldValues>({
   )
 }
 
-const AddCycleDialog = () => {
+const AddCycleDialog = ({
+  setDialogOpen,
+}: {
+  setDialogOpen: (state: boolean) => void
+}) => {
   const form = useForm<CreateFieldValues>({
     resolver: zodResolver(newCycleSchema),
   })
@@ -115,7 +120,7 @@ const AddCycleDialog = () => {
       .then(() => {
         t.dismiss()
         toast({ title: 'تم إضافة الدورة بنجاح' })
-        // closeModal()
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -300,6 +305,8 @@ const PAGE_SIZE = 25
 const CyclesPage = () => {
   const router = useRouter()
 
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
     .safeParse(router.query.page).success
@@ -365,13 +372,13 @@ const CyclesPage = () => {
       </Head>
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>الدورات</h2>
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger>
             <Button>إضافة دورة</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>إضافة دورة</DialogHeader>
-            <AddCycleDialog />
+            <AddCycleDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>
@@ -381,5 +388,17 @@ const CyclesPage = () => {
 }
 
 CyclesPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+
+  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
+
+  return {
+    props: {
+      session,
+    },
+  }
+}
 
 export default CyclesPage

@@ -8,5 +8,6 @@ export const spreadsheetUrlSchema = z
 
 export const importUsersSchema = z.object({
   url: spreadsheetUrlSchema,
-  sheet: z.string().min(1)
+  sheet: z.string().min(1),
+  cycleId: z.string().min(1),
 })

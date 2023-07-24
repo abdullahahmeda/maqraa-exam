@@ -57,27 +57,47 @@ model User {
   emailVerified DateTime?
   password String?
   image String?
+  phone String?
   role UserRole
+  // start for corrector
+  cycleId String?
+  courseId String?
+  cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  // end for corrector
   accounts Account[]
   sessions Session[]
-  correctedExams Exam[] @relation("Exam_corrector")
   exams Exam[] @relation("Exam_student")
-  student Student?
+  correctedExams Exam[] @relation("Exam_corrector")
+  cycles StudentCycle[]
+
+  @@index([courseId])
+  @@index([cycleId])
 
   @@allow('all', auth() != null)
+}
+
+/// @@Gen.model(hide: true)
+model StudentCycle {
+  id Int @id @default(autoincrement())
+  userId String
+  cycleId String
+  curriculumId String
+  curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  student User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@unique([cycleId, userId])
+
+  @@index([userId])
+  @@index([cycleId])
+  @@index([curriculumId])
 }
 
 enum UserRole {
   ADMIN
   STUDENT
   CORRECTOR
-}
-
-model Student {
-  id String @id @default(cuid())
-  name String
-  userId String @unique
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 /// @@Gen.model(hide: true)
@@ -157,19 +177,23 @@ model Setting {
 
 model Exam {
   id String @id @default(cuid())
+  type ExamType
   grade Int?
-  submittedAt DateTime?
   createdAt DateTime @default(now())
+  enteredAt DateTime?
+  submittedAt DateTime?
   correctedAt DateTime?
   repeatFromSameHadith Boolean @default(false)
   courseId String
   curriculumId String
   studentId String?
   correctorId String?
+  cycleId String?
   corrector User? @relation("Exam_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
   student User? @relation("Exam_student", fields: [studentId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   groups ExamQuestionGroup[]
 
   @@index([grade])
@@ -177,10 +201,18 @@ model Exam {
   @@index([correctorId])
   @@index([curriculumId])
   @@index([courseId])
+  @@index([cycleId])
 
   // TODO: maybe update read rules
   @@allow('create,read,update', true)
   @@allow('delete', auth() != null)
+}
+
+enum ExamType {
+  PUBLIC
+  FULL
+  FIRST_MEHWARY
+  SECOND_MEHWARY
 }
 
 /// @@Gen.model(hide: true)
@@ -223,6 +255,9 @@ model Cycle {
   id String @id @default(cuid())
   name String
   courses CycleCourse[]
+  students StudentCycle[]
+  exams Exam[]
+  correctors User[]
 
   @@allow('all', auth() != null)
 }
@@ -234,6 +269,7 @@ model Course {
   questions Question[]
   exams Exam[]
   cycles CycleCourse[]
+  correctors User[]
 
   @@allow('create,update,delete', auth() != null)
   @@allow('read', true)
@@ -271,6 +307,7 @@ model Curriculum {
   track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
   parts CurriculumPart[]
   exams Exam[]
+  students StudentCycle[]
 
   @@index([trackId])
 
@@ -284,6 +321,7 @@ model CurriculumPart {
   name String
   number Int // Part number
   from Int
+  mid Int
   to Int
   curriculumId String
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)

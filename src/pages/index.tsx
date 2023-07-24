@@ -174,34 +174,6 @@ const QuestionGroup = ({
               </FormItem>
             )}
           />
-          {/* <FormField
-            control={form.control}
-            name={`groups.${index}.type`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>نوع الأسئلة</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='اختر نوع الأسئلة' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value=''>عشوائي</SelectItem>
-                    {Object.entries(typeMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          /> */}
           <FormField
             control={form.control}
             name={`groups.${index}.styleOrType`}
@@ -255,11 +227,10 @@ const HomePage = () => {
     },
   })
 
-  const examCreate = api.exams.create.useMutation()
+  const examCreate = api.exams.createPublic.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
-  const curriculumId = useWatch({ control: form.control, name: 'curriculumId' })
 
   const {
     fields: groups,

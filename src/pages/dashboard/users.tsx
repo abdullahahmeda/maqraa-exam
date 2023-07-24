@@ -59,6 +59,7 @@ import {
 } from '~/components/ui/popover'
 import { Edit, Filter, Eye } from 'lucide-react'
 import { useToast } from '~/components/ui/use-toast'
+import { getServerAuthSession } from '~/server/auth'
 
 type AddUsersSingleFieldValues = {
   name: string
@@ -209,20 +210,26 @@ const EditUserDialog = ({ id }: { id: string }) => {
 type AddUsersSheetFieldValues = {
   url: string
   sheet: string
+  cycleId: string
 }
 
-const AddUsersFromSheetForm = () => {
+const AddUsersFromSheetForm = ({
+  setDialogOpen,
+}: {
+  setDialogOpen: (state: boolean) => void
+}) => {
   const form = useForm<AddUsersSheetFieldValues>({
-    resolver: zodResolver(importUsersSchema, {
-      errorMap: customErrorMap,
-    }),
+    resolver: zodResolver(importUsersSchema),
   })
 
   const { toast } = useToast()
 
-  const usersImport = api.sheets.importUsers.useMutation()
+  const usersImport = api.users.importStudents.useMutation()
 
   const queryClient = useQueryClient()
+
+  const { data: cycles, isLoading: isCyclesLoading } =
+    api.cycles.findMany.useQuery()
 
   const {
     isFetching: isFetchingSheets,
@@ -260,6 +267,7 @@ const AddUsersFromSheetForm = () => {
         t.dismiss()
         form.reset()
         toast({ title: 'تم إضافة الطلبة بنجاح' })
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -322,6 +330,30 @@ const AddUsersFromSheetForm = () => {
             </FormItem>
           )}
         />
+        <FormField
+          control={form.control}
+          name='cycleId'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>الدورة</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger loading={isCyclesLoading}>
+                    <SelectValue placeholder='اختر الدورة' />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {cycles?.map((cycle) => (
+                    <SelectItem key={cycle.id} value={cycle.id}>
+                      {cycle.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <DialogFooter>
           <Button type='submit' loading={usersImport.isLoading}>
             إضافة
@@ -332,7 +364,11 @@ const AddUsersFromSheetForm = () => {
   )
 }
 
-const AddUsersDialog = () => {
+const AddUsersDialog = ({
+  setDialogOpen,
+}: {
+  setDialogOpen: (state: boolean) => void
+}) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -351,6 +387,7 @@ const AddUsersDialog = () => {
         t.dismiss()
         form.reset()
         toast({ title: 'تم إضافة المستخدم بنجاح' })
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -365,7 +402,7 @@ const AddUsersDialog = () => {
     <Tabs defaultValue='single' className='w-full'>
       <TabsList className='grid w-full grid-cols-2'>
         <TabsTrigger value='single'>مستخدم واحد</TabsTrigger>
-        <TabsTrigger value='sheet'>من اكسل شيت</TabsTrigger>
+        <TabsTrigger value='sheet'>من اكسل شيت (طلاب فقط)</TabsTrigger>
       </TabsList>
       <TabsContent value='single'>
         <UserForm
@@ -376,7 +413,7 @@ const AddUsersDialog = () => {
         />
       </TabsContent>
       <TabsContent value='sheet'>
-        <AddUsersFromSheetForm />
+        <AddUsersFromSheetForm setDialogOpen={setDialogOpen} />
       </TabsContent>
     </Tabs>
   )
@@ -392,6 +429,8 @@ const PAGE_SIZE = 50
 
 const UsersPage = ({ page: initialPage }: Props) => {
   const router = useRouter()
+
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -417,6 +456,7 @@ const UsersPage = ({ page: initialPage }: Props) => {
         skip: pageIndex * pageSize,
         take: pageSize,
         where: { AND: filters },
+        include: { cycles: true, cycle: true, course: true },
       },
       { networkMode: 'always' }
     )
@@ -493,6 +533,54 @@ const UsersPage = ({ page: initialPage }: Props) => {
           className: 'text-center',
         },
       }),
+      // columnHelper.accessor('cycle.name', {
+      //   header: ({ column }) => {
+      //     const filterValue = column.getFilterValue() as string | undefined
+      //     return (
+      //       <div className='flex items-center'>
+      //         الدورة
+      //         <Popover>
+      //           <PopoverTrigger className='mr-4'>
+      //             <Button
+      //               size='icon'
+      //               variant={filterValue ? 'secondary' : 'ghost'}
+      //             >
+      //               <Filter className='h-4 w-4' />
+      //             </Button>
+      //           </PopoverTrigger>
+      //           <PopoverContent>
+      //             <Select
+      //               value={filterValue === undefined ? '' : filterValue}
+      //               onValueChange={column.setFilterValue}
+      //             >
+      //               <SelectTrigger>
+      //                 <SelectValue />
+      //               </SelectTrigger>
+      //               <SelectContent>
+      //                 <SelectItem value=''>الكل</SelectItem>
+      //                 {Object.entries(userRoleMapping).map(([label, value]) => (
+      //                   <SelectItem key={value} value={value}>
+      //                     {label}
+      //                   </SelectItem>
+      //                 ))}
+      //               </SelectContent>
+      //             </Select>
+      //           </PopoverContent>
+      //         </Popover>
+      //       </div>
+      //     )
+      //   },
+      //   cell: (info) => (
+      //     <Badge
+      //     // variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
+      //     >
+      //       {enUserRoleToAr(info.getValue() || '')}
+      //     </Badge>
+      //   ),
+      //   meta: {
+      //     className: 'text-center',
+      //   },
+      // }),
       columnHelper.display({
         id: 'actions',
         cell: ({ row }) => (
@@ -547,13 +635,13 @@ const UsersPage = ({ page: initialPage }: Props) => {
       </Head>
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المستخدمون</h2>
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger>
             <Button>إضافة مستخدمين</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>إضافة مستخدمين</DialogHeader>
-            <AddUsersDialog />
+            <AddUsersDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>
@@ -571,15 +659,16 @@ const UsersPage = ({ page: initialPage }: Props) => {
 
 UsersPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
-// export const getServerSideProps: GetServerSideProps = async (context) => {
-//   const _page = context.query.page
-//   const pageData = z.number().positive().int().safeParse(Number(_page))
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
 
-//   return {
-//     props: {
-//       page: pageData.success ? pageData.data : 1,
-//     },
-//   }
-// }
+  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
+
+  return {
+    props: {
+      session,
+    },
+  }
+}
 
 export default UsersPage

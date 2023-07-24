@@ -24,6 +24,8 @@ import {
   FormMessage,
 } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
+import { getServerAuthSession } from '~/server/auth'
+import { UserRole } from '@prisma/client'
 
 type FieldValues = Record<SettingKey, string | number>
 
@@ -104,7 +106,10 @@ SettingsPage.getLayout = (page: any) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
 
-export async function getServerSideProps(context: GetServerSidePropsContext) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+
+  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
   const settings = await getSettings()
   return {
     props: {

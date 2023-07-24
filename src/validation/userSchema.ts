@@ -1,6 +1,4 @@
 import { z } from 'zod'
-import { UserRole } from '~/constants'
-import { arUserRoleToEn } from '~/utils/users'
 
 export const userSchema = z.object({
   name: z.string().min(1),
@@ -8,8 +6,5 @@ export const userSchema = z.object({
     .string()
     .email()
     .min(1)
-    .transform(val => val.toLowerCase()),
-  role: z
-    .union([z.literal('أدمن'), z.literal('طالب')])
-    .transform(val => arUserRoleToEn(val))
+    .transform((val) => val.toLowerCase()),
 })

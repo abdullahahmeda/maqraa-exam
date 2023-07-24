@@ -18,6 +18,7 @@ import {
   GroupQuestion,
   Question,
   User,
+  UserRole,
 } from '@prisma/client'
 import {
   Form,
@@ -237,7 +238,13 @@ const ExamPage = ({
                         })}
                       >
                         <div className='flex items-center'>
-                          {order}.
+                          {exam.groups
+                            .slice(0, i)
+                            .reduce(
+                              (acc, g) => acc + g.order * g.questions.length,
+                              0
+                            ) + order}
+                          .
                           <Badge className='ml-2 mr-1'>
                             {enStyleToAr(question.style)}
                           </Badge>
@@ -308,6 +315,12 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   // TODO: auth check
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
   const prisma = withPresets(_prisma, { user: session?.user })
+
+  if (
+    session?.user.role !== UserRole.ADMIN &&
+    session?.user.role !== UserRole.CORRECTOR
+  )
+    return { notFound: true }
 
   const exam = await prisma.exam.findFirst({
     where: { id: ctx.params!.id as string },

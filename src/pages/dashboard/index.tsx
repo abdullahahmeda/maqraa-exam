@@ -3,7 +3,6 @@ import DashboardLayout from '~/components/dashboard/layout'
 import Head from 'next/head'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
 import { prisma } from '~/server/db'
-import { UserRole } from '~/constants'
 import {
   LineChart,
   Line,
@@ -17,6 +16,8 @@ import {
   Bar,
 } from 'recharts'
 import dayjs from 'dayjs'
+import { getServerAuthSession } from '~/server/auth'
+import { UserRole } from '@prisma/client'
 
 const DashboardPage = ({
   examsCount,
@@ -79,7 +80,19 @@ DashboardPage.getLayout = (page: any) => {
   return <DashboardLayout>{page}</DashboardLayout>
 }
 
-export async function getServerSideProps(context: GetServerSidePropsContext) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+
+  if (session?.user.role === UserRole.CORRECTOR)
+    return {
+      redirect: {
+        destination: '/dashboard/exams',
+        permanent: false,
+      },
+    }
+
+  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
+
   const studentsCount = await prisma.user.count({
     where: { role: UserRole.STUDENT },
   })
@@ -93,6 +106,7 @@ export async function getServerSideProps(context: GetServerSidePropsContext) {
 
   return {
     props: {
+      session,
       studentsCount,
       examsCount,
       ungradedExamsCount,

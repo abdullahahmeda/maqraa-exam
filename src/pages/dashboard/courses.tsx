@@ -7,7 +7,7 @@ import { FieldPath, UseFormReturn, useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
-import { Course } from '@prisma/client'
+import { Course, UserRole } from '@prisma/client'
 import Spinner from '~/components/spinner'
 import {
   createColumnHelper,
@@ -51,6 +51,7 @@ import {
 } from '~/components/ui/alert-dialog'
 import { editCourseSchema } from '~/validation/editCourseSchema'
 import { Edit, Loader2, Trash } from 'lucide-react'
+import { getServerAuthSession } from '~/server/auth'
 
 type CreateFieldValues = { name: string }
 type UpdateFieldValues = CreateFieldValues & { id: string }
@@ -93,7 +94,11 @@ const CourseForm = <T extends CreateFieldValues | UpdateFieldValues>({
   )
 }
 
-const AddCourseDialog = () => {
+const AddCourseDialog = ({
+  setDialogOpen,
+}: {
+  setDialogOpen: (state: boolean) => void
+}) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const form = useForm<CreateFieldValues>({
@@ -110,6 +115,7 @@ const AddCourseDialog = () => {
       .then(() => {
         t.dismiss()
         toast({ title: 'تم إضافة المقرر بنجاح' })
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -238,6 +244,8 @@ const PAGE_SIZE = 25
 const CoursesPage = () => {
   const router = useRouter()
 
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
     .safeParse(router.query.page).success
@@ -352,13 +360,13 @@ const CoursesPage = () => {
       </Head>
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المقررات</h2>
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger>
             <Button>إضافة مقرر</Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>إضافة مقرر</DialogHeader>
-            <AddCourseDialog />
+            <AddCourseDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>
@@ -368,5 +376,17 @@ const CoursesPage = () => {
 }
 
 CoursesPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+
+  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
+
+  return {
+    props: {
+      session,
+    },
+  }
+}
 
 export default CoursesPage

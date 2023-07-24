@@ -4,7 +4,6 @@ import { PrismaClient } from '@prisma/client';
 import { createRouterFactory, AnyRouter } from '@trpc/server/dist/core/router';
 import { createBuilder } from '@trpc/server/dist/core/internals/procedureBuilder';
 import createUserRouter from './User.router';
-import createStudentRouter from './Student.router';
 import createQuestionRouter from './Question.router';
 import createSettingRouter from './Setting.router';
 import createExamRouter from './Exam.router';
@@ -13,7 +12,6 @@ import createCourseRouter from './Course.router';
 import createTrackRouter from './Track.router';
 import createCurriculumRouter from './Curriculum.router';
 import { ClientType as UserClientType } from './User.router';
-import { ClientType as StudentClientType } from './Student.router';
 import { ClientType as QuestionClientType } from './Question.router';
 import { ClientType as SettingClientType } from './Setting.router';
 import { ClientType as ExamClientType } from './Exam.router';
@@ -38,7 +36,6 @@ export function db(ctx: any) {
 export function createRouter<Config extends BaseConfig>(router: RouterFactory<Config>, procedure: ProcBuilder<Config>) {
     return router({
         user: createUserRouter<Config>(router, procedure),
-        student: createStudentRouter<Config>(router, procedure),
         question: createQuestionRouter<Config>(router, procedure),
         setting: createSettingRouter<Config>(router, procedure),
         exam: createExamRouter<Config>(router, procedure),
@@ -51,7 +48,6 @@ export function createRouter<Config extends BaseConfig>(router: RouterFactory<Co
 
 export interface ClientType<AppRouter extends AnyRouter> {
     user: UserClientType<AppRouter>;
-    student: StudentClientType<AppRouter>;
     question: QuestionClientType<AppRouter>;
     setting: SettingClientType<AppRouter>;
     exam: ExamClientType<AppRouter>;

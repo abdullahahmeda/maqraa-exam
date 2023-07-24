@@ -1,109 +1,37 @@
-// import { TRPCError } from '@trpc/server'
-// import { logErrorToLogtail } from '~/utils/logtail'
-// import { adminOnlyProcedure, createTRPCRouter, publicProcedure } from '../trpc'
-// import { registerSchema } from '~/validation/registerSchema'
-// import {
-//   createUser,
-//   getPaginatedUsers,
-//   getUser,
-//   registerStudent,
-//   updateUser,
-// } from '~/services/users'
-// import { z } from 'zod'
-// import { updateUserSchema } from '~/validation/updateUserSchema'
-// import { newUserSchema } from '~/validation/newUserSchema'
-
-import { z } from 'zod'
+import { ZodError, z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../trpc'
 import { UserInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, db, checkRead } from './helper'
 import { UserWhereInputObjectSchema } from '.zenstack/zod/objects'
 import { updateUserSchema } from '~/validation/updateUserSchema'
-import { Prisma } from '@prisma/client'
+import { Prisma, UserRole } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { newUserSchema } from '~/validation/newUserSchema'
+import { importUsersSchema } from '~/validation/importUsersSchema'
+import { getSpreadsheetIdFromURL } from '~/utils/sheets'
+import { getFields } from '~/services/sheets'
+import { GaxiosError } from 'gaxios'
+import { studentSchema } from '~/validation/studentSchema'
+import { prisma } from '~/server/db'
 
-// export const usersRouter = createTRPCRouter({
-//   list: adminOnlyProcedure
-//     .input(
-//       z.object({
-//         page: z.number().positive().int().optional(),
-//       })
-//     )
-//     .query(async ({ input }) => {
-//       const pageSize = 50
-//       const page = input.page || 1
+const googleSheetErrorHandler = (error: any) => {
+  if (error instanceof GaxiosError) {
+    if (Number(error.code) === 404) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: 'هذا الملف غير موجود',
+      })
+    }
+    if (Number(error.code) === 403 || Number(error.code) === 400) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'الصلاحيات غير كافية، تأكد من تفعيل مشاركة الملف',
+      })
+    }
+  }
 
-//       return await getPaginatedUsers({ page, pageSize })
-//     }),
-//   get: adminOnlyProcedure
-//     .input(
-//       z.object({
-//         id: z.string().min(1),
-//       })
-//     )
-//     .query(async ({ input }) => {
-//       return await getUser(input.id)
-//     }),
-//   update: adminOnlyProcedure
-//     .input(updateUserSchema)
-//     .mutation(async ({ input }) => {
-//       try {
-//         await updateUser(input)
-//       } catch (error: any) {
-//         if (error.code === 'P2002')
-//           throw new TRPCError({
-//             code: 'BAD_REQUEST',
-//             message: 'هذا البريد الإلكتروني مستخدم بالفعل',
-//           })
-
-//         throw new TRPCError({
-//           code: 'INTERNAL_SERVER_ERROR',
-//           message: 'حدث خطأ غير متوقع',
-//         })
-//       }
-//       return true
-//     }),
-//   create: adminOnlyProcedure
-//     .input(newUserSchema)
-//     .mutation(async ({ input }) => {
-//       try {
-//         await createUser(input)
-//       } catch (error: any) {
-//         if (error.code === 'P2002')
-//           throw new TRPCError({
-//             code: 'BAD_REQUEST',
-//             message: 'هذا البريد الإلكتروني مسجل بالفعل',
-//           })
-
-//         throw new TRPCError({
-//           code: 'INTERNAL_SERVER_ERROR',
-//           message: 'حدث خطأ غير متوقع',
-//         })
-//       }
-//       return true
-//     }),
-//   createStudent: publicProcedure
-//     .input(registerSchema)
-//     .mutation(async ({ input }) => {
-//       try {
-//         await registerStudent(input)
-//       } catch (error: any) {
-//         if (error.code === 'P2002')
-//           throw new TRPCError({
-//             code: 'BAD_REQUEST',
-//             message: 'هذا البريد الإلكتروني مسجل بالفعل',
-//           })
-
-//         throw new TRPCError({
-//           code: 'INTERNAL_SERVER_ERROR',
-//           message: 'حدث خطأ غير متوقع',
-//         })
-//       }
-//       return true
-//     }),
-//   // update: adminOnlyProcedure.input()
-// })
+  throw error
+}
 
 export const usersRouter = createTRPCRouter({
   create: protectedProcedure
@@ -111,6 +39,103 @@ export const usersRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) =>
       checkMutate(db(ctx).user.create({ data: input }))
     ),
+
+  importStudents: protectedProcedure
+    .input(importUsersSchema)
+    .mutation(async ({ ctx, input }) => {
+      const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
+
+      let rows
+      try {
+        rows = await getFields(spreadsheetId, input.sheet)
+      } catch (error) {
+        throw googleSheetErrorHandler(error)
+      }
+      const users = []
+
+      for (const [i, row] of rows.entries()) {
+        if (i === 0) continue // TODO: validate sheet headers are equal to `headers` 👆
+
+        const curriculum = await checkRead(
+          db(ctx).curriculum.findFirst({
+            where: { name: row[4], track: { course: { name: row[2] } } },
+          })
+        )
+
+        if (!curriculum)
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: `المنهج ${row[4]} غير موجود`,
+          })
+
+        try {
+          const student = studentSchema.parse(
+            {
+              name: row[0],
+              phone: row[1],
+              email: row[5],
+            },
+            { path: [i + 1] }
+          )
+          await checkMutate(
+            db(ctx).studentCycle.create({
+              data: {
+                cycle: {
+                  connect: { id: input.cycleId },
+                },
+                curriculum: {
+                  connect: { id: curriculum.id },
+                },
+                student: {
+                  connectOrCreate: {
+                    where: {
+                      email: 'user.email',
+                    },
+                    create: {
+                      ...student,
+                      role: UserRole.STUDENT,
+                    },
+                  },
+                },
+              },
+            })
+          )
+        } catch (error) {
+          if (error instanceof ZodError) {
+            const issue = error.issues[0]!
+
+            const [rowNumber, field] = issue.path
+
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
+              cause: issue,
+            })
+          } else if (
+            error?.cause instanceof Prisma.PrismaClientKnownRequestError
+          ) {
+            if (error.cause.code === 'P2002')
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: `خطأ في الصف رقم ${
+                  i + 1
+                }: هذا الطالب مسجل بالفعل في هذه الدورة`,
+              })
+          }
+
+          throw new TRPCError({
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'حدث خطأ غير متوقع',
+          })
+        }
+      }
+
+      // return checkMutate(
+      //   db(ctx).studentCycle.create({
+      //     data: users,
+      //   })
+      // )
+    }),
 
   count: protectedProcedure
     .input(z.object({ where: UserWhereInputObjectSchema }).optional())

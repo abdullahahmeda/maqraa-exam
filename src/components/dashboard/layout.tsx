@@ -54,6 +54,13 @@ const menuLinks = {
       href: '/dashboard/settings',
     },
   ],
+  CORRECTOR: [
+    {
+      icon: <Construction className='ml-2 h-4 w-4' />,
+      label: 'الإختبارات',
+      href: '/dashboard/exams',
+    },
+  ],
 }
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -63,7 +70,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <nav className='fixed top-0 left-0 right-0 h-16 border-b bg-background'>
+      <nav className='fixed left-0 right-0 top-0 h-16 border-b bg-background'>
         <div className='flex h-full items-center justify-between px-4'>
           <div className='flex items-center'>
             <Button
@@ -92,13 +99,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             isSidebarOpen && 'block'
           )}
           links={
-            menuLinks[
-              'ADMIN'
-              // session!.user.role as keyof typeof menuLinks
-            ]
+            session?.user.role
+              ? menuLinks[session!.user.role as keyof typeof menuLinks]
+              : []
           }
         />
-        <main className='min-h-screen flex-1 border-r pt-20 pb-4 pl-4 pr-4 md:pr-[19rem]'>
+        <main className='min-h-screen flex-1 border-r pb-4 pl-4 pr-4 pt-20 md:pr-[19rem]'>
           {children}
         </main>
       </div>

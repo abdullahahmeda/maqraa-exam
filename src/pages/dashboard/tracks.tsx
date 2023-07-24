@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
-import { Question, Track } from '@prisma/client'
+import { Question, Track, UserRole } from '@prisma/client'
 import {
   createColumnHelper,
   useReactTable,
@@ -65,10 +65,15 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
+import { getServerAuthSession } from '~/server/auth'
 
 type FieldValues = { name: string; courseId: string }
 
-const AddTrackDialog = () => {
+const AddTrackDialog = ({
+  setDialogOpen,
+}: {
+  setDialogOpen: (state: boolean) => void
+}) => {
   const form = useForm<FieldValues>({
     resolver: zodResolver(newTrackSchema),
   })
@@ -87,7 +92,7 @@ const AddTrackDialog = () => {
       .then(() => {
         t.dismiss()
         toast({ title: 'تم إضافة المسار بنجاح' })
-        // closeModal()
+        setDialogOpen(false)
       })
       .catch((error) => {
         t.dismiss()
@@ -278,6 +283,8 @@ const PAGE_SIZE = 25
 const TracksPage = () => {
   const router = useRouter()
 
+  const [dialogOpen, setDialogOpen] = useState(false)
+
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
     .safeParse(router.query.page).success
@@ -345,12 +352,12 @@ const TracksPage = () => {
       </Head>
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المسارات</h2>
-        <Dialog>
+        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger>
             <Button>إضافة مسار</Button>
           </DialogTrigger>
           <DialogContent>
-            <AddTrackDialog />
+            <AddTrackDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>
@@ -361,13 +368,14 @@ const TracksPage = () => {
 
 TracksPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const _page = context.query.page
-  const pageData = z.number().positive().int().safeParse(Number(_page))
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+
+  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
 
   return {
     props: {
-      page: pageData.success ? pageData.data : 1,
+      session,
     },
   }
 }
