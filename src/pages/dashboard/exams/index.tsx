@@ -70,6 +70,10 @@ import {
 } from '~/components/ui/select'
 import { typeMapping, styleMapping, difficultyMapping } from '~/utils/questions'
 import {
+  typeMapping as examTypeMapping,
+  enTypeToAr as enExamTypeToAr,
+} from '~/utils/exams'
+import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -646,16 +650,117 @@ const columns = [
     },
   }),
   columnHelper.accessor('course.name', {
-    header: 'المقرر',
+    id: 'course',
+    header: ({ column }) => {
+      const { data: courses, isLoading } = api.courses.findMany.useQuery({})
+      const filterValue = column.getFilterValue() as string | undefined
+      return (
+        <div className='flex items-center'>
+          المقرر
+          <Popover>
+            <PopoverTrigger className='mr-4'>
+              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
+                <Filter className='h-4 w-4' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Combobox
+                items={[{ name: 'الكل', id: '' }, ...(courses || [])]}
+                loading={isLoading}
+                labelKey='name'
+                valueKey='id'
+                onSelect={column.setFilterValue}
+                value={filterValue}
+                triggerText='الكل'
+                triggerClassName='w-full'
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )
+    },
     meta: {
       className: 'text-center',
     },
   }),
   columnHelper.accessor('curriculum.name', {
-    header: 'المنهج',
+    id: 'curriculum',
+    header: ({ column, table }) => {
+      const { data: curricula, isLoading } = api.curricula.findMany.useQuery({
+        where: {
+          track: {
+            courseId:
+              table.getState().columnFilters.find((f) => f.id === 'course')
+                ?.value || undefined,
+          },
+        },
+      })
+      const filterValue = column.getFilterValue() as string | undefined
+      return (
+        <div className='flex items-center'>
+          المنهج
+          <Popover>
+            <PopoverTrigger className='mr-4'>
+              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
+                <Filter className='h-4 w-4' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Combobox
+                items={[{ name: 'الكل', id: '' }, ...(curricula || [])]}
+                loading={isLoading}
+                labelKey='name'
+                valueKey='id'
+                onSelect={column.setFilterValue}
+                value={filterValue}
+                triggerText='الكل'
+                triggerClassName='w-full'
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )
+    },
     meta: {
       className: 'text-center',
     },
+  }),
+  columnHelper.accessor('type', {
+    header: ({ column }) => {
+      const filterValue = column.getFilterValue() as string | undefined
+
+      return (
+        <div className='flex items-center'>
+          النوع
+          <Popover>
+            <PopoverTrigger className='mr-4'>
+              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
+                <Filter className='h-4 w-4' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Select
+                value={filterValue === undefined ? '' : filterValue}
+                onValueChange={column.setFilterValue}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value=''>الكل</SelectItem>
+                  {Object.entries(examTypeMapping).map(([label, value]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </PopoverContent>
+          </Popover>
+        </div>
+      )
+    },
+    cell: ({ getValue }) => enExamTypeToAr(getValue()),
   }),
   // columnHelper.accessor('grade', {
   //   header: 'الدرجة',
@@ -844,10 +949,18 @@ const ExamsPage = () => {
     //   id: 'graded',
     //   value: '',
     // },
+    {
+      id: 'type',
+      value: ExamType.FULL,
+    },
   ])
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'cycle')
       return { cycleId: { equals: filter.value as string } }
+    else if (filter.id === 'course')
+      return { courseId: { equals: filter.value as string } }
+    else if (filter.id === 'curriculum')
+      return { curriculumId: { equals: filter.value as string } }
     return { [filter.id]: { equals: filter.value } }
   })
 
