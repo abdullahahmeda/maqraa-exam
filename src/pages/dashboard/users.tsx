@@ -229,7 +229,7 @@ const AddUsersFromSheetForm = ({
   const queryClient = useQueryClient()
 
   const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycles.findMany.useQuery()
+    api.cycles.findMany.useQuery({})
 
   const {
     isFetching: isFetchingSheets,

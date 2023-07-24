@@ -243,7 +243,7 @@ const HomePage = () => {
   })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery()
+    api.courses.findMany.useQuery({})
 
   const {
     data: tracks,

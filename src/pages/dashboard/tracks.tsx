@@ -83,7 +83,7 @@ const AddTrackDialog = ({
 
   const trackCreate = api.tracks.create.useMutation()
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery()
+    api.courses.findMany.useQuery({})
 
   const onSubmit = (data: FieldValues) => {
     const t = toast({ title: 'جاري إضافة المسار' })
@@ -225,7 +225,7 @@ const columns = [
   columnHelper.accessor('course.name', {
     id: 'course',
     header: ({ column }) => {
-      const { data: courses, isLoading } = api.courses.findMany.useQuery()
+      const { data: courses, isLoading } = api.courses.findMany.useQuery({})
 
       const filterValue = column.getFilterValue() as string | undefined
 

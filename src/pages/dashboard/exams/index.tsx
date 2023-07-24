@@ -342,7 +342,7 @@ const AddExamDialog = ({
   })
 
   const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycles.findMany.useQuery()
+    api.cycles.findMany.useQuery({})
 
   const appendGroup = () => {
     append({
@@ -680,7 +680,7 @@ const columns = [
   columnHelper.accessor('cycle.name', {
     id: 'cycle',
     header: ({ column }) => {
-      const { data: tracks, isLoading } = api.cycles.findMany.useQuery()
+      const { data: tracks, isLoading } = api.cycles.findMany.useQuery({})
 
       const filterValue = column.getFilterValue() as string | undefined
 
