@@ -72,9 +72,9 @@ export const EditUserDialog = ({
 
   if (error)
     return (
-      <div className='flex items-center justify-center gap-2 text-center'>
-        <p className='text-red-600'>جاري التحميل</p>
-      </div>
+      <p className='text-center text-red-600'>
+        {error.message || 'حدث خطأ ما'}
+      </p>
     )
 
   return (

@@ -1,43 +1,21 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { FieldPath, UseFormReturn, useForm } from 'react-hook-form'
-import { api } from '~/utils/api'
-import { GetServerSideProps } from 'next'
-import { z } from 'zod'
 import { Course, UserRole } from '@prisma/client'
-import Spinner from '~/components/spinner'
-import {
-  createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  PaginationState,
-} from '@tanstack/react-table'
-import { useRouter } from 'next/router'
-import { customErrorMap } from '~/validation/customErrorMap'
-import { newCourseSchema } from '~/validation/newCourseSchema'
-import { Button } from '~/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTrigger,
-} from '~/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '~/components/ui/form'
-import { Input } from '~/components/ui/input'
 import { useQueryClient } from '@tanstack/react-query'
-import { DataTable } from '~/components/ui/data-table'
-import { useToast } from '~/components/ui/use-toast'
+import {
+  PaginationState,
+  createColumnHelper,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
+import { Edit, Trash } from 'lucide-react'
+import { GetServerSideProps } from 'next'
+import { useRouter } from 'next/router'
+import { useMemo, useState } from 'react'
+import { z } from 'zod'
+import { AddCourseDialog } from '~/components/modals/add-course'
+import { EditCourseDialog } from '~/components/modals/edit-course'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,151 +27,12 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import { editCourseSchema } from '~/validation/editCourseSchema'
-import { Edit, Loader2, Trash } from 'lucide-react'
+import { Button } from '~/components/ui/button'
+import { DataTable } from '~/components/ui/data-table'
+import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
+import { useToast } from '~/components/ui/use-toast'
 import { getServerAuthSession } from '~/server/auth'
-
-type CreateFieldValues = { name: string }
-type UpdateFieldValues = CreateFieldValues & { id: string }
-// type FieldValues = CreateFieldValues | UpdateFieldValues
-
-const CourseForm = <T extends CreateFieldValues | UpdateFieldValues>({
-  form,
-  onSubmit,
-  loading = false,
-  submitText,
-}: {
-  form: UseFormReturn<CreateFieldValues | UpdateFieldValues>
-  onSubmit: (data: CreateFieldValues | UpdateFieldValues) => void
-  loading?: boolean
-  submitText: string
-}) => {
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <FormField
-          control={form.control}
-          name={'name' as FieldPath<T>}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>اسم المقرر</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <DialogFooter>
-          <Button type='submit' loading={loading}>
-            {submitText}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
-  )
-}
-
-const AddCourseDialog = ({
-  setDialogOpen,
-}: {
-  setDialogOpen: (state: boolean) => void
-}) => {
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-  const form = useForm<CreateFieldValues>({
-    resolver: zodResolver(newCourseSchema, {
-      errorMap: customErrorMap,
-    }),
-  })
-  const courseCreate = api.courses.create.useMutation()
-
-  const onSubmit = (data: CreateFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المقرر' })
-    courseCreate
-      .mutateAsync(data)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المقرر بنجاح' })
-        setDialogOpen(false)
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['courses']])
-      })
-  }
-  return (
-    <CourseForm
-      form={form}
-      onSubmit={onSubmit}
-      loading={courseCreate.isLoading}
-      submitText='إضافة'
-    />
-  )
-}
-
-const EditCourseDialog = ({ id }: { id: string }) => {
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-  const form = useForm<CreateFieldValues>({
-    resolver: zodResolver(editCourseSchema),
-  })
-
-  const {
-    data: course,
-    isLoading,
-    error,
-  } = api.courses.findFirst.useQuery({ where: { id } })
-
-  const courseUpdate = api.courses.update.useMutation()
-
-  useEffect(() => {
-    if (course) form.reset(course)
-  }, [course, form])
-
-  const onSubmit = (data: CreateFieldValues) => {
-    const t = toast({ title: 'جاري تعديل المقرر' })
-    courseUpdate
-      .mutateAsync(data as z.infer<typeof editCourseSchema>)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم تعديل المقرر بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['courses']])
-      })
-  }
-
-  if (isLoading)
-    return (
-      <div className='flex justify-center'>
-        <Loader2 className='h-4 w-4 animate-spin' />
-      </div>
-    )
-
-  if (error)
-    return (
-      <p className='text-center text-red-600'>
-        {error.message || 'حدث خطأ ما'}
-      </p>
-    )
-
-  return (
-    <CourseForm
-      form={form}
-      onSubmit={onSubmit}
-      loading={courseUpdate.isLoading}
-      submitText='تعديل'
-    />
-  )
-}
+import { api } from '~/utils/api'
 
 const DeleteCourseDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
@@ -313,7 +152,6 @@ const CoursesPage = () => {
                 </Button>
               </DialogTrigger>
               <DialogContent>
-                <DialogHeader>تعديل المقرر</DialogHeader>
                 <EditCourseDialog id={row.original.id} />
               </DialogContent>
             </Dialog>
@@ -365,7 +203,6 @@ const CoursesPage = () => {
             <Button>إضافة مقرر</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>إضافة مقرر</DialogHeader>
             <AddCourseDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>

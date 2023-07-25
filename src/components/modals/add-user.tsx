@@ -9,7 +9,7 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { newUserSchema } from '~/validation/newUserSchema'
 import {
-  ImportStudents,
+  ImportStudentsForm,
   ImportStudentsFieldValues,
 } from '../forms/import-users'
 import { importUsersSchema } from '~/validation/importUsersSchema'
@@ -85,7 +85,7 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
       })
   }
   return (
-    <ImportStudents
+    <ImportStudentsForm
       form={form}
       isLoading={studentsImport.isLoading}
       onSubmit={onSubmit}

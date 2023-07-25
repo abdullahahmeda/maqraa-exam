@@ -1,53 +1,22 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import {
-  FieldPath,
-  UseFormReturn,
-  useFieldArray,
-  useForm,
-} from 'react-hook-form'
-import { api } from '~/utils/api'
-import { GetServerSideProps } from 'next'
-import { z } from 'zod'
-import { Button } from '~/components/ui/button'
-import {
-  Course,
-  Curriculum,
-  CurriculumPart,
-  Track,
-  UserRole,
-} from '@prisma/client'
-import Spinner from '~/components/spinner'
-import {
-  createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  PaginationState,
-  ColumnFiltersState,
-} from '@tanstack/react-table'
-import { useRouter } from 'next/router'
-import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
+import { Curriculum, CurriculumPart, Track, UserRole } from '@prisma/client'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '~/components/ui/form'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTrigger,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
+  ColumnFiltersState,
+  PaginationState,
+  createColumnHelper,
+  getCoreRowModel,
+  useReactTable,
+} from '@tanstack/react-table'
+import { Edit, Filter, Trash } from 'lucide-react'
+import { GetServerSideProps } from 'next'
+import { useRouter } from 'next/router'
+import { useState } from 'react'
+import { z } from 'zod'
+import { AddCurriculumDialog } from '~/components/modals/add-curriculum'
+import { EditCurriculumDialog } from '~/components/modals/edit-curriculum'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,322 +28,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import { DataTable } from '~/components/ui/data-table'
+import { Button } from '~/components/ui/button'
 import { Combobox } from '~/components/ui/combobox'
-import { useToast } from '~/components/ui/use-toast'
-import { Edit, Filter, Loader2, Trash } from 'lucide-react'
+import { DataTable } from '~/components/ui/data-table'
+import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { Separator } from '~/components/ui/separator'
-import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
+import { useToast } from '~/components/ui/use-toast'
 import { getServerAuthSession } from '~/server/auth'
-
-type CreateFieldValues = {
-  trackId: string
-  name: string
-  parts: {
-    name: string
-    number: number | string
-    from: number | string
-    to: number | string
-    mid: number | string
-  }[]
-}
-type UpdateFieldValues = CreateFieldValues & { id: string }
-
-const CurriculumForm = <T extends CreateFieldValues | UpdateFieldValues>({
-  form,
-  onSubmit,
-  loading = false,
-  submitText,
-}: {
-  form: UseFormReturn<CreateFieldValues | UpdateFieldValues>
-  onSubmit: (data: CreateFieldValues | UpdateFieldValues) => void
-  loading?: boolean
-  submitText: string
-}) => {
-  const { data: tracks, isLoading: isTracksLoading } =
-    api.tracks.findMany.useQuery<any, (Track & { course: { name: string } })[]>(
-      { include: { course: true } }
-    )
-  const {
-    fields: parts,
-    append,
-    remove,
-  } = useFieldArray({
-    control: form.control,
-    name: 'parts',
-  })
-  const appendPart = () => {
-    append({
-      name: '',
-      number: '',
-      from: '',
-      to: '',
-      mid: '',
-    })
-  }
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <FormField
-          control={form.control}
-          name='trackId'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>المقرر</FormLabel>
-              <FormControl>
-                <Combobox
-                  items={
-                    tracks?.map((t) => ({
-                      ...t,
-                      name: `${t.course.name}: ${t.name}`,
-                    })) || []
-                  }
-                  loading={isTracksLoading}
-                  value={field.value}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={field.onChange}
-                  triggerText='اختر المقرر'
-                  triggerClassName='w-full'
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='name'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>الاسم</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <h3 className='font-semibold'>التقسيمات</h3>
-        {parts.map(({ id }, index) => (
-          <div className='flex gap-4' key={id}>
-            <div className='space-y-2'>
-              <FormField
-                control={form.control}
-                name={`parts.${index}.name`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>اسم الجزء أو المجلد</FormLabel>
-                    <FormControl>
-                      <Input placeholder='مثال: الجزء الأول' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name={`parts.${index}.number`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>رقم الجزء</FormLabel>
-                    <FormControl>
-                      <Input type='number' min={1} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className='grid grid-cols-2 gap-4'>
-                <FormField
-                  control={form.control}
-                  name={`parts.${index}.from`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>من الحديث رقم</FormLabel>
-                      <FormControl>
-                        <Input type='number' min={1} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name={`parts.${index}.to`}
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>إلى الحديث رقم</FormLabel>
-                      <FormControl>
-                        <Input type='number' min={1} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-              <FormField
-                control={form.control}
-                name={`parts.${index}.mid`}
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>نصف المنهج حتى الحديث (المحور الأول)</FormLabel>
-                    <FormControl>
-                      <Input type='number' min={1} {...field} />
-                    </FormControl>
-                    <FormDescription>
-                      قم بوضعها 0 إذا كان هذا الجزء بالكامل خاص بالمحور الثاني
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <Separator orientation='vertical' className='h-auto' />
-            <Button
-              size='icon'
-              variant='destructive'
-              type='button'
-              onClick={() => remove(index)}
-              className='flex-shrink-0 self-center'
-            >
-              <Trash className='h-4 w-4' />
-            </Button>
-          </div>
-        ))}
-        <Button type='button' onClick={appendPart}>
-          إضافة جزء آخر
-        </Button>
-        <DialogFooter>
-          <Button type='submit' loading={loading}>
-            {submitText}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
-  )
-}
-
-const AddCurriculumDialog = ({
-  setDialogOpen,
-}: {
-  setDialogOpen: (state: boolean) => void
-}) => {
-  const queryClient = useQueryClient()
-  const form = useForm<CreateFieldValues>({
-    resolver: zodResolver(newCurriculumSchema),
-    defaultValues: {
-      parts: [{ name: '', number: '', from: '', to: '', mid: '' }],
-    },
-  })
-
-  const curriculumCreate = api.curricula.create.useMutation()
-
-  const { toast } = useToast()
-
-  const onSubmit = (data: CreateFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المنهج' })
-    curriculumCreate
-      .mutateAsync(data as z.infer<typeof newCurriculumSchema>)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المنهج بنجاح' })
-        setDialogOpen(false)
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['curricula']])
-      })
-  }
-
-  return (
-    <CurriculumForm
-      form={form}
-      onSubmit={onSubmit}
-      loading={curriculumCreate.isLoading}
-      submitText='إضافة'
-    />
-  )
-}
-
-const EditCurriculumDialog = ({
-  id,
-  setDialogOpen,
-}: {
-  id: string
-  setDialogOpen: (state: boolean) => void
-}) => {
-  const queryClient = useQueryClient()
-  const form = useForm<CreateFieldValues>({
-    resolver: zodResolver(editCurriculumSchema),
-  })
-
-  const curriculumUpdate = api.curricula.update.useMutation()
-
-  const { toast } = useToast()
-
-  const onSubmit = (data: CreateFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المنهج' })
-    curriculumUpdate
-      .mutateAsync(data as z.infer<typeof editCurriculumSchema>)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المنهج بنجاح' })
-        setDialogOpen(false)
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['curricula']])
-      })
-  }
-
-  const {
-    data: course,
-    isLoading,
-    error,
-  } = api.curricula.findFirst.useQuery({
-    where: { id },
-    include: { parts: true },
-  })
-
-  useEffect(() => {
-    if (course) form.reset(course)
-  }, [course, form])
-
-  if (isLoading)
-    return (
-      <div className='flex justify-center'>
-        <Loader2 className='h-4 w-4 animate-spin' />
-      </div>
-    )
-
-  if (error)
-    return (
-      <p className='text-center text-red-600'>
-        {error.message || 'حدث خطأ ما'}
-      </p>
-    )
-
-  return (
-    <CurriculumForm
-      form={form}
-      onSubmit={onSubmit}
-      loading={curriculumUpdate.isLoading}
-      submitText='تعديل'
-    />
-  )
-}
+import { api } from '~/utils/api'
 
 const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   const curriculumDelete = api.curricula.delete.useMutation()
@@ -519,7 +184,6 @@ const columns = [
               </Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>تعديل المنهج</DialogHeader>
               <EditCurriculumDialog
                 id={row.original.id}
                 setDialogOpen={setDialogOpen}
@@ -624,7 +288,6 @@ const CurriculaPage = () => {
             <Button>إضافة منهج</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>إضافة منهج</DialogHeader>
             <AddCurriculumDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>

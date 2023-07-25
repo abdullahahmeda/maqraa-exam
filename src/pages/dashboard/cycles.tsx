@@ -1,249 +1,34 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { FieldPath, UseFormReturn, useForm } from 'react-hook-form'
-import { api } from '~/utils/api'
-import { GetServerSideProps } from 'next'
-import { z } from 'zod'
-import { Cycle, Question, UserRole } from '@prisma/client'
+import { Cycle, UserRole } from '@prisma/client'
 import {
-  createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  PaginationState,
   ColumnFiltersState,
+  PaginationState,
+  createColumnHelper,
+  getCoreRowModel,
   getFilteredRowModel,
+  useReactTable,
 } from '@tanstack/react-table'
+import { Edit, Eye, Trash } from 'lucide-react'
+import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
-import { Button } from '~/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTrigger,
-} from '~/components/ui/dialog'
-import { Input } from '~/components/ui/input'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '~/components/ui/form'
-import { Checkbox } from '~/components/ui/checkbox'
-import { Edit, Loader2, Trash } from 'lucide-react'
-import { DataTable } from '~/components/ui/data-table'
-import { Eye } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '~/components/ui/use-toast'
-import { newCycleSchema } from '~/validation/newCycleSchema'
+import { useState } from 'react'
+import { z } from 'zod'
+import { AddCycleDialog } from '~/components/modals/add-cycle'
+import { DeleteCycleDialog } from '~/components/modals/delete-cycle'
+import { EditCycleDialog } from '~/components/modals/edit-cycle'
 import {
   AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import { editCycleSchema } from '~/validation/editCycleSchema'
+import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
+import { DataTable } from '~/components/ui/data-table'
+import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import { getServerAuthSession } from '~/server/auth'
-
-type CreateFieldValues = { name: string }
-type UpdateFieldValues = { id: string } & CreateFieldValues
-
-const CycleForm = <T extends CreateFieldValues | UpdateFieldValues>({
-  form,
-  onSubmit,
-  loading = false,
-  submitText,
-}: {
-  form: UseFormReturn<T>
-  onSubmit: (data: T) => void
-  loading?: boolean
-  submitText: string
-}) => {
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <FormField
-          control={form.control}
-          name={'name' as FieldPath<T>}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>اسم الدورة</FormLabel>
-              <FormControl>
-                <Input {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <DialogFooter>
-          <Button
-            type='submit'
-            // variant='success'
-            loading={loading}
-          >
-            {submitText}
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
-  )
-}
-
-const AddCycleDialog = ({
-  setDialogOpen,
-}: {
-  setDialogOpen: (state: boolean) => void
-}) => {
-  const form = useForm<CreateFieldValues>({
-    resolver: zodResolver(newCycleSchema),
-  })
-
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  const cycleCreate = api.cycles.create.useMutation()
-
-  const onSubmit = (data: CreateFieldValues) => {
-    const t = toast({ title: 'جاري إضافة الدورة' })
-    cycleCreate
-      .mutateAsync(data)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة الدورة بنجاح' })
-        setDialogOpen(false)
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['cycles']])
-      })
-  }
-
-  return (
-    <CycleForm
-      form={form}
-      loading={cycleCreate.isLoading}
-      submitText='إضافة'
-      onSubmit={onSubmit}
-    />
-  )
-}
-
-const EditCycleDialog = ({ id }: { id: string }) => {
-  const form = useForm<UpdateFieldValues>({
-    resolver: zodResolver(editCycleSchema),
-  })
-
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  const {
-    data: cycle,
-    isLoading,
-    error,
-  } = api.cycles.findFirstOrThrow.useQuery({ where: { id } })
-
-  useEffect(() => {
-    if (cycle) form.reset(cycle)
-  }, [cycle, form])
-
-  const cycleUpdate = api.cycles.update.useMutation()
-
-  const onSubmit = (data: UpdateFieldValues) => {
-    const t = toast({ title: 'جاري تعديل الدورة' })
-    cycleUpdate
-      .mutateAsync(data)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم تعديل الدورة بنجاح' })
-        // closeModal()
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['cycles']])
-      })
-  }
-
-  if (isLoading)
-    return (
-      <div className='flex justify-center'>
-        <Loader2 className='h-4 w-4 animate-spin' />
-      </div>
-    )
-
-  if (error)
-    return (
-      <p className='text-center text-red-600'>
-        {error.message || 'حدث خطأ ما'}
-      </p>
-    )
-
-  return (
-    <CycleForm
-      form={form}
-      onSubmit={onSubmit}
-      loading={cycleUpdate.isLoading}
-      submitText='تعديل'
-    />
-  )
-}
-
-const DeleteCycleDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const cycleDelete = api.cycles.delete.useMutation()
-  const queryClient = useQueryClient()
-
-  const deleteCycle = () => {
-    const t = toast({ title: 'جاري حذف الدورة' })
-    cycleDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف الدورة بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['cycles']])
-      })
-  }
-
-  return (
-    <>
-      <AlertDialogHeader>
-        <AlertDialogTitle>هل تريد حقاً حذف هذا المقرر؟</AlertDialogTitle>
-      </AlertDialogHeader>
-      <AlertDialogDescription>
-        هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً
-      </AlertDialogDescription>
-      <AlertDialogFooter>
-        <AlertDialogAction onClick={deleteCycle}>تأكيد</AlertDialogAction>
-        <AlertDialogCancel>إلغاء</AlertDialogCancel>
-      </AlertDialogFooter>
-    </>
-  )
-}
-
-type Props = {
-  page: number
-}
+import { api } from '~/utils/api'
 
 const columnHelper = createColumnHelper<Cycle>()
 
@@ -281,7 +66,6 @@ const columns = [
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>تعديل المقرر</DialogHeader>
             <EditCycleDialog id={row.original.id} />
           </DialogContent>
         </Dialog>
@@ -377,7 +161,6 @@ const CyclesPage = () => {
             <Button>إضافة دورة</Button>
           </DialogTrigger>
           <DialogContent>
-            <DialogHeader>إضافة دورة</DialogHeader>
             <AddCycleDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>

@@ -28,7 +28,7 @@ export type AddUserFieldValues = {
 
 export type EditUserFieldValues = { id: string } & AddUserFieldValues
 
-export type FormProps = {
+type FormProps = {
   form: UseFormReturn<AddUserFieldValues | EditUserFieldValues>
   onSubmit: (data: AddUserFieldValues | EditUserFieldValues) => void
   isLoading?: boolean

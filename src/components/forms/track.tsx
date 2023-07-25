@@ -21,7 +21,7 @@ import { api } from '~/utils/api'
 
 export type AddTrackFieldValues = { name: string; courseId: string }
 
-export type FormProps = {
+type FormProps = {
   form: UseFormReturn<AddTrackFieldValues>
   onSubmit: (data: AddTrackFieldValues) => void
   isLoading?: boolean

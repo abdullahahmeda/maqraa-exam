@@ -1,42 +1,31 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { useEffect, useMemo, useState } from 'react'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
-import { api } from '~/utils/api'
-import {
-  difficultyMapping,
-  enDifficultyToAr,
-  enStyleToAr,
-  enTypeToAr,
-  getDifficultyVariant,
-  styleMapping,
-  typeMapping,
-} from '~/utils/questions'
-import { GetServerSideProps } from 'next'
-import { z } from 'zod'
 import { Question } from '@prisma/client'
 import {
-  createColumnHelper,
-  useReactTable,
-  getCoreRowModel,
-  PaginationState,
   ColumnFiltersState,
+  PaginationState,
+  createColumnHelper,
+  getCoreRowModel,
   getFilteredRowModel,
+  useReactTable,
 } from '@tanstack/react-table'
+import { Download, Eye, Filter, Trash } from 'lucide-react'
 import { useRouter } from 'next/router'
-import { QuestionDifficulty, QuestionType } from '../../constants'
-import { customErrorMap } from '../../validation/customErrorMap'
+import { useState } from 'react'
+import { z } from 'zod'
+import { AddQuestionsDialog } from '~/components/modals/add-questions'
+import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
+import { Checkbox } from '~/components/ui/checkbox'
+import { Combobox } from '~/components/ui/combobox'
+import { DataTable } from '~/components/ui/data-table'
+import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTrigger,
-} from '~/components/ui/dialog'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '~/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -44,206 +33,22 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
-import { Input } from '~/components/ui/input'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '~/components/ui/form'
-import { Checkbox } from '~/components/ui/checkbox'
-import { Badge } from '~/components/ui/badge'
-import { DataTable } from '~/components/ui/data-table'
-import { Download, Eye, Filter } from 'lucide-react'
-import { useQueryClient } from '@tanstack/react-query'
 import { useToast } from '~/components/ui/use-toast'
-import { Combobox } from '~/components/ui/combobox'
+import { api } from '~/utils/api'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '~/components/ui/popover'
-
-type FieldValues = {
-  url: string
-  sheet: string
-  course: undefined | string
-  removeOldQuestions: boolean
-}
-
-const defaultValues: FieldValues = {
-  url: '',
-  sheet: '',
-  course: undefined,
-  removeOldQuestions: false,
-}
-
-const AddQuestionsDialog = ({
-  setDialogOpen,
-}: {
-  setDialogOpen: (state: boolean) => void
-}) => {
-  const form = useForm<FieldValues>({
-    defaultValues,
-    resolver: zodResolver(importQuestionsSchema, {
-      errorMap: customErrorMap,
-    }),
-  })
-
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  const questionsImport = api.questions.import.useMutation()
-
-  const {
-    isFetching: isFetchingSheets,
-    data: sheets,
-    refetch: refetchSheets,
-  } = api.sheets.listSheets.useQuery(
-    {
-      url: form.getValues('url'),
-    },
-    {
-      enabled: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-
-      onError: (error) => {
-        form.setError('url', {
-          message: error.message,
-        })
-      },
-    }
-  )
-
-  const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery({})
-
-  const updateSpreadsheet = async () => {
-    const isValidUrl = await form.trigger('url')
-    if (!isValidUrl) return
-
-    refetchSheets()
-  }
-
-  const onSubmit = (data: FieldValues) => {
-    const t = toast({ title: 'جاري إضافة الأسئلة' })
-    questionsImport
-      .mutateAsync(data as z.infer<typeof importQuestionsSchema>)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة الأسئلة بنجاح' })
-        setDialogOpen(false)
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['questions']])
-      })
-  }
-
-  return (
-    <>
-      <DialogHeader>إضافة أسئلة</DialogHeader>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-          <FormField
-            control={form.control}
-            name='url'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>رابط الإكسل الشيت</FormLabel>
-                <FormControl>
-                  <div className='flex gap-1.5'>
-                    <Input {...field} />
-                    <Button
-                      type='button'
-                      onClick={updateSpreadsheet}
-                      disabled={isFetchingSheets}
-                      loading={isFetchingSheets}
-                    >
-                      تحديث
-                    </Button>
-                  </div>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name='sheet'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>الورقة</FormLabel>
-                <Select
-                  disabled={!sheets || sheets.length === 0}
-                  onValueChange={field.onChange}
-                  value={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='اختر الورقة' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {sheets?.map((sheet) => (
-                      <SelectItem key={sheet} value={sheet}>
-                        {sheet}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name='course'
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>المقرر</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger loading={isCoursesLoading}>
-                      <SelectValue placeholder='اختر المقرر' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {courses?.map((course) => (
-                      <SelectItem key={course.id} value={course.id}>
-                        {course.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <DialogFooter>
-            <Button
-              type='submit'
-              // variant='success'
-              loading={questionsImport.isLoading}
-            >
-              إضافة
-            </Button>
-          </DialogFooter>
-        </form>
-      </Form>
-    </>
-  )
-}
-
-type Props = {
-  page: number
-}
+  difficultyMapping,
+  enDifficultyToAr,
+  enStyleToAr,
+  enTypeToAr,
+  styleMapping,
+  typeMapping,
+} from '~/utils/questions'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogTrigger,
+} from '~/components/ui/alert-dialog'
+import { DeleteQuestionDialog } from '~/components/modals/delete-question'
 
 const columnHelper = createColumnHelper<
   Question & { course: { name: string } }
@@ -478,12 +283,22 @@ const columns = [
   }),
   columnHelper.display({
     id: 'actions',
-    cell: () => (
+    cell: ({ row }) => (
       <div className='flex justify-center'>
         {/* <Button>عرض</Button> */}
         <Button size='icon' variant='ghost'>
           <Eye className='h-4 w-4' />
         </Button>
+        <AlertDialog>
+          <AlertDialogTrigger>
+            <Button size='icon' variant='ghost' className='hover:bg-red-50'>
+              <Trash className='h-4 w-4 text-red-600' />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <DeleteQuestionDialog id={row.original.id} />
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     ),
   }),
@@ -605,7 +420,7 @@ const QuestionsPage = () => {
           onClick={handleDownload}
         >
           <Download className='h-4 w-4' />
-          تصدير
+          تصدير ({count})
         </Button>
         <DataTable table={table} fetching={isFetchingQuestions} />
       </div>

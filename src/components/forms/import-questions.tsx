@@ -1,3 +1,7 @@
+import { UseFormReturn } from 'react-hook-form'
+import { api } from '~/utils/api'
+import { Button } from '../ui/button'
+import { DialogFooter } from '../ui/dialog'
 import {
   Form,
   FormControl,
@@ -5,40 +9,34 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from '~/components/ui/form'
+} from '../ui/form'
 import { Input } from '../ui/input'
 import {
   Select,
+  SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-  SelectContent,
 } from '../ui/select'
-import { DialogFooter } from '../ui/dialog'
-import { Button } from '../ui/button'
-import { UseFormReturn } from 'react-hook-form'
-import { api } from '~/utils/api'
 
-export type ImportStudentsFieldValues = {
+export type ImportQuestionsFieldValues = {
   url: string
   sheet: string
-  cycleId: string
+  course: undefined | string
+  removeOldQuestions: boolean
 }
 
 type FormProps = {
-  form: UseFormReturn<ImportStudentsFieldValues>
-  onSubmit: (data: ImportStudentsFieldValues) => void
+  form: UseFormReturn<ImportQuestionsFieldValues>
+  onSubmit: (data: ImportQuestionsFieldValues) => void
   isLoading?: boolean
 }
 
-export const ImportStudentsForm = ({
+export const ImportQuestionsForm = ({
   form,
   onSubmit,
   isLoading,
 }: FormProps) => {
-  const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycles.findMany.useQuery({})
-
   const {
     isFetching: isFetchingSheets,
     data: sheets,
@@ -60,6 +58,9 @@ export const ImportStudentsForm = ({
     }
   )
 
+  const { data: courses, isLoading: isCoursesLoading } =
+    api.courses.findMany.useQuery({})
+
   const updateSpreadsheet = async () => {
     const isValidUrl = await form.trigger('url')
     if (!isValidUrl) return
@@ -77,11 +78,12 @@ export const ImportStudentsForm = ({
             <FormItem>
               <FormLabel>رابط الإكسل الشيت</FormLabel>
               <FormControl>
-                <div className='flex gap-1'>
-                  <Input type='url' {...field} />
+                <div className='flex gap-1.5'>
+                  <Input {...field} />
                   <Button
                     type='button'
                     onClick={updateSpreadsheet}
+                    disabled={isFetchingSheets}
                     loading={isFetchingSheets}
                   >
                     تحديث
@@ -122,20 +124,20 @@ export const ImportStudentsForm = ({
         />
         <FormField
           control={form.control}
-          name='cycleId'
+          name='course'
           render={({ field }) => (
             <FormItem>
-              <FormLabel>الدورة</FormLabel>
+              <FormLabel>المقرر</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger loading={isCyclesLoading}>
-                    <SelectValue placeholder='اختر الدورة' />
+                  <SelectTrigger loading={isCoursesLoading}>
+                    <SelectValue placeholder='اختر المقرر' />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {cycles?.map((cycle) => (
-                    <SelectItem key={cycle.id} value={cycle.id}>
-                      {cycle.name}
+                  {courses?.map((course) => (
+                    <SelectItem key={course.id} value={course.id}>
+                      {course.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -145,7 +147,11 @@ export const ImportStudentsForm = ({
           )}
         />
         <DialogFooter>
-          <Button type='submit' loading={isLoading}>
+          <Button
+            type='submit'
+            // variant='success'
+            loading={isLoading}
+          >
             إضافة
           </Button>
         </DialogFooter>
