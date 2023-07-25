@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { Edit, Filter, Eye } from 'lucide-react'
+import { Edit, Filter, Eye, Trash } from 'lucide-react'
 import { getServerAuthSession } from '~/server/auth'
 import { Combobox } from '~/components/ui/combobox'
 import { EditUserDialog } from '~/components/modals/edit-user'
@@ -37,6 +37,13 @@ import {
   SelectTrigger,
 } from '~/components/ui/select'
 import { AddUsersDialog } from '~/components/modals/add-user'
+import { UserInfoModal } from '~/components/modals/user-info'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogTrigger,
+} from '~/components/ui/alert-dialog'
+import { DeleteUserDialog } from '~/components/modals/delete-user'
 
 type Row = User & {
   cycles: (StudentCycle & { cycle: Cycle })[]
@@ -213,12 +220,14 @@ const UsersPage = () => {
                   <Button
                     variant='ghost'
                     size='icon'
-                    className='hover:bg-orange-50'
+                    className='hover:bg-blue-50'
                   >
                     <Eye className='h-4 w-4 text-blue-500' />
                   </Button>
                 </DialogTrigger>
-                <DialogContent>جاري العمل على معلومات المستخدم</DialogContent>
+                <DialogContent>
+                  <UserInfoModal id={row.original.id} />
+                </DialogContent>
               </Dialog>
               <Dialog>
                 <DialogTrigger>
@@ -237,6 +246,20 @@ const UsersPage = () => {
                   />
                 </DialogContent>
               </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger>
+                  <Button
+                    size='icon'
+                    variant='ghost'
+                    className='hover:bg-red-50'
+                  >
+                    <Trash className='h-4 w-4 text-red-600' />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <DeleteUserDialog id={row.original.id} />
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )
         },

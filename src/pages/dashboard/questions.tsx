@@ -420,7 +420,7 @@ const QuestionsPage = () => {
           onClick={handleDownload}
         >
           <Download className='h-4 w-4' />
-          تصدير ({count})
+          تصدير (عدد الأسئلة: {count})
         </Button>
         <DataTable table={table} fetching={isFetchingQuestions} />
       </div>

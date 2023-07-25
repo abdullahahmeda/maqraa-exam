@@ -63,7 +63,9 @@ export const EditCycleDialog = ({ id }: { id: string }) => {
 
   return (
     <>
-      <DialogHeader>تعديل المقرر</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>
+        تعديل المقرر
+      </DialogHeader>
       <CycleForm
         form={form as any}
         onSubmit={onSubmit as any}

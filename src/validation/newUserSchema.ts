@@ -8,5 +8,6 @@ export const newUserSchema = z.object({
     .email()
     .min(1)
     .transform((val) => val.toLowerCase()),
+  phone: z.string().optional(),
   role: z.nativeEnum(UserRole),
 })

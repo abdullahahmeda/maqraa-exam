@@ -45,7 +45,7 @@ export const AddCurriculumDialog = ({
 
   return (
     <>
-      <DialogHeader>إضافة منهج</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>إضافة منهج</DialogHeader>
       <CurriculumForm
         form={form}
         onSubmit={onSubmit}

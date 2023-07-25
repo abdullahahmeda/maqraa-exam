@@ -79,7 +79,9 @@ export const EditUserDialog = ({
 
   return (
     <>
-      <DialogHeader className='mb-2'>تعديل بيانات مستخدم</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>
+        تعديل بيانات مستخدم
+      </DialogHeader>
       <UserForm
         form={form as any}
         onSubmit={onSubmit as any}

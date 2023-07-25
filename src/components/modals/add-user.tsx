@@ -1,19 +1,19 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '../ui/use-toast'
-import { Tabs, TabsList, TabsContent, TabsTrigger } from '../ui/tabs'
-import { AddUserFieldValues, UserForm } from '../forms/user'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UserRole } from '@prisma/client'
-import { api } from '~/utils/api'
+import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
+import { api } from '~/utils/api'
+import { importUsersSchema } from '~/validation/importUsersSchema'
 import { newUserSchema } from '~/validation/newUserSchema'
 import {
-  ImportStudentsForm,
   ImportStudentsFieldValues,
+  ImportStudentsForm,
 } from '../forms/import-users'
-import { importUsersSchema } from '~/validation/importUsersSchema'
+import { AddUserFieldValues, UserForm } from '../forms/user'
 import { DialogHeader } from '../ui/dialog'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
+import { useToast } from '../ui/use-toast'
 
 type Props = {
   setDialogOpen: (state: boolean) => void
@@ -96,11 +96,13 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
 export const AddUsersDialog = ({ setDialogOpen }: Props) => {
   return (
     <>
-      <DialogHeader className='mb-2'>إضافة مستخدمين</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>
+        إضافة مستخدمين
+      </DialogHeader>
       <Tabs defaultValue='single' className='w-full'>
         <TabsList className='grid w-full grid-cols-2'>
           <TabsTrigger value='single'>مستخدم واحد</TabsTrigger>
-          <TabsTrigger value='sheet'>من اكسل شيت (طلاب فقط)</TabsTrigger>
+          <TabsTrigger value='sheet'>من اكسل (للطلاب)</TabsTrigger>
         </TabsList>
         <TabsContent value='single'>
           <AddSingleUserTab setDialogOpen={setDialogOpen} />

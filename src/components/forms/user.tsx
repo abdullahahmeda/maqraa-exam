@@ -23,6 +23,7 @@ import { Button } from '../ui/button'
 export type AddUserFieldValues = {
   name: string
   email: string
+  phone: string
   role: UserRole | string
 }
 
@@ -65,6 +66,19 @@ export const UserForm = ({
               <FormLabel>البريد الإلكتروني</FormLabel>
               <FormControl>
                 <Input type='email' {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='phone'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>رقم الهاتف (اختياري)</FormLabel>
+              <FormControl>
+                <Input {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>

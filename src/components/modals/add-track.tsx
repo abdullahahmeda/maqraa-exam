@@ -42,7 +42,7 @@ export const AddTrackDialog = ({
 
   return (
     <>
-      <DialogHeader className='mb-2'>إضافة مسار</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>إضافة مسار</DialogHeader>
       <TrackForm
         form={form}
         isLoading={trackCreate.isLoading}

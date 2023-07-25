@@ -41,7 +41,7 @@ export const AddCycleDialog = ({
 
   return (
     <>
-      <DialogHeader>إضافة دورة</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>إضافة دورة</DialogHeader>
       <CycleForm
         form={form}
         isLoading={cycleCreate.isLoading}

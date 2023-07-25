@@ -73,7 +73,9 @@ export const EditCurriculumDialog = ({
 
   return (
     <>
-      <DialogHeader>تعديل المنهج</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>
+        تعديل المنهج
+      </DialogHeader>
       <CurriculumForm
         form={form as any}
         onSubmit={onSubmit as any}

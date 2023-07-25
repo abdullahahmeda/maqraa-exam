@@ -791,7 +791,7 @@ const columns = [
 
       return (
         <div className='flex items-center'>
-          الدفعة
+          الدورة
           <Popover>
             <PopoverTrigger className='mr-4'>
               <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>

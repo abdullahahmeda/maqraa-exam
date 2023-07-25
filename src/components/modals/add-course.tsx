@@ -38,7 +38,7 @@ export const AddCourseDialog = ({
   }
   return (
     <>
-      <DialogHeader>إضافة مقرر</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>إضافة مقرر</DialogHeader>
       <CourseForm
         form={form}
         onSubmit={onSubmit}

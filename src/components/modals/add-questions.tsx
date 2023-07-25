@@ -45,7 +45,9 @@ export const AddQuestionsDialog = ({
 
   return (
     <>
-      <DialogHeader>إضافة أسئلة</DialogHeader>
+      <DialogHeader className='mb-2 text-lg font-bold'>
+        إضافة أسئلة
+      </DialogHeader>
       <ImportQuestionsForm
         form={form}
         isLoading={questionsImport.isLoading}
