@@ -3,6 +3,8 @@ import { buttonVariants } from '~/components/ui/button'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { ReactNode } from 'react'
+import { useSession } from 'next-auth/react'
+import { Avatar, AvatarFallback } from './avatar'
 
 type MenuLink = {
   icon: ReactNode
@@ -16,10 +18,11 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
 
 export function Sidebar({ className, links }: SidebarProps) {
   const router = useRouter()
+  const { data: session } = useSession()
 
   return (
     <div className={cn('pb-12', className)}>
-      <div className='px-3 py-2'>
+      <div className='flex h-full flex-col justify-between px-3 py-2'>
         <div className='space-y-1'>
           {links.map((link) => (
             <Link
@@ -37,16 +40,12 @@ export function Sidebar({ className, links }: SidebarProps) {
               {link.label}
             </Link>
           ))}
-          {/* <Link
-            href='#!'
-            className={cn(
-              buttonVariants({ variant: 'ghost' }),
-              'w-full justify-start'
-            )}
-          >
-            <LayoutGrid className='ml-2 h-4 w-4' />
-            المصححون
-          </Link> */}
+        </div>
+        <div className='flex items-center gap-2'>
+          <Avatar>
+            <AvatarFallback>{session?.user.name?.[0]}</AvatarFallback>
+          </Avatar>
+          <p>مرحباً بك {session?.user.name}</p>
         </div>
       </div>
     </div>

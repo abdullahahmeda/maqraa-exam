@@ -19,6 +19,8 @@ import {
 } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
 import { Button } from '~/components/ui/button'
+import { GetServerSideProps } from 'next'
+import { getServerAuthSession } from '~/server/auth'
 
 type FieldValues = {
   email: string
@@ -115,4 +117,18 @@ export default function LoginPage() {
     </>
   )
 }
+
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+  if (session?.user)
+    return {
+      redirect: {
+        permanent: false,
+        destination: session.user.role === 'STUDENT' ? '/' : '/dashboard',
+      },
+    }
+
+  return { props: { session } }
+}
+
 LoginPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
