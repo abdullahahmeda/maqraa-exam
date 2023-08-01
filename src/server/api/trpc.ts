@@ -20,13 +20,14 @@ import { type Session } from 'next-auth'
 
 import { getServerAuthSession } from '../auth'
 import { prisma } from '../db'
+import { withPresets } from '@zenstackhq/runtime'
 
 type CreateContextOptions = {
   session:
-    | (Session & {
-        user: { role?: string }
-      })
-    | null
+  | (Session & {
+    user: { role?: string }
+  })
+  | null
   prisma: PrismaClient
 }
 
@@ -43,7 +44,7 @@ type CreateContextOptions = {
 const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   return {
     session: opts.session,
-    prisma,
+    prisma: withPresets(prisma, { user: opts.session?.user }),
   }
 }
 
@@ -61,7 +62,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   return createInnerTRPCContext({
     session,
-    prisma: await withPresets(prisma, { user: session?.user }),
+    prisma: withPresets(prisma, { user: session?.user }),
   })
 }
 
@@ -74,13 +75,12 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 import { UserRole } from '../../constants'
-import { withPresets } from '@zenstackhq/runtime'
 import { ZodError } from 'zod'
 import { PrismaClient } from '@prisma/client'
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
-  errorFormatter(opts) {
+  errorFormatter (opts) {
     const { shape, error } = opts
     if (shape.data.code === 'FORBIDDEN')
       shape.message = 'لا تملك الصلاحية لهذه العملية'

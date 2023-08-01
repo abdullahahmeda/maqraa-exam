@@ -9,6 +9,9 @@ import { updateUserSchema } from '~/validation/updateUserSchema'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { DialogHeader } from '../ui/dialog'
+import { useSession } from 'next-auth/react'
+import mapValues from 'lodash.mapvalues'
+import { z } from 'zod'
 
 export const EditUserDialog = ({
   id,
@@ -27,35 +30,31 @@ export const EditUserDialog = ({
     isLoading,
     error,
   } = api.users.findFirstOrThrow.useQuery(
-    { where: { id } },
+    { where: { id }, include: { corrector: true } },
     { enabled: id != null }
   )
   const userUpdate = api.users.update.useMutation()
 
+  const { data: session } = useSession()
+
   useEffect(() => {
     if (user)
-      form.reset({
-        id: user.id,
-        name: user.name!,
-        email: user.email!,
-        role: user.role! as UserRole,
-      })
+      form.reset(mapValues(user, (value: any) => value ?? undefined))
   }, [user, form])
 
   const onSubmit = (data: EditUserFieldValues) => {
     userUpdate
-      .mutateAsync({
-        ...data,
-        role: data.role as UserRole,
-      })
+      .mutateAsync(data as z.infer<typeof updateUserSchema>)
       .then(() => {
         toast({ title: 'تم تعديل بيانات المستخدم بنجاح' })
+        if (id === session!.user.id) toast({ title: 'قم بإعادة تسجيل الدخول لتفعيل الصلاحية الجديدة' })
         setDialogOpen(false)
       })
       .catch((error) => {
-        form.setError('root.serverError', {
-          message: error.message || 'حدث خطأ غير متوقع',
-        })
+        toast({ title: error.message || 'حدث خطأ غير متوقع' })
+        // form.setError('root.serverError', {
+        //   message: error.message || 'حدث خطأ غير متوقع',
+        // })
       })
       .finally(() => {
         queryClient.invalidateQueries([['users']])

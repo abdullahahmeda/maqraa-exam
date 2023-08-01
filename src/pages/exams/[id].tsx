@@ -37,6 +37,7 @@ import {
 import { useToast } from '~/components/ui/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
 import sampleSize from 'lodash.samplesize'
+import { useSession } from 'next-auth/react'
 
 type FieldValues = {
   id: string
@@ -55,6 +56,7 @@ const ExamPage = ({
   const router = useRouter()
   const form = useForm<FieldValues>()
   const { toast } = useToast()
+  const { data: session } = useSession()
 
   const examSubmit = api.exams.submit.useMutation()
 
@@ -110,7 +112,6 @@ const ExamPage = ({
     0
   )
 
-  console.log(exam)
 
   return (
     <>
@@ -172,11 +173,11 @@ const ExamPage = ({
                     className={cn(
                       'mb-4 rounded p-2',
                       exam.grade !== null &&
-                        isCorrect === true &&
-                        'bg-success/20',
+                      isCorrect === true &&
+                      'bg-success/20',
                       exam.grade !== null &&
-                        isCorrect === false &&
-                        'bg-destructive/20'
+                      isCorrect === false &&
+                      'bg-destructive/20'
                     )}
                   >
                     <div className='flex items-center'>
@@ -307,7 +308,7 @@ const ExamPage = ({
                   </div>
                 ))
               )}
-              {!exam.submittedAt && (
+              {!exam.submittedAt && session?.user.role === 'STUDENT' && (
                 <Button loading={examSubmit.isLoading}>تسليم</Button>
               )}
             </form>
@@ -319,11 +320,11 @@ const ExamPage = ({
 }
 ExamPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
 
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+export async function getServerSideProps (ctx: GetServerSidePropsContext) {
   const id = ctx.params!.id as string
 
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-  const prisma = await withPresets(_prisma, { user: session?.user })
+  const prisma = withPresets(_prisma, { user: session?.user })
 
   const exam = await checkRead(
     prisma.exam.findFirst({
@@ -344,13 +345,12 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
           },
           orderBy: { order: 'asc' },
         },
-        curriculum: { include: { parts: true } },
+        curriculum: { include: { parts: true, track: true } },
       },
     })
   )
 
-  if (!exam || exam.studentId !== (session?.user.id || null))
-    return { notFound: true }
+  if (!exam) return { notFound: true }
 
   if (exam.submittedAt)
     return {
@@ -401,7 +401,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     exam.groups.map(async (g) => {
       let styleQuery =
         g.styleOrType === QuestionType.MCQ ||
-        g.styleOrType === QuestionType.WRITTEN
+          g.styleOrType === QuestionType.WRITTEN
           ? { type: (g.styleOrType as QuestionType) || undefined }
           : { style: (g.styleOrType as QuestionStyle) || undefined }
 
@@ -409,7 +409,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       const allPossibleQuestions = await _prisma.question.findMany({
         where: {
           AND: [
-            { courseId: exam.courseId },
+            { courseId: exam.curriculum.track.courseId },
             { id: { notIn: usedQuestions } },
             { OR: parts },
             { difficulty: g.difficulty || undefined },

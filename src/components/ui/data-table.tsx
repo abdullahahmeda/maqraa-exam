@@ -16,10 +16,10 @@ interface DataTableProps<T> {
   fetching?: boolean
 }
 
-export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
+export function DataTable<T> ({ table, fetching = false }: DataTableProps<T>) {
   return (
     <div>
-      <div className='rounded-md border'>
+      <div className='rounded-md bg-white border'>
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -30,9 +30,9 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
                       {header.isPlaceholder
                         ? null
                         : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
                     </TableHead>
                   )
                 })}

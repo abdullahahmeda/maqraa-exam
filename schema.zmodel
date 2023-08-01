@@ -53,24 +53,37 @@ model Session {
 model User {
   id String @id @default(cuid())
   name String?
-  email String? @unique
+  email String @unique
   emailVerified DateTime?
-  password String?
+  password String @password @omit
   image String?
   phone String?
   role UserRole
-  // start for corrector
-  cycleId String?
-  courseId String?
-  cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  // end for corrector
+  corrector Corrector?
+  student Student?
   accounts Account[]
   sessions Session[]
-  exams Exam[] @relation("Exam_student")
-  correctedExams Exam[] @relation("Exam_corrector")
-  cycles StudentCycle[]
 
+  @@allow('all', auth().role == ADMIN) // for admins
+  @@allow('read', auth().role == CORRECTOR) // for correctors
+  // for user
+  @@allow('read', auth() == this)
+  // @@allow('update', auth() == this && future().role == role)
+}
+
+
+/// @@Gen.model(hide: true)
+model Corrector {
+  id String @id @default(cuid())
+  userId String @unique()
+  cycleId String?
+  courseId String?
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  correctedExams Exam[]
+
+  @@index([userId])
   @@index([courseId])
   @@index([cycleId])
 
@@ -78,18 +91,32 @@ model User {
 }
 
 /// @@Gen.model(hide: true)
+model Student {
+  id String @id @default(cuid())
+  userId String @unique()
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  exams Exam[]
+  cycles StudentCycle[]
+
+  @@index([userId])
+  @@allow('all', auth().role == ADMIN)
+  @@allow('read', auth().role == CORRECTOR)
+  @@allow('read', auth() == user)
+}
+
+/// @@Gen.model(hide: true)
 model StudentCycle {
   id Int @id @default(autoincrement())
-  userId String
+  studentId String
   cycleId String
   curriculumId String
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
-  student User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
   cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
-  @@unique([cycleId, userId])
+  @@unique([cycleId, studentId])
 
-  @@index([userId])
+  @@index([studentId])
   @@index([cycleId])
   @@index([curriculumId])
 }
@@ -126,7 +153,7 @@ model Question {
   option3 String? @db.Text()
   option4 String? @db.Text()
   answer String @db.Text()
-  anotherAnswer String?
+  anotherAnswer String
   isInsideShaded Boolean
   objective String
   courseId String
@@ -140,7 +167,7 @@ model Question {
   @@index([style])
   @@index([courseId])
 
-  @@allow('create,update,delete', auth() != null)
+  @@allow('create,update,delete', auth().role == ADMIN)
   // But you should hide `answer` for students
   @@allow('read', true)
 }
@@ -184,14 +211,12 @@ model Exam {
   submittedAt DateTime?
   correctedAt DateTime?
   repeatFromSameHadith Boolean @default(false)
-  courseId String
   curriculumId String
   studentId String?
   correctorId String?
   cycleId String?
-  corrector User? @relation("Exam_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
-  student User? @relation("Exam_student", fields: [studentId], references: [id], onDelete: Cascade)
-  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  corrector Corrector? @relation(fields: [correctorId], references: [id], onDelete: Cascade)
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   groups ExamQuestionGroup[]
@@ -200,12 +225,13 @@ model Exam {
   @@index([studentId])
   @@index([correctorId])
   @@index([curriculumId])
-  @@index([courseId])
   @@index([cycleId])
 
   // TODO: maybe update read rules
-  @@allow('create,read,update', true)
-  @@allow('delete', auth() != null)
+  @@allow('all', auth().role == ADMIN) // for admins
+  @@allow('create', true) // anyone
+  @@allow('read,update', auth().role == CORRECTOR && auth().cycle == cycle && curriculum.track.course.correctors?[user == auth()]) // for correctors
+  @@allow('read,update', student.user == auth()) // for students
 }
 
 enum ExamType {
@@ -257,7 +283,7 @@ model Cycle {
   courses CycleCourse[]
   students StudentCycle[]
   exams Exam[]
-  correctors User[]
+  correctors Corrector[]
 
   @@allow('all', auth() != null)
 }
@@ -267,11 +293,10 @@ model Course {
   name String
   curricula Track[]
   questions Question[]
-  exams Exam[]
   cycles CycleCourse[]
-  correctors User[]
+  correctors Corrector[]
 
-  @@allow('create,update,delete', auth() != null)
+  @@allow('create,update,delete', auth().role == ADMIN)
   @@allow('read', true)
 }
 
@@ -296,7 +321,7 @@ model Track {
 
   @@index([courseId])
 
-  @@allow('create,update,delete', auth() != null)
+  @@allow('create,update,delete', auth().role == ADMIN)
   @@allow('read', true)
 }
 
@@ -311,7 +336,7 @@ model Curriculum {
 
   @@index([trackId])
 
-  @@allow('create,update,delete', auth() != null)
+  @@allow('create,update,delete', auth().role == ADMIN)
   @@allow('read', true)
 }
 
@@ -328,6 +353,6 @@ model CurriculumPart {
 
   @@index([curriculumId])
 
-  @@allow('create,update,delete', auth() != null)
+  @@allow('create,update,delete', auth().role == ADMIN)
   @@allow('read', true)
 }

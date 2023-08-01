@@ -10,7 +10,7 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Download, Eye, Filter, Trash } from 'lucide-react'
+import { Download, Eye, Filter, Plus, Trash } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { z } from 'zod'
@@ -110,7 +110,7 @@ const columns = [
         <div className='flex items-center'>
           المقرر
           <Popover>
-            <PopoverTrigger className='mr-4'>
+            <PopoverTrigger className='mr-4' asChild>
               <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
                 <Filter className='h-4 w-4' />
               </Button>
@@ -143,7 +143,7 @@ const columns = [
         <div className='flex items-center'>
           النوع
           <Popover>
-            <PopoverTrigger className='mr-4'>
+            <PopoverTrigger className='mr-4' asChild>
               <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
                 <Filter className='h-4 w-4' />
               </Button>
@@ -188,7 +188,7 @@ const columns = [
         <div className='flex items-center'>
           الأسلوب
           <Popover>
-            <PopoverTrigger className='mr-4'>
+            <PopoverTrigger className='mr-4' asChild>
               <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
                 <Filter className='h-4 w-4' />
               </Button>
@@ -227,7 +227,7 @@ const columns = [
         <div className='flex items-center'>
           المستوى
           <Popover>
-            <PopoverTrigger className='mr-4'>
+            <PopoverTrigger className='mr-4' asChild>
               <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
                 <Filter className='h-4 w-4' />
               </Button>
@@ -290,7 +290,7 @@ const columns = [
           <Eye className='h-4 w-4' />
         </Button>
         <AlertDialog>
-          <AlertDialogTrigger>
+          <AlertDialogTrigger asChild>
             <Button size='icon' variant='ghost' className='hover:bg-red-50'>
               <Trash className='h-4 w-4 text-red-600' />
             </Button>
@@ -404,8 +404,10 @@ const QuestionsPage = () => {
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>الأسئلة</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger>
-            <Button>إضافة أسئلة</Button>
+          <DialogTrigger asChild>
+            <Button className='flex gap-2 items-center'>
+              <Plus className='h-4 w-4' />
+              إضافة أسئلة</Button>
           </DialogTrigger>
           <DialogContent>
             <AddQuestionsDialog setDialogOpen={setDialogOpen} />
@@ -420,7 +422,7 @@ const QuestionsPage = () => {
           onClick={handleDownload}
         >
           <Download className='h-4 w-4' />
-          تصدير (عدد الأسئلة: {count})
+          تصدير {!!questions && questions.length > 0 && `(${count} سؤال)`}
         </Button>
         <DataTable table={table} fetching={isFetchingQuestions} />
       </div>

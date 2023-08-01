@@ -14,6 +14,7 @@ import { AddUserFieldValues, UserForm } from '../forms/user'
 import { DialogHeader } from '../ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { useToast } from '../ui/use-toast'
+import { User, Users } from 'lucide-react'
 
 type Props = {
   setDialogOpen: (state: boolean) => void
@@ -101,8 +102,12 @@ export const AddUsersDialog = ({ setDialogOpen }: Props) => {
       </DialogHeader>
       <Tabs defaultValue='single' className='w-full'>
         <TabsList className='grid w-full grid-cols-2'>
-          <TabsTrigger value='single'>مستخدم واحد</TabsTrigger>
-          <TabsTrigger value='sheet'>من اكسل (للطلاب)</TabsTrigger>
+          <TabsTrigger value='single' className='flex gap-2 items-center'>
+            <User className='h-4 w-4' />
+            مستخدم واحد</TabsTrigger>
+          <TabsTrigger value='sheet' className='flex gap-2 items-center'>
+            <Users className='h-4 w-4' />
+            من اكسل (للطلاب)</TabsTrigger>
         </TabsList>
         <TabsContent value='single'>
           <AddSingleUserTab setDialogOpen={setDialogOpen} />

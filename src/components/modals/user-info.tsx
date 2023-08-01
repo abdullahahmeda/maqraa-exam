@@ -3,7 +3,7 @@ import { DialogHeader } from '../ui/dialog'
 import { Loader2 } from 'lucide-react'
 import { enUserRoleToAr } from '~/utils/users'
 import { Separator } from '../ui/separator'
-import { User, StudentCycle, Cycle, Course } from '@prisma/client'
+import { User, StudentCycle, Cycle, Course, Student, Corrector } from '@prisma/client'
 
 export const UserInfoModal = ({ id }: { id: string }) => {
   const {
@@ -13,16 +13,14 @@ export const UserInfoModal = ({ id }: { id: string }) => {
   } = api.users.findFirstOrThrow.useQuery<
     any,
     User & {
-      cycles: (StudentCycle & { cycle: Cycle })[]
-      cycle: Cycle | null
-      course: Course | null
+      student: (Student & { cycles: (StudentCycle & { cycle: Cycle })[] }) | null
+      corrector: (Corrector & { course: Course; cycle: Cycle }) | null
     }
   >({
     where: { id },
     include: {
-      cycles: { include: { cycle: true } },
-      cycle: true,
-      course: true,
+      student: { include: { cycles: { include: { cycle: true } } } },
+      corrector: { include: { course: true, cycle: true } }
     },
   })
 
@@ -53,9 +51,9 @@ export const UserInfoModal = ({ id }: { id: string }) => {
         {user.role === 'CORRECTOR' && (
           <>
             <Separator className='my-2' />
-            <h3>معلومات عن المصحح</h3>
-            <p>الدورة: {user.cycle!.name}</p>
-            <p>المقرر: {user.course!.name}</p>
+            <h3 className='font-semibold'>معلومات عن المصحح</h3>
+            <p>الدورة: {user.corrector!.cycle!.name}</p>
+            <p>المقرر: {user.corrector!.course!.name}</p>
           </>
         )}
         {user.role === 'STUDENT' && (
@@ -63,7 +61,7 @@ export const UserInfoModal = ({ id }: { id: string }) => {
             <Separator className='my-2' />
             <h3 className='font-semibold'>معلومات عن الطالب</h3>
             <p>
-              الدورات: {user.cycles.map(({ cycle }) => cycle.name).join('، ')}
+              الدورات: {user.student!.cycles.map(({ cycle }) => cycle.name).join('، ')}
             </p>
           </>
         )}

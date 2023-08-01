@@ -4,9 +4,8 @@ import { ExamInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, checkRead, db } from './helper'
 import { ExamWhereInputObjectSchema } from '.zenstack/zod/objects'
 import { newExamSchema } from '~/validation/newExamSchema'
-import { ExamType, Prisma, QuestionType, UserRole } from '@prisma/client'
+import { ExamType, QuestionType, UserRole } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
-import sampleSize from 'lodash.samplesize'
 import { submitExamSchema } from '~/validation/submitExamSchema'
 import { isCorrectAnswer } from '~/utils/strings'
 import { correctExamSchema } from '~/validation/correctExamSchema'
@@ -48,7 +47,7 @@ export const examsRouter = createTRPCRouter({
         _groups.map(async (g, i) => {
           let styleQuery =
             g.styleOrType === QuestionType.MCQ ||
-            g.styleOrType === QuestionType.WRITTEN
+              g.styleOrType === QuestionType.WRITTEN
               ? { type: g.styleOrType || undefined }
               : { style: g.styleOrType || undefined }
 
@@ -72,18 +71,16 @@ export const examsRouter = createTRPCRouter({
           if (allPossibleQuestions.length < g.number)
             throw new TRPCError({
               code: 'BAD_REQUEST',
-              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
-                allPossibleQuestions.length
-              }`,
+              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
+                }`,
               cause: new z.ZodError([
                 {
                   code: z.ZodIssueCode.too_big,
                   maximum: allPossibleQuestions.length,
                   inclusive: true,
                   type: 'number',
-                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
-                    allPossibleQuestions.length
-                  }`,
+                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
+                    }`,
                   path: ['groups', i, 'number'],
                 },
               ]).issues[0],
@@ -117,7 +114,7 @@ export const examsRouter = createTRPCRouter({
           message: 'أنت لا تملك الصلاحيات لهذه العملية',
         })
 
-      const { groups: _groups, trackId, cycleId, ...data } = input
+      const { groups: _groups, trackId, courseId, cycleId, ...data } = input
 
       const curriculum = await checkRead(
         db(ctx).curriculum.findFirst({
@@ -142,15 +139,19 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الدورة غير موجودة',
         })
 
-      const students = await prisma.user.findMany({
+      const students = await prisma.student.findMany({
         where: {
-          role: UserRole.STUDENT,
-          cycles: {
-            some: {
-              cycleId,
-              curriculumId: data.curriculumId,
-            },
-          },
+          user: {
+            role: UserRole.STUDENT,
+            student: {
+              cycles: {
+                some: {
+                  cycleId,
+                  curriculumId: data.curriculumId,
+                },
+              },
+            }
+          }
         },
       })
 
@@ -184,7 +185,7 @@ export const examsRouter = createTRPCRouter({
         _groups.map(async (g, i) => {
           let styleQuery =
             g.styleOrType === QuestionType.MCQ ||
-            g.styleOrType === QuestionType.WRITTEN
+              g.styleOrType === QuestionType.WRITTEN
               ? { type: g.styleOrType || undefined }
               : { style: g.styleOrType || undefined }
 
@@ -192,7 +193,7 @@ export const examsRouter = createTRPCRouter({
             db(ctx).question.findMany({
               where: {
                 AND: [
-                  { courseId: data.courseId },
+                  { courseId },
                   { id: { notIn: usedQuestions } },
                   { OR: parts },
                   { difficulty: g.difficulty || undefined },
@@ -208,18 +209,16 @@ export const examsRouter = createTRPCRouter({
           if (allPossibleQuestions.length < g.number)
             throw new TRPCError({
               code: 'BAD_REQUEST',
-              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
-                allPossibleQuestions.length
-              }`,
+              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
+                }`,
               cause: new z.ZodError([
                 {
                   code: z.ZodIssueCode.too_big,
                   maximum: allPossibleQuestions.length,
                   inclusive: true,
                   type: 'number',
-                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
-                    allPossibleQuestions.length
-                  }`,
+                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
+                    }`,
                   path: ['groups', i, 'number'],
                 },
               ]).issues[0],
@@ -258,11 +257,21 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الاختبار غير موجود',
         })
 
+      const studentId = (await prisma.student.findFirst({
+        where: { userId: ctx.session?.user.id }
+      }))?.id || null
+
       if (exam.submittedAt)
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'هذا الاختبار تم تسليمه من قبل',
         })
+
+      if (studentId !== exam.studentId) throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'ليس لديك الصلاحيات لهذه العملية'
+      })
+
 
       let grade = 0
       const update = await Promise.all(
@@ -373,6 +382,7 @@ export const examsRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { id, groups } = input
 
+
       let grade = 0
       const update = await Promise.all(
         Object.entries(groups).map(async ([groupId, { questions }]) => ({
@@ -403,12 +413,17 @@ export const examsRouter = createTRPCRouter({
         }))
       )
 
+      const corrector = await prisma.corrector.findFirstOrThrow({
+        where: { userId: ctx.session.user.id }
+      })
+
+
       return checkMutate(
         db(ctx).exam.update({
           where: { id },
           data: {
             correctedAt: new Date(),
-            correctorId: ctx.session.user.id,
+            corrector: { connect: { id: corrector.id } },
             grade,
             groups: { update },
           },

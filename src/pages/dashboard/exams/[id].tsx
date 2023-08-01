@@ -183,16 +183,16 @@ const ExamPage = ({
           <h2 className='text-xl font-bold'>معلومات عن الإختبار</h2>
           <div>
             <p>وقت فتح الإختبار: {formatDate(exam.createdAt)}</p>
-            <p>وقت غلق الإختبار: kofta</p>
-            <p>وقت بدأ الإختبار: koow</p>
+            {/* <p>وقت غلق الإختبار: kofta</p> */}
+            <p>وقت بدأ الإختبار: {formatDate(exam.enteredAt!)}</p>
             <p>وقت تسليم الإختبار: {formatDate(exam.submittedAt!)}</p>
           </div>
           <div>
             <h3 className='text-lg font-semibold'>المستخدم</h3>
             {exam.student ? (
               <div>
-                <p>اسم الطالب: {exam.student.name}</p>
-                <p>البريد الإلكتروني للطالب: {exam.student.email}</p>
+                <p>اسم الطالب: {exam.student.user.name}</p>
+                <p>البريد الإلكتروني للطالب: {exam.student.user.email}</p>
               </div>
             ) : (
               <p className='text-slate-500'>هذا الإختبار من زائر </p>
@@ -207,18 +207,16 @@ const ExamPage = ({
               </h2>
               <Badge
                 className='sticky top-20 float-left mr-auto mt-1 shadow'
-                // variant={exam?.grade !== null ? 'primary' : 'warning'}
+              // variant={exam?.grade !== null ? 'primary' : 'warning'}
               >
                 {exam?.grade === null
-                  ? `لم يتم التصحيح - ${possibleGrade} من ${
-                      allQuestions?.length
-                    } (${percentage(possibleGrade!, allQuestions?.length)}%)`
-                  : `${correctAnswers?.length} من ${
-                      allQuestions?.length
-                    } (${percentage(
-                      correctAnswers!.length,
-                      allQuestions?.length
-                    )}%)`}
+                  ? `لم يتم التصحيح - ${possibleGrade} من ${allQuestions?.length
+                  } (${percentage(possibleGrade!, allQuestions?.length)}%)`
+                  : `${correctAnswers?.length} من ${allQuestions?.length
+                  } (${percentage(
+                    correctAnswers!.length,
+                    allQuestions?.length
+                  )}%)`}
               </Badge>
               <div>
                 {exam.groups.map((group, i) =>
@@ -255,8 +253,8 @@ const ExamPage = ({
                           className={clsx(
                             answer === question.answer && 'text-green-600',
                             question.type === QuestionType.MCQ &&
-                              answer !== question.answer &&
-                              'text-red-500'
+                            answer !== question.answer &&
+                            'text-red-500'
                           )}
                         >
                           إجابة الطالب: {answer || '(لا يوجد إجابة)'}
@@ -312,7 +310,7 @@ const ExamPage = ({
   )
 }
 
-export async function getServerSideProps(ctx: GetServerSidePropsContext) {
+export async function getServerSideProps (ctx: GetServerSidePropsContext) {
   // TODO: auth check
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
   const prisma = withPresets(_prisma, { user: session?.user })
@@ -332,7 +330,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
         },
         orderBy: { order: 'asc' },
       },
-      student: true,
+      student: { include: { user: true } },
     },
   })
 

@@ -34,6 +34,7 @@ import {
 } from '~/components/ui/popover'
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
+import { Plus } from 'lucide-react'
 
 const columnHelper = createColumnHelper<Track & { course: { name: string } }>()
 
@@ -67,7 +68,7 @@ const columns = [
         <div className='flex items-center'>
           المقرر
           <Popover>
-            <PopoverTrigger className='mr-4'>
+            <PopoverTrigger className='mr-4' asChild>
               <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
                 <Filter className='h-4 w-4' />
               </Button>
@@ -97,7 +98,7 @@ const columns = [
           <Eye className='h-4 w-4' />
         </Button>
         <AlertDialog>
-          <AlertDialogTrigger>
+          <AlertDialogTrigger asChild>
             <Button size='icon' variant='ghost' className='hover:bg-red-50'>
               <Trash className='h-4 w-4 text-red-600' />
             </Button>
@@ -186,8 +187,10 @@ const TracksPage = () => {
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المسارات</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger>
-            <Button>إضافة مسار</Button>
+          <DialogTrigger asChild>
+            <Button className='flex gap-2 items-center'>
+              <Plus className='h-4 w-4' />
+              إضافة مسار</Button>
           </DialogTrigger>
           <DialogContent>
             <AddTrackDialog setDialogOpen={setDialogOpen} />

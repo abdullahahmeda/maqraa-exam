@@ -32,11 +32,11 @@ const Navbar = () => {
             {status === 'authenticated' ? (
               <>
                 <li>أهلاً بك، {getFirstName(session?.user.name)}</li>
-                <li className='block font-bold'>
+                {session.user.role !== 'STUDENT' && <li className='block font-bold'>
                   <Link href='/dashboard' className='block'>
                     لوحة التحكم
                   </Link>
-                </li>
+                </li>}
                 <li className='block font-bold'>
                   <Link href='/' className='block'>
                     بدأ اختبار
@@ -72,7 +72,7 @@ const Navbar = () => {
   )
 }
 
-export default function WebsiteLayout({ children }: { children: ReactNode }) {
+export default function WebsiteLayout ({ children }: { children: ReactNode }) {
   return (
     <>
       <style global jsx>{`

@@ -21,34 +21,42 @@ import { Input } from '~/components/ui/input'
 import { Button } from '~/components/ui/button'
 import { GetServerSideProps } from 'next'
 import { getServerAuthSession } from '~/server/auth'
+import { useState } from 'react'
 
 type FieldValues = {
   email: string
+  password: string
 }
 
 export default function LoginPage() {
   const router = useRouter()
+
+  const [isLoading, setIsLoading] = useState(false)
+
   const form = useForm<FieldValues>({
     resolver: zodResolver(loginSchema),
   })
 
   const onSubmit = (data: FieldValues) => {
-    signIn('email', { email: data.email, redirect: false })
+    setIsLoading(true)
+    signIn('credentials', { ...data, redirect: false })
       .then((response) => {
-        if (response?.error === 'AccessDenied') {
+        if (response?.error === 'CredentialsSignin') {
           form.setError('root.serverError', {
-            message: 'هذا الإيميل غير مسجل، قم بالتسجيل أولاً',
+            message: 'هذه البيانات غير صحيحة',
           })
-          return
         }
         if (response?.ok) {
-          router.push('/verify-request')
+          router.push('/login')
         }
       })
       .catch(() => {
         form.setError('root.serverError', {
-          message: 'حدث خطأ غير متوقع',
+          message: 'حدث خطأ غير متوقع، تأكد من اتصال الإنترنت لديك',
         })
+      })
+      .finally(() => {
+        setIsLoading(false)
       })
   }
 
@@ -97,20 +105,40 @@ export default function LoginPage() {
             <h1 className='mb-4 text-center text-2xl font-bold text-neutral-800'>
               تسجيل الدخول
             </h1>
-            <FormField
-              control={form.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>البريد الإلكتروني</FormLabel>
-                  <FormControl>
-                    <Input type='email' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <Button className='mt-2'>أرسل الرابط</Button>
+            <div className='space-y-3'>
+              <FormField
+                control={form.control}
+                name='email'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>البريد الإلكتروني</FormLabel>
+                    <FormControl>
+                      <Input type='email' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='password'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>كلمة المرور</FormLabel>
+                    <FormControl>
+                      <Input type='password' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormMessage>
+                {form.formState.errors.root?.serverError?.message}
+              </FormMessage>
+              <Button className='mt-2' loading={isLoading}>
+                تسجيل الدخول
+              </Button>
+            </div>
           </div>
         </form>
       </Form>

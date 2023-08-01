@@ -12,6 +12,7 @@ import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { getFields } from '~/services/sheets'
 import { GaxiosError } from 'gaxios'
 import { studentSchema } from '~/validation/studentSchema'
+import { generate as generatePassword } from 'generate-password'
 import { prisma } from '~/server/db'
 
 const googleSheetErrorHandler = (error: any) => {
@@ -36,9 +37,22 @@ const googleSheetErrorHandler = (error: any) => {
 export const usersRouter = createTRPCRouter({
   create: protectedProcedure
     .input(newUserSchema)
-    .mutation(async ({ ctx, input }) =>
-      checkMutate(db(ctx).user.create({ data: input }))
-    ),
+    .mutation(async ({ ctx, input }) => {
+      const password = generatePassword()
+      const { email, name, role, phone } = input
+      const data = Prisma.validator<Prisma.UserCreateInput>()({
+        name,
+        email,
+        password,
+        role,
+        phone,
+        ...(role !== 'STUDENT' ? { corrector: { create: role === 'CORRECTOR' ? input.corrector : {} } } : undefined),
+        ...(role === 'STUDENT' ? { student: { create: {} } } : undefined)
+      })
+      return checkMutate(db(ctx).user.create({
+        data
+      }))
+    }),
 
   importStudents: protectedProcedure
     .input(importUsersSchema)
@@ -51,7 +65,6 @@ export const usersRouter = createTRPCRouter({
       } catch (error) {
         throw googleSheetErrorHandler(error)
       }
-      const users = []
 
       for (const [i, row] of rows.entries()) {
         if (i === 0) continue // TODO: validate sheet headers are equal to `headers` 👆
@@ -77,6 +90,20 @@ export const usersRouter = createTRPCRouter({
             },
             { path: [i + 1] }
           )
+          let s = await checkRead(db(ctx).student.findFirst({ where: { user: { email: student.email } } }))
+          const password = generatePassword()
+          // TODO: send email for the user
+          if (!s) s = (await checkMutate(db(ctx).student.create({
+            data: {
+              user: {
+                create: {
+                  ...student,
+                  password,
+                  role: 'STUDENT'
+                }
+              }
+            }
+          })))!
           await checkMutate(
             db(ctx).studentCycle.create({
               data: {
@@ -87,15 +114,7 @@ export const usersRouter = createTRPCRouter({
                   connect: { id: curriculum.id },
                 },
                 student: {
-                  connectOrCreate: {
-                    where: {
-                      email: student.email,
-                    },
-                    create: {
-                      ...student,
-                      role: UserRole.STUDENT,
-                    },
-                  },
+                  connect: { id: s.id }
                 },
               },
             })
@@ -118,9 +137,8 @@ export const usersRouter = createTRPCRouter({
             if (error.cause.code === 'P2002')
               throw new TRPCError({
                 code: 'BAD_REQUEST',
-                message: `خطأ في الصف رقم ${
-                  i + 1
-                }: هذا الطالب مسجل بالفعل في هذه الدورة`,
+                message: `خطأ في الصف رقم ${i + 1
+                  }: هذا الطالب مسجل بالفعل في هذه الدورة`,
               })
           }
 
@@ -166,8 +184,35 @@ export const usersRouter = createTRPCRouter({
     .input(updateUserSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const { id, ...data } = input
-        checkMutate(db(ctx).user.update({ where: { id }, data }))
+        const { id, email, name, role, phone } = input
+        const data = Prisma.validator<Prisma.UserUpdateInput>()({
+          name,
+          email,
+          role,
+          phone,
+          ...(role !== 'STUDENT' ? {
+            corrector: {
+              upsert: {
+                where: {
+                  userId: id,
+                },
+                update: {
+                  ...(role === 'CORRECTOR' ? input.corrector : { cycleId: null, courseId: null })
+                },
+                create: {
+                  ...(role === 'CORRECTOR' ? input.corrector : { cycleId: null, courseId: null })
+                }
+              }
+            }
+          } : undefined),
+          ...(role === 'STUDENT' ? { student: { connectOrCreate: { where: { userId: id }, create: {} } } } : undefined)
+        })
+
+        return checkMutate(db(ctx).user.update({
+          where: { id },
+          data
+        }))
+
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2002')

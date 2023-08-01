@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { Edit, Filter, Eye, Trash } from 'lucide-react'
+import { Edit, Filter, Eye, Trash, UserPlus } from 'lucide-react'
 import { getServerAuthSession } from '~/server/auth'
 import { Combobox } from '~/components/ui/combobox'
 import { EditUserDialog } from '~/components/modals/edit-user'
@@ -46,9 +46,11 @@ import {
 import { DeleteUserDialog } from '~/components/modals/delete-user'
 
 type Row = User & {
-  cycles: (StudentCycle & { cycle: Cycle })[]
-  cycle: Cycle
-  course: Course
+  student: { cycles: (StudentCycle & { cycle: Cycle })[] }
+  corrector: {
+    cycle: Cycle
+    course: Course
+  }
 }
 
 const columnHelper = createColumnHelper<Row>()
@@ -76,7 +78,7 @@ const UsersPage = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'cycles')
-      return { cycles: { some: { cycleId: filter.value as string } } }
+      return { student: { cycles: { some: { cycleId: filter.value as string } } } }
     return { [filter.id]: { equals: filter.value } }
   })
 
@@ -87,9 +89,8 @@ const UsersPage = () => {
         take: pageSize,
         where: { AND: filters },
         include: {
-          cycles: { include: { cycle: true } },
-          cycle: true,
-          course: true,
+          student: { include: { cycles: { include: { cycle: true } } } },
+          corrector: { include: { cycle: true, course: true } }
         },
       },
       { networkMode: 'always' }
@@ -126,7 +127,7 @@ const UsersPage = () => {
             <div className='flex items-center'>
               الصلاحيات
               <Popover>
-                <PopoverTrigger className='mr-4'>
+                <PopoverTrigger className='mr-4' asChild>
                   <Button
                     size='icon'
                     variant={filterValue ? 'secondary' : 'ghost'}
@@ -168,7 +169,7 @@ const UsersPage = () => {
         },
       }),
       columnHelper.accessor(
-        (row) => row.cycles.map((c) => c.cycle.name).join('، '),
+        (row) => row.student?.cycles.map((c) => c.cycle.name).join('، '),
         {
           id: 'cycles',
           header: ({ column }) => {
@@ -178,7 +179,7 @@ const UsersPage = () => {
               <div className='flex items-center'>
                 الدورة
                 <Popover>
-                  <PopoverTrigger className='mr-4'>
+                  <PopoverTrigger className='mr-4' asChild>
                     <Button
                       size='icon'
                       variant={filterValue ? 'secondary' : 'ghost'}
@@ -210,13 +211,13 @@ const UsersPage = () => {
       ),
       columnHelper.display({
         id: 'actions',
-        cell: function Cell({ row }) {
+        cell: function Cell ({ row }) {
           const [dialogOpen, setDialogOpen] = useState(false)
 
           return (
             <div className='flex justify-center gap-2'>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger>
+                <DialogTrigger asChild>
                   <Button
                     variant='ghost'
                     size='icon'
@@ -230,7 +231,7 @@ const UsersPage = () => {
                 </DialogContent>
               </Dialog>
               <Dialog>
-                <DialogTrigger>
+                <DialogTrigger asChild>
                   <Button
                     variant='ghost'
                     size='icon'
@@ -247,7 +248,7 @@ const UsersPage = () => {
                 </DialogContent>
               </Dialog>
               <AlertDialog>
-                <AlertDialogTrigger>
+                <AlertDialogTrigger asChild>
                   <Button
                     size='icon'
                     variant='ghost'
@@ -295,8 +296,10 @@ const UsersPage = () => {
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المستخدمون</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger>
-            <Button>إضافة مستخدمين</Button>
+          <DialogTrigger asChild>
+            <Button className='flex gap-2 items-center'>
+              <UserPlus className='h-4 w-4' />
+              إضافة مستخدمين</Button>
           </DialogTrigger>
           <DialogContent>
             <AddUsersDialog setDialogOpen={setDialogOpen} />

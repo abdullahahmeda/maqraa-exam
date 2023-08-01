@@ -10,6 +10,7 @@ datasource db {
 
 generator client {
     provider = "prisma-client-js"
+    previewFeatures = []
 }
 
 enum UserRole {
@@ -85,50 +86,86 @@ model Session {
     @@index([zenstack_transaction])
 }
 
-/// @@allow('all', auth() != null)
+/// @@allow('all', auth().role == ADMIN)
+/// @@allow('read', auth().role == CORRECTOR)
+/// @@allow('read', auth() == this)
 model User {
     id String @id() @default(cuid())
     name String?
-    email String? @unique()
+    email String @unique()
     emailVerified DateTime?
-    password String?
+    /// @password
+    /// @omit
+    password String
     image String?
     phone String?
     role UserRole
-    cycleId String?
-    courseId String?
-    cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-    course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    corrector Corrector?
+    student Student?
     accounts Account[]
     sessions Session[]
-    exams Exam[] @relation("Exam_student")
-    correctedExams Exam[] @relation("Exam_corrector")
+
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+
+    @@index([zenstack_transaction])
+}
+
+/// @@allow('all', auth() != null)
+/// @@Gen.model(hide: true)
+model Corrector {
+    id String @id() @default(cuid())
+    userId String @unique()
+    cycleId String?
+    courseId String?
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+    course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    correctedExams Exam[]
+
+    zenstack_guard Boolean @default(true)
+    zenstack_transaction String?
+
+    @@index([zenstack_transaction])
+    @@index([userId])
+    @@index([courseId])
+    @@index([cycleId])
+}
+
+/// @@allow('all', auth().role == ADMIN)
+/// @@allow('read', auth().role == CORRECTOR)
+/// @@allow('read', auth() == user)
+/// @@Gen.model(hide: true)
+model Student {
+    id String @id() @default(cuid())
+    userId String @unique()
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    exams Exam[]
     cycles StudentCycle[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
 
     @@index([zenstack_transaction])
-    @@index([courseId])
-    @@index([cycleId])
+    @@index([userId])
 }
 
 /// @@Gen.model(hide: true)
 model StudentCycle {
     id Int @id() @default(autoincrement())
-    userId String
+    studentId String
     cycleId String
     curriculumId String
     curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
-    student User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
     cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
 
     @@index([zenstack_transaction])
-    @@unique([cycleId, userId])
-    @@index([userId])
+    @@unique([cycleId, studentId])
+    @@index([studentId])
     @@index([cycleId])
     @@index([curriculumId])
 }
@@ -141,7 +178,7 @@ model VerificationToken {
     @@unique([identifier, token])
 }
 
-/// @@allow('create,update,delete', auth() != null)
+/// @@allow('create,update,delete', auth().role == ADMIN)
 /// @@allow('read', true)
 model Question {
     id String @id() @default(cuid())
@@ -160,7 +197,7 @@ model Question {
     option3 String? @db.Text()
     option4 String? @db.Text()
     answer String @db.Text()
-    anotherAnswer String?
+    anotherAnswer String
     isInsideShaded Boolean
     objective String
     courseId String
@@ -191,8 +228,10 @@ model Setting {
     @@index([zenstack_transaction])
 }
 
-/// @@allow('create,read,update', true)
-/// @@allow('delete', auth() != null)
+/// @@allow('all', auth().role == ADMIN)
+/// @@allow('create', true)
+/// @@allow('read,update', auth().role == CORRECTOR && auth().cycle == cycle && curriculum.track.course.correctors ? [user == auth()])
+/// @@allow('read,update', student.user == auth())
 model Exam {
     id String @id() @default(cuid())
     type ExamType
@@ -202,14 +241,12 @@ model Exam {
     submittedAt DateTime?
     correctedAt DateTime?
     repeatFromSameHadith Boolean @default(false)
-    courseId String
     curriculumId String
     studentId String?
     correctorId String?
     cycleId String?
-    corrector User? @relation("Exam_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
-    student User? @relation("Exam_student", fields: [studentId], references: [id], onDelete: Cascade)
-    course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    corrector Corrector? @relation(fields: [correctorId], references: [id], onDelete: Cascade)
+    student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
     curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
     cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
     groups ExamQuestionGroup[]
@@ -222,7 +259,6 @@ model Exam {
     @@index([studentId])
     @@index([correctorId])
     @@index([curriculumId])
-    @@index([courseId])
     @@index([cycleId])
 }
 
@@ -275,7 +311,7 @@ model Cycle {
     courses CycleCourse[]
     students StudentCycle[]
     exams Exam[]
-    correctors User[]
+    correctors Corrector[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -283,16 +319,15 @@ model Cycle {
     @@index([zenstack_transaction])
 }
 
-/// @@allow('create,update,delete', auth() != null)
+/// @@allow('create,update,delete', auth().role == ADMIN)
 /// @@allow('read', true)
 model Course {
     id String @id() @default(cuid())
     name String
     curricula Track[]
     questions Question[]
-    exams Exam[]
     cycles CycleCourse[]
-    correctors User[]
+    correctors Corrector[]
 
     zenstack_guard Boolean @default(true)
     zenstack_transaction String?
@@ -316,7 +351,7 @@ model CycleCourse {
     @@index([cycleId])
 }
 
-/// @@allow('create,update,delete', auth() != null)
+/// @@allow('create,update,delete', auth().role == ADMIN)
 /// @@allow('read', true)
 model Track {
     id String @id() @default(cuid())
@@ -332,7 +367,7 @@ model Track {
     @@index([courseId])
 }
 
-/// @@allow('create,update,delete', auth() != null)
+/// @@allow('create,update,delete', auth().role == ADMIN)
 /// @@allow('read', true)
 model Curriculum {
     id String @id() @default(cuid())
@@ -350,7 +385,7 @@ model Curriculum {
     @@index([trackId])
 }
 
-/// @@allow('create,update,delete', auth() != null)
+/// @@allow('create,update,delete', auth().role == ADMIN)
 /// @@allow('read', true)
 /// @@Gen.model(hide: true)
 model CurriculumPart {

@@ -29,6 +29,7 @@ import { DataTable } from '~/components/ui/data-table'
 import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
+import { Plus } from 'lucide-react'
 
 const columnHelper = createColumnHelper<Cycle>()
 
@@ -60,7 +61,7 @@ const columns = [
           <Eye className='h-4 w-4' />
         </Button>
         <Dialog>
-          <DialogTrigger>
+          <DialogTrigger asChild>
             <Button variant='ghost' size='icon' className='hover:bg-orange-50'>
               <Edit className='h-4 w-4 text-orange-500' />
             </Button>
@@ -70,7 +71,7 @@ const columns = [
           </DialogContent>
         </Dialog>
         <AlertDialog>
-          <AlertDialogTrigger>
+          <AlertDialogTrigger asChild>
             <Button variant='ghost' size='icon' className='hover:bg-red-50'>
               <Trash className='h-4 w-4 text-red-600' />
             </Button>
@@ -157,8 +158,10 @@ const CyclesPage = () => {
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>الدورات</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger>
-            <Button>إضافة دورة</Button>
+          <DialogTrigger asChild>
+            <Button className='flex gap-2 items-center'>
+              <Plus className='h-4 w-4' />
+              إضافة دورة</Button>
           </DialogTrigger>
           <DialogContent>
             <AddCycleDialog setDialogOpen={setDialogOpen} />

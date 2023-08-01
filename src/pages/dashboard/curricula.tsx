@@ -10,7 +10,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Edit, Filter, Trash } from 'lucide-react'
+import { Edit, Filter, Trash, Plus } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
@@ -117,7 +117,7 @@ const columns = [
           <div className='flex items-center'>
             المسار
             <Popover>
-              <PopoverTrigger className='mr-4'>
+              <PopoverTrigger className='mr-4' asChild>
                 <Button
                   size='icon'
                   variant={filterValue ? 'secondary' : 'ghost'}
@@ -168,13 +168,13 @@ const columns = [
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
-    cell: function Cell({ row }) {
+    cell: function Cell ({ row }) {
       const [dialogOpen, setDialogOpen] = useState(false)
       return (
         <div className='flex justify-center gap-2'>
           {/* <Button variant='primary'>عرض المناهج</Button> */}
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <DialogTrigger>
+            <DialogTrigger asChild>
               <Button
                 variant='ghost'
                 size='icon'
@@ -191,7 +191,7 @@ const columns = [
             </DialogContent>
           </Dialog>
           <AlertDialog>
-            <AlertDialogTrigger>
+            <AlertDialogTrigger asChild>
               <Button variant='ghost' size='icon' className='hover:bg-red-50'>
                 <Trash className='h-4 w-4 text-red-600' />
               </Button>
@@ -284,8 +284,10 @@ const CurriculaPage = () => {
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المناهج</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger>
-            <Button>إضافة منهج</Button>
+          <DialogTrigger asChild>
+            <Button className='flex gap-2 items-center'>
+              <Plus className='h-4 w-4' />
+              إضافة منهج</Button>
           </DialogTrigger>
           <DialogContent>
             <AddCurriculumDialog setDialogOpen={setDialogOpen} />

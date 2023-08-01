@@ -3,14 +3,14 @@ import {
   getServerSession,
   type NextAuthOptions,
   type DefaultSession,
-  Theme,
 } from 'next-auth'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
-import EmailProvider from 'next-auth/providers/email'
 import { env } from '../env.mjs'
 import { prisma } from './db'
-import { sendMail } from '../utils/email'
 import { UserRole } from '@prisma/client'
+import Credentials from 'next-auth/providers/credentials'
+import { loginSchema } from '~/validation/loginSchema'
+import { compareSync } from 'bcryptjs'
 
 /**
  * Module augmentation for `next-auth` types.
@@ -44,102 +44,55 @@ export const authOptions: NextAuthOptions = {
     verifyRequest: '/verify-request',
   },
   debug: env.NODE_ENV === 'development',
-
+  session: {
+    strategy: 'jwt',
+  },
   callbacks: {
-    async signIn({ user }) {
-      const isAllowedToSignIn = user.role != null
-      if (isAllowedToSignIn) {
-        return true
-      } else {
-        return false
-      }
-    },
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id
-        session.user.role = user.role
+    async session ({ session, token }) {
+      if (token) {
+        session.user.id = token.sub!
+        session.user.email = token.email
+        session.user.role = token.role as UserRole
       }
       return session
+    },
+    async jwt ({ token, user }) {
+      if (user) {
+        token.name = user.name
+        token.email = user.email
+        token.role = user.role
+      }
+      return token
     },
   },
   adapter: PrismaAdapter(prisma),
   providers: [
-    EmailProvider({
-      from: env.DEFAULT_SENDER_EMAIL,
-      sendVerificationRequest: async function sendVerificationRequest(params) {
-        const { identifier, url, provider, theme } = params
-        const { host } = new URL(url)
-        try {
-          await sendMail({
-            to: [{ email: identifier }],
-            subject: `تسجيل الدخول إلى ${host}`,
-            textContent: text({ url, host }),
-            htmlContent: html({ url, host, theme }),
-          })
-        } catch (error) {
-          throw new Error(`فشل ارسال رابط الدخول`)
-        }
+    Credentials({
+      credentials: {
+        email: { label: 'البريد الإلكتروني', type: 'email' },
+        password: { label: 'كلمة المرور', type: 'password' },
+      },
+      async authorize (credentials, req) {
+        const input = loginSchema.safeParse(credentials)
+        if (!input.success) return null
+
+        const user = await prisma.user.findFirst({
+          where: { email: input.data.email },
+        })
+
+        if (!user) return null
+
+        // check password and bingo
+        const isPasswordCorrect = compareSync(
+          input.data.password,
+          user.password
+        )
+        if (!isPasswordCorrect) return null
+
+        return user
       },
     }),
   ],
-}
-
-function html(params: { url: string; host: string; theme: Theme }) {
-  const { url, host, theme } = params
-
-  const escapedHost = host.replace(/\./g, '&#8203;.')
-
-  // xxxeslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  const brandColor = theme.brandColor || '#346df1'
-  // xxxeslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
-  const buttonText = theme.buttonText || '#fff'
-
-  const color = {
-    background: '#f9f9f9',
-    text: '#444',
-    mainBackground: '#fff',
-    buttonBackground: brandColor,
-    buttonBorder: brandColor,
-    buttonText,
-  }
-
-  return `
-<body style="background: ${color.background};">
-  <table width="100%" border="0" cellspacing="20" cellpadding="0"
-    style="background: ${color.mainBackground}; max-width: 600px; margin: auto; border-radius: 10px;">
-    <tr>
-      <td align="center"
-        style="padding: 10px 0px; font-size: 22px; font-family: Helvetica, Arial, sans-serif; color: ${color.text};">
-        تسجيل الدخول إلى <strong>${escapedHost}</strong>
-      </td>
-    </tr>
-    <tr>
-      <td align="center" style="padding: 20px 0;">
-        <table border="0" cellspacing="0" cellpadding="0">
-          <tr>
-            <td align="center" style="border-radius: 5px;" bgcolor="${color.buttonBackground}"><a href="${url}"
-                target="_blank"
-                style="font-size: 18px; font-family: Helvetica, Arial, sans-serif; color: ${color.buttonText}; text-decoration: none; border-radius: 5px; padding: 10px 20px; border: 1px solid ${color.buttonBorder}; display: inline-block; font-weight: bold;">تسجيل الدخول</a></td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-    <tr align="center"
-        style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${color.text};">إن لم يعمل الزر، يمكنك استخدام هذا الرابط: <a href="${url}" target="_blank" font-size: 18px; font-family: Helvetica, Arial, sans-serif;>${url}</a></tr>
-    <tr>
-      <td align="center"
-        style="padding: 0px 0px 10px 0px; font-size: 16px; line-height: 22px; font-family: Helvetica, Arial, sans-serif; color: ${color.text};">
-        إن لم تقم بطلب هذا الإيميل يمكنك تجاهله بكل بساطة.
-      </td>
-    </tr>
-  </table>
-</body>
-`
-}
-
-/** Email Text body (fallback for email clients that don't render HTML, e.g. feature phones) */
-function text({ url, host }: { url: string; host: string }) {
-  return `تسجيل الدخول إلى ${host}\n${url}\n\n`
 }
 
 /**

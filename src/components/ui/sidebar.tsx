@@ -14,9 +14,10 @@ type MenuLink = {
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   links: MenuLink[]
+  setIsSidebarOpen: (state: boolean) => void
 }
 
-export function Sidebar({ className, links }: SidebarProps) {
+export function Sidebar ({ className, links, setIsSidebarOpen }: SidebarProps) {
   const router = useRouter()
   const { data: session } = useSession()
 
@@ -35,6 +36,7 @@ export function Sidebar({ className, links }: SidebarProps) {
                 }),
                 'w-full justify-start'
               )}
+              onClick={() => setIsSidebarOpen(false)}
             >
               {link.icon}
               {link.label}
@@ -45,7 +47,7 @@ export function Sidebar({ className, links }: SidebarProps) {
           <Avatar>
             <AvatarFallback>{session?.user.name?.[0]}</AvatarFallback>
           </Avatar>
-          <p>مرحباً بك {session?.user.name}</p>
+          <p>{session?.user.name}</p>
         </div>
       </div>
     </div>

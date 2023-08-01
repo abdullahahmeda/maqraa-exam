@@ -9,7 +9,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Edit, Trash } from 'lucide-react'
+import { Edit, Trash, Plus } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useMemo, useState } from 'react'
@@ -142,7 +142,7 @@ const CoursesPage = () => {
           <div className='flex justify-center gap-2'>
             {/* <Button>عرض المناهج</Button> */}
             <Dialog>
-              <DialogTrigger>
+              <DialogTrigger asChild>
                 <Button
                   variant='ghost'
                   size='icon'
@@ -156,7 +156,7 @@ const CoursesPage = () => {
               </DialogContent>
             </Dialog>
             <AlertDialog>
-              <AlertDialogTrigger>
+              <AlertDialogTrigger asChild>
                 <Button variant='ghost' size='icon' className='hover:bg-red-50'>
                   <Trash className='h-4 w-4 text-red-600' />
                 </Button>
@@ -199,8 +199,10 @@ const CoursesPage = () => {
       <div className='mb-2 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>المقررات</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger>
-            <Button>إضافة مقرر</Button>
+          <DialogTrigger asChild>
+            <Button className='flex gap-2 items-center'>
+              <Plus className='h-4 w-4' />
+              إضافة مقرر</Button>
           </DialogTrigger>
           <DialogContent>
             <AddCourseDialog setDialogOpen={setDialogOpen} />

@@ -63,7 +63,7 @@ const menuLinks = {
   ],
 }
 
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default function DashboardLayout ({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const { data: session } = useSession()
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
@@ -94,6 +94,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </nav>
       <div className='md:flex'>
         <Sidebar
+          setIsSidebarOpen={setIsSidebarOpen}
           className={cn(
             'fixed top-16 z-10 hidden h-[calc(100vh-4rem)] w-full border-l bg-background md:block md:w-72',
             isSidebarOpen && 'block'
@@ -104,7 +105,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               : []
           }
         />
-        <main className='min-h-screen flex-1 border-r pb-4 pl-4 pr-4 pt-20 md:pr-[19rem]'>
+        <main className='min-h-screen bg-[#f8f9fa] flex-1 border-r pb-4 pl-4 pr-4 pt-20 md:pr-[19rem]'>
           {children}
         </main>
       </div>

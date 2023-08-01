@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client'
 import { SettingKey, UserRole } from '../src/constants'
+import { generate as generatePassword } from 'generate-password'
 const prisma = new PrismaClient()
 
 const adminEmail = 'abdullah.ahmed.a2000@gmail.com'
@@ -25,9 +26,13 @@ async function main () {
     })
   }
 
+  const password = generatePassword()
+
   await prisma.user.create({
     data: {
       email: adminEmail,
+      password,
+      corrector: {},
       role: UserRole.ADMIN,
       name: 'الأدمن'
     }
