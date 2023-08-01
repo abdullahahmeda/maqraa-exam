@@ -14,6 +14,8 @@ import { GaxiosError } from 'gaxios'
 import { studentSchema } from '~/validation/studentSchema'
 import { generate as generatePassword } from 'generate-password'
 import { prisma } from '~/server/db'
+import { sendMail } from '~/utils/email'
+import { getBaseUrl } from '~/utils/api'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -47,11 +49,22 @@ export const usersRouter = createTRPCRouter({
         role,
         phone,
         ...(role !== 'STUDENT' ? { corrector: { create: role === 'CORRECTOR' ? input.corrector : {} } } : undefined),
-        ...(role === 'STUDENT' ? { student: { create: {} } } : undefined)
+        ...(role !== 'CORRECTOR' ? { student: { create: {} } } : undefined)
       })
-      return checkMutate(db(ctx).user.create({
+      const user = await checkMutate(db(ctx).user.create({
         data
       }))
+
+      await sendMail({
+        subject: 'كلمة المرور الخاصة بك في المقرأة',
+        to: [
+          { email }
+        ],
+        textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}/login`
+      })
+
+      return user
+
     }),
 
   importStudents: protectedProcedure
@@ -205,7 +218,7 @@ export const usersRouter = createTRPCRouter({
               }
             }
           } : undefined),
-          ...(role === 'STUDENT' ? { student: { connectOrCreate: { where: { userId: id }, create: {} } } } : undefined)
+          ...(role !== 'CORRECTOR' ? { student: { connectOrCreate: { where: { userId: id }, create: {} } } } : undefined)
         })
 
         return checkMutate(db(ctx).user.update({

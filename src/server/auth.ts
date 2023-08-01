@@ -7,7 +7,7 @@ import {
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { env } from '../env.mjs'
 import { prisma } from './db'
-import { UserRole } from '@prisma/client'
+import { Corrector, Student, UserRole } from '@prisma/client'
 import Credentials from 'next-auth/providers/credentials'
 import { loginSchema } from '~/validation/loginSchema'
 import { compareSync } from 'bcryptjs'
@@ -24,11 +24,15 @@ declare module 'next-auth' {
     user: {
       id: string
       role: UserRole
+      studentId: string | undefined
+      correctorId: string | undefined
     } & DefaultSession['user']
   }
 
   interface User {
     role: UserRole
+    student: Student | null
+    corrector: Corrector | null
   }
 }
 
@@ -53,14 +57,18 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub!
         session.user.email = token.email
         session.user.role = token.role as UserRole
+        session.user.studentId = token.studentId as any
+        session.user.correctorId = token.correctorId as any
       }
       return session
     },
-    async jwt ({ token, user }) {
+    async jwt ({ token, user: user }) {
       if (user) {
-        token.name = user.name
-        token.email = user.email
-        token.role = user.role
+        token.name = user!.name
+        token.email = user!.email
+        token.role = user!.role
+        token.studentId = user!.student?.id
+        token.correctorId = user!.corrector?.id
       }
       return token
     },
@@ -78,6 +86,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.user.findFirst({
           where: { email: input.data.email },
+          include: { student: true, corrector: true }
         })
 
         if (!user) return null

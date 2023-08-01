@@ -17,7 +17,7 @@ export const examsRouter = createTRPCRouter({
   createPublic: publicProcedure
     .input(newExamSchema)
     .mutation(async ({ ctx, input }) => {
-      const { groups: _groups, trackId, ...data } = input
+      const { groups: _groups, courseId, trackId, ...data } = input
 
       const curriculum = await checkRead(
         db(ctx).curriculum.findFirst({
@@ -55,7 +55,7 @@ export const examsRouter = createTRPCRouter({
             db(ctx).question.findMany({
               where: {
                 AND: [
-                  { courseId: data.courseId },
+                  { courseId: courseId },
                   { id: { notIn: usedQuestions } },
                   { OR: parts },
                   { difficulty: g.difficulty || undefined },
@@ -97,7 +97,7 @@ export const examsRouter = createTRPCRouter({
         db(ctx).exam.create({
           data: {
             ...data,
-            studentId: ctx.session?.user.id,
+            studentId: ctx.session?.user.studentId,
             type: ExamType.PUBLIC,
             groups: { create: groups },
           },
@@ -257,21 +257,16 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الاختبار غير موجود',
         })
 
-      const studentId = (await prisma.student.findFirst({
-        where: { userId: ctx.session?.user.id }
-      }))?.id || null
-
       if (exam.submittedAt)
         throw new TRPCError({
           code: 'BAD_REQUEST',
           message: 'هذا الاختبار تم تسليمه من قبل',
         })
 
-      if (studentId !== exam.studentId) throw new TRPCError({
+      if (ctx.session?.user.studentId !== exam.studentId) throw new TRPCError({
         code: 'FORBIDDEN',
         message: 'ليس لديك الصلاحيات لهذه العملية'
       })
-
 
       let grade = 0
       const update = await Promise.all(
@@ -413,17 +408,12 @@ export const examsRouter = createTRPCRouter({
         }))
       )
 
-      const corrector = await prisma.corrector.findFirstOrThrow({
-        where: { userId: ctx.session.user.id }
-      })
-
-
       return checkMutate(
         db(ctx).exam.update({
           where: { id },
           data: {
             correctedAt: new Date(),
-            corrector: { connect: { id: corrector.id } },
+            corrector: { connect: { id: ctx.session.user.correctorId } },
             grade,
             groups: { update },
           },

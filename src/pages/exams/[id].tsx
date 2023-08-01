@@ -152,7 +152,7 @@ const ExamPage = ({
         </AlertDialogContent>
       </AlertDialog>
       <div className='container mx-auto py-4'>
-        <div className='rounded-md bg-white p-2 shadow'>
+        <div className='rounded-md bg-white p-4 shadow'>
           {exam.grade !== null && (
             <div className='sticky top-3 z-10 float-left'>
               <Badge className='shadow'>
@@ -163,7 +163,7 @@ const ExamPage = ({
           <Form {...form}>
             <form
               onSubmit={
-                exam.submittedAt ? () => undefined : form.handleSubmit(onSubmit)
+                exam.submittedAt || session?.user.studentId !== exam.studentId ? () => undefined : form.handleSubmit(onSubmit)
               }
             >
               {exam.groups.map((group, i) =>
@@ -308,7 +308,7 @@ const ExamPage = ({
                   </div>
                 ))
               )}
-              {!exam.submittedAt && session?.user.role === 'STUDENT' && (
+              {!exam.submittedAt && session?.user.studentId === exam.studentId && (
                 <Button loading={examSubmit.isLoading}>تسليم</Button>
               )}
             </form>

@@ -1,9 +1,11 @@
 import { PrismaClient } from '@prisma/client'
 import { SettingKey, UserRole } from '../src/constants'
 import { generate as generatePassword } from 'generate-password'
-const prisma = new PrismaClient()
+import { withPassword } from '@zenstackhq/runtime'
+const _prisma = new PrismaClient()
 
 const adminEmail = 'abdullah.ahmed.a2000@gmail.com'
+const password = '1234'
 
 async function main () {
   for (const key of [
@@ -14,7 +16,7 @@ async function main () {
     SettingKey.HARD_MCQ_QUESTIONS,
     SettingKey.HARD_WRITTEN_QUESTIONS
   ]) {
-    await prisma.setting.upsert({
+    await _prisma.setting.upsert({
       where: {
         key
       },
@@ -26,13 +28,15 @@ async function main () {
     })
   }
 
-  const password = generatePassword()
+
+  const prisma = withPassword(_prisma)
 
   await prisma.user.create({
     data: {
       email: adminEmail,
       password,
       corrector: {},
+      student: {},
       role: UserRole.ADMIN,
       name: 'الأدمن'
     }
@@ -40,10 +44,10 @@ async function main () {
 }
 main()
   .then(async () => {
-    await prisma.$disconnect()
+    await _prisma.$disconnect()
   })
   .catch(async e => {
     console.error(e)
-    await prisma.$disconnect()
+    await _prisma.$disconnect()
     process.exit(1)
   })

@@ -16,7 +16,7 @@ export const sendMail = async (mailOptions: SendMailOptions) => {
       email: 'abdullah.ahmed.a2000@gmail.com'
     }
 
-  return axios.post('https://api.sendinblue.com/v3/smtp/email', mailOptions, {
+  return axios.post('https://api.brevo.com/v3/smtp/email', mailOptions, {
     headers: {
       'api-key': env.SENDINBLUE_API_KEY
     }
