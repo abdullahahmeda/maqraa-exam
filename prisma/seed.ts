@@ -35,8 +35,8 @@ async function main () {
     data: {
       email: adminEmail,
       password,
-      corrector: {},
-      student: {},
+      corrector: { create: {} },
+      student: { create: {} },
       role: UserRole.ADMIN,
       name: 'الأدمن'
     }

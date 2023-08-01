@@ -230,8 +230,8 @@ model Exam {
   // TODO: maybe update read rules
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('create', true) // anyone
-  @@allow('read,update', auth().role == CORRECTOR && auth().cycle.correctors?[user == auth()] && curriculum.track.course.correctors?[user == auth()]) // for correctors
-  @@allow('read,update', student.user == auth()) // for students
+  @@allow('read,update', auth().role == CORRECTOR && cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[user == auth()]) // for correctors
+  @@allow('read,update', student == auth().studentId) // for students
 }
 
 enum ExamType {

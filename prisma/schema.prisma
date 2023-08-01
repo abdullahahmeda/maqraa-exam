@@ -230,8 +230,8 @@ model Setting {
 
 /// @@allow('all', auth().role == ADMIN)
 /// @@allow('create', true)
-/// @@allow('read,update', auth().role == CORRECTOR && auth().cycle == cycle && curriculum.track.course.correctors ? [user == auth()])
-/// @@allow('read,update', student.user == auth())
+/// @@allow('read,update', auth().role == CORRECTOR && cycle.correctors ? [id == auth().correctorId] && curriculum.track.course.correctors ? [user == auth()])
+/// @@allow('read,update', student == auth().studentId)
 model Exam {
     id String @id() @default(cuid())
     type ExamType
