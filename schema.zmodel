@@ -59,6 +59,7 @@ model User {
   image String?
   phone String?
   role UserRole
+  exams Exam[]
   corrector Corrector?
   student Student?
   accounts Account[]
@@ -95,7 +96,6 @@ model Student {
   id String @id @default(cuid())
   userId String @unique()
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  exams Exam[]
   cycles StudentCycle[]
 
   @@index([userId])
@@ -212,17 +212,18 @@ model Exam {
   correctedAt DateTime?
   repeatFromSameHadith Boolean @default(false)
   curriculumId String
-  studentId String?
+  userId String?
   correctorId String?
   cycleId String?
   corrector Corrector? @relation(fields: [correctorId], references: [id], onDelete: Cascade)
-  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   groups ExamQuestionGroup[]
 
   @@index([grade])
-  @@index([studentId])
+  @@index([type])
+  @@index([userId])
   @@index([correctorId])
   @@index([curriculumId])
   @@index([cycleId])
@@ -231,7 +232,7 @@ model Exam {
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('create', true) // anyone
   @@allow('read,update', auth().role == CORRECTOR && cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[user == auth()]) // for correctors
-  @@allow('read,update', student == auth().studentId) // for students
+  @@allow('read,update', user == auth()) // for students
 }
 
 enum ExamType {

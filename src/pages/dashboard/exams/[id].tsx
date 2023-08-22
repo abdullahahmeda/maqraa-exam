@@ -12,14 +12,7 @@ import { percentage } from '~/utils/percentage'
 import { enStyleToAr, enTypeToAr } from '~/utils/questions'
 import { isCorrectAnswer, normalizeText } from '~/utils/strings'
 import { Badge } from '~/components/ui/badge'
-import {
-  Exam,
-  ExamQuestionGroup,
-  GroupQuestion,
-  Question,
-  User,
-  UserRole,
-} from '@prisma/client'
+import { User, UserRole } from '@prisma/client'
 import {
   Form,
   FormControl,
@@ -47,7 +40,7 @@ type FieldValues = {
       questions: Record<string, CheckedState>
     }
   >
-  student: User | null
+  user: User | null
 }
 
 const ExamPage = ({
@@ -179,7 +172,7 @@ const ExamPage = ({
       </Head>
 
       <div className='space-y-4'>
-        <div className='space-y-2 rounded-md bg-slate-50 p-4 shadow'>
+        <div className='space-y-2 rounded-md bg-white p-4 shadow'>
           <h2 className='text-xl font-bold'>معلومات عن الإختبار</h2>
           <div>
             <p>وقت فتح الإختبار: {formatDate(exam.createdAt)}</p>
@@ -189,17 +182,17 @@ const ExamPage = ({
           </div>
           <div>
             <h3 className='text-lg font-semibold'>المستخدم</h3>
-            {exam.student ? (
+            {exam.user ? (
               <div>
-                <p>اسم الطالب: {exam.student.user.name}</p>
-                <p>البريد الإلكتروني للطالب: {exam.student.user.email}</p>
+                <p>اسم الطالب: {exam.user.name}</p>
+                <p>البريد الإلكتروني للطالب: {exam.user.email}</p>
               </div>
             ) : (
               <p className='text-slate-500'>هذا الإختبار من زائر </p>
             )}
           </div>
         </div>
-        <div className='mb-3 rounded bg-slate-50 p-3 shadow'>
+        <div className='mb-3 rounded bg-white p-3 shadow'>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <h2 className='mb-4 inline-block text-center text-xl font-bold'>
@@ -207,16 +200,18 @@ const ExamPage = ({
               </h2>
               <Badge
                 className='sticky top-20 float-left mr-auto mt-1 shadow'
-              // variant={exam?.grade !== null ? 'primary' : 'warning'}
+                // variant={exam?.grade !== null ? 'primary' : 'warning'}
               >
                 {exam?.grade === null
-                  ? `لم يتم التصحيح - ${possibleGrade} من ${allQuestions?.length
-                  } (${percentage(possibleGrade!, allQuestions?.length)}%)`
-                  : `${correctAnswers?.length} من ${allQuestions?.length
-                  } (${percentage(
-                    correctAnswers!.length,
-                    allQuestions?.length
-                  )}%)`}
+                  ? `لم يتم التصحيح - ${possibleGrade} من ${
+                      allQuestions?.length
+                    } (${percentage(possibleGrade!, allQuestions?.length)}%)`
+                  : `${correctAnswers?.length} من ${
+                      allQuestions?.length
+                    } (${percentage(
+                      correctAnswers!.length,
+                      allQuestions?.length
+                    )}%)`}
               </Badge>
               <div>
                 {exam.groups.map((group, i) =>
@@ -253,8 +248,8 @@ const ExamPage = ({
                           className={clsx(
                             answer === question.answer && 'text-green-600',
                             question.type === QuestionType.MCQ &&
-                            answer !== question.answer &&
-                            'text-red-500'
+                              answer !== question.answer &&
+                              'text-red-500'
                           )}
                         >
                           إجابة الطالب: {answer || '(لا يوجد إجابة)'}
@@ -310,7 +305,7 @@ const ExamPage = ({
   )
 }
 
-export async function getServerSideProps (ctx: GetServerSidePropsContext) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   // TODO: auth check
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
   const prisma = withPresets(_prisma, { user: session?.user })
@@ -330,7 +325,7 @@ export async function getServerSideProps (ctx: GetServerSidePropsContext) {
         },
         orderBy: { order: 'asc' },
       },
-      student: { include: { user: true } },
+      user: true,
     },
   })
 

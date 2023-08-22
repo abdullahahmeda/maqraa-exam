@@ -100,6 +100,7 @@ model User {
     image String?
     phone String?
     role UserRole
+    exams Exam[]
     corrector Corrector?
     student Student?
     accounts Account[]
@@ -140,7 +141,6 @@ model Student {
     id String @id() @default(cuid())
     userId String @unique()
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-    exams Exam[]
     cycles StudentCycle[]
 
     zenstack_guard Boolean @default(true)
@@ -231,7 +231,7 @@ model Setting {
 /// @@allow('all', auth().role == ADMIN)
 /// @@allow('create', true)
 /// @@allow('read,update', auth().role == CORRECTOR && cycle.correctors ? [id == auth().correctorId] && curriculum.track.course.correctors ? [user == auth()])
-/// @@allow('read,update', student == auth().studentId)
+/// @@allow('read,update', user == auth())
 model Exam {
     id String @id() @default(cuid())
     type ExamType
@@ -242,11 +242,11 @@ model Exam {
     correctedAt DateTime?
     repeatFromSameHadith Boolean @default(false)
     curriculumId String
-    studentId String?
+    userId String?
     correctorId String?
     cycleId String?
     corrector Corrector? @relation(fields: [correctorId], references: [id], onDelete: Cascade)
-    student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+    user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
     curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
     cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
     groups ExamQuestionGroup[]
@@ -256,7 +256,7 @@ model Exam {
 
     @@index([zenstack_transaction])
     @@index([grade])
-    @@index([studentId])
+    @@index([userId])
     @@index([correctorId])
     @@index([curriculumId])
     @@index([cycleId])

@@ -25,7 +25,7 @@ const AddSingleUserTab = ({ setDialogOpen }: Props) => {
   const queryClient = useQueryClient()
 
   const form = useForm<AddUserFieldValues>({
-    defaultValues: { role: UserRole.STUDENT },
+    defaultValues: { role: UserRole.STUDENT, student: { cycles: [] } },
     resolver: zodResolver(newUserSchema),
   })
 
@@ -102,12 +102,14 @@ export const AddUsersDialog = ({ setDialogOpen }: Props) => {
       </DialogHeader>
       <Tabs defaultValue='single' className='w-full'>
         <TabsList className='grid w-full grid-cols-2'>
-          <TabsTrigger value='single' className='flex gap-2 items-center'>
+          <TabsTrigger value='single' className='flex items-center gap-2'>
             <User className='h-4 w-4' />
-            مستخدم واحد</TabsTrigger>
-          <TabsTrigger value='sheet' className='flex gap-2 items-center'>
+            مستخدم واحد
+          </TabsTrigger>
+          <TabsTrigger value='sheet' className='flex items-center gap-2'>
             <Users className='h-4 w-4' />
-            من اكسل (للطلاب)</TabsTrigger>
+            من اكسل (للطلاب)
+          </TabsTrigger>
         </TabsList>
         <TabsContent value='single'>
           <AddSingleUserTab setDialogOpen={setDialogOpen} />

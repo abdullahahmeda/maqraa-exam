@@ -47,7 +47,7 @@ export const examsRouter = createTRPCRouter({
         _groups.map(async (g, i) => {
           let styleQuery =
             g.styleOrType === QuestionType.MCQ ||
-              g.styleOrType === QuestionType.WRITTEN
+            g.styleOrType === QuestionType.WRITTEN
               ? { type: g.styleOrType || undefined }
               : { style: g.styleOrType || undefined }
 
@@ -71,16 +71,18 @@ export const examsRouter = createTRPCRouter({
           if (allPossibleQuestions.length < g.number)
             throw new TRPCError({
               code: 'BAD_REQUEST',
-              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
-                }`,
+              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
+                allPossibleQuestions.length
+              }`,
               cause: new z.ZodError([
                 {
                   code: z.ZodIssueCode.too_big,
                   maximum: allPossibleQuestions.length,
                   inclusive: true,
                   type: 'number',
-                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
-                    }`,
+                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
+                    allPossibleQuestions.length
+                  }`,
                   path: ['groups', i, 'number'],
                 },
               ]).issues[0],
@@ -97,7 +99,7 @@ export const examsRouter = createTRPCRouter({
         db(ctx).exam.create({
           data: {
             ...data,
-            studentId: ctx.session?.user.studentId,
+            userId: ctx.session?.user.id,
             type: ExamType.PUBLIC,
             groups: { create: groups },
           },
@@ -139,19 +141,16 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الدورة غير موجودة',
         })
 
-      const students = await prisma.student.findMany({
+      const studentUsers = await prisma.user.findMany({
         where: {
-          user: {
-            role: UserRole.STUDENT,
-            student: {
-              cycles: {
-                some: {
-                  cycleId,
-                  curriculumId: data.curriculumId,
-                },
+          student: {
+            cycles: {
+              some: {
+                cycleId,
+                curriculumId: data.curriculumId,
               },
-            }
-          }
+            },
+          },
         },
       })
 
@@ -185,7 +184,7 @@ export const examsRouter = createTRPCRouter({
         _groups.map(async (g, i) => {
           let styleQuery =
             g.styleOrType === QuestionType.MCQ ||
-              g.styleOrType === QuestionType.WRITTEN
+            g.styleOrType === QuestionType.WRITTEN
               ? { type: g.styleOrType || undefined }
               : { style: g.styleOrType || undefined }
 
@@ -209,16 +208,18 @@ export const examsRouter = createTRPCRouter({
           if (allPossibleQuestions.length < g.number)
             throw new TRPCError({
               code: 'BAD_REQUEST',
-              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
-                }`,
+              message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
+                allPossibleQuestions.length
+              }`,
               cause: new z.ZodError([
                 {
                   code: z.ZodIssueCode.too_big,
                   maximum: allPossibleQuestions.length,
                   inclusive: true,
                   type: 'number',
-                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${allPossibleQuestions.length
-                    }`,
+                  message: `أقصى عدد مسموح للأسئلة في المجموعة ${i + 1} هو ${
+                    allPossibleQuestions.length
+                  }`,
                   path: ['groups', i, 'number'],
                 },
               ]).issues[0],
@@ -231,13 +232,13 @@ export const examsRouter = createTRPCRouter({
         })
       )
 
-      for (const student of students) {
+      for (const user of studentUsers) {
         checkMutate(
           db(ctx).exam.create({
             data: {
               ...data,
               cycleId,
-              studentId: student.id,
+              userId: user.id,
               groups: { create: groups },
             },
           })
@@ -263,10 +264,11 @@ export const examsRouter = createTRPCRouter({
           message: 'هذا الاختبار تم تسليمه من قبل',
         })
 
-      if (ctx.session?.user.studentId !== exam.studentId) throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'ليس لديك الصلاحيات لهذه العملية'
-      })
+      if (ctx.session?.user.id !== exam.userId)
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'ليس لديك الصلاحيات لهذه العملية',
+        })
 
       let grade = 0
       const update = await Promise.all(
@@ -377,7 +379,6 @@ export const examsRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { id, groups } = input
 
-
       let grade = 0
       const update = await Promise.all(
         Object.entries(groups).map(async ([groupId, { questions }]) => ({
@@ -434,15 +435,17 @@ export const examsRouter = createTRPCRouter({
 
   findFirst: protectedProcedure
     .input(ExamInputSchema.findFirst.optional())
-    .query(({ ctx, input }) => checkRead(db(ctx).exam.findFirst(input))),
+    .query(({ ctx, input }) => checkRead(db(ctx).exam.findFirst(input as any))),
 
   findFirstOrThrow: protectedProcedure
     .input(ExamInputSchema.findFirst.optional())
-    .query(({ ctx, input }) => checkRead(db(ctx).exam.findFirstOrThrow(input))),
+    .query(({ ctx, input }) =>
+      checkRead(db(ctx).exam.findFirstOrThrow(input as any))
+    ),
 
   findMany: protectedProcedure
     .input(ExamInputSchema.findMany.optional())
-    .query(({ ctx, input }) => checkRead(db(ctx).exam.findMany(input))),
+    .query(({ ctx, input }) => checkRead(db(ctx).exam.findMany(input as any))),
 
   // update: protectedProcedure
   //   .input(ExamInputSchema.update)

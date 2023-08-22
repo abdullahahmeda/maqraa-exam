@@ -163,7 +163,7 @@ const ExamPage = ({
           <Form {...form}>
             <form
               onSubmit={
-                exam.submittedAt || session?.user.studentId !== exam.studentId ? () => undefined : form.handleSubmit(onSubmit)
+                exam.submittedAt || session?.user.id !== exam.userId ? () => undefined : form.handleSubmit(onSubmit)
               }
             >
               {exam.groups.map((group, i) =>
@@ -308,7 +308,7 @@ const ExamPage = ({
                   </div>
                 ))
               )}
-              {!exam.submittedAt && session?.user.studentId === exam.studentId && (
+              {!exam.submittedAt && session?.user.id === exam.userId && (
                 <Button loading={examSubmit.isLoading}>تسليم</Button>
               )}
             </form>

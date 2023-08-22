@@ -3,7 +3,15 @@ import { DialogHeader } from '../ui/dialog'
 import { Loader2 } from 'lucide-react'
 import { enUserRoleToAr } from '~/utils/users'
 import { Separator } from '../ui/separator'
-import { User, StudentCycle, Cycle, Course, Student, Corrector } from '@prisma/client'
+import {
+  User,
+  StudentCycle,
+  Cycle,
+  Course,
+  Student,
+  Corrector,
+} from '@prisma/client'
+import { Progress } from '../ui/progress'
 
 export const UserInfoModal = ({ id }: { id: string }) => {
   const {
@@ -13,16 +21,23 @@ export const UserInfoModal = ({ id }: { id: string }) => {
   } = api.users.findFirstOrThrow.useQuery<
     any,
     User & {
-      student: (Student & { cycles: (StudentCycle & { cycle: Cycle })[] }) | null
+      student:
+        | (Student & { cycles: (StudentCycle & { cycle: Cycle })[] })
+        | null
       corrector: (Corrector & { course: Course; cycle: Cycle }) | null
     }
   >({
     where: { id },
     include: {
       student: { include: { cycles: { include: { cycle: true } } } },
-      corrector: { include: { course: true, cycle: true } }
+      corrector: { include: { course: true, cycle: true } },
     },
   })
+
+  const { data: overallPerformance } =
+    api.students.getOverallPerformance.useQuery(user?.student?.id as string, {
+      enabled: !!user?.student?.id,
+    })
 
   if (isLoading)
     return (
@@ -60,9 +75,18 @@ export const UserInfoModal = ({ id }: { id: string }) => {
           <>
             <Separator className='my-2' />
             <h3 className='font-semibold'>معلومات عن الطالب</h3>
-            <p>
+            {overallPerformance === null ? (
+              <p className='text-gray-500'>لم يتم حساب المستوى العام</p>
+            ) : (
+              <>
+                <p>المستوى العام</p>
+                <p>{overallPerformance}%</p>
+                <Progress value={overallPerformance} />
+              </>
+            )}
+            {/* <p>
               الدورات: {user.student!.cycles.map(({ cycle }) => cycle.name).join('، ')}
-            </p>
+            </p> */}
           </>
         )}
       </div>

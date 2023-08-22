@@ -78,7 +78,9 @@ const UsersPage = () => {
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'cycles')
-      return { student: { cycles: { some: { cycleId: filter.value as string } } } }
+      return {
+        student: { cycles: { some: { cycleId: filter.value as string } } },
+      }
     return { [filter.id]: { equals: filter.value } }
   })
 
@@ -90,7 +92,7 @@ const UsersPage = () => {
         where: { AND: filters },
         include: {
           student: { include: { cycles: { include: { cycle: true } } } },
-          corrector: { include: { cycle: true, course: true } }
+          corrector: { include: { cycle: true, course: true } },
         },
       },
       { networkMode: 'always' }
@@ -211,7 +213,7 @@ const UsersPage = () => {
       ),
       columnHelper.display({
         id: 'actions',
-        cell: function Cell ({ row }) {
+        cell: function Cell({ row }) {
           const [dialogOpen, setDialogOpen] = useState(false)
 
           return (
@@ -297,9 +299,10 @@ const UsersPage = () => {
         <h2 className='ml-2 text-2xl font-bold'>المستخدمون</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className='flex gap-2 items-center'>
+            <Button className='flex items-center gap-2'>
               <UserPlus className='h-4 w-4' />
-              إضافة مستخدمين</Button>
+              إضافة مستخدمين
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <AddUsersDialog setDialogOpen={setDialogOpen} />

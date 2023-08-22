@@ -52,7 +52,7 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt',
   },
   callbacks: {
-    async session ({ session, token }) {
+    async session({ session, token }) {
       if (token) {
         session.user.id = token.sub!
         session.user.email = token.email
@@ -62,7 +62,7 @@ export const authOptions: NextAuthOptions = {
       }
       return session
     },
-    async jwt ({ token, user: user }) {
+    async jwt({ token, user: user }) {
       if (user) {
         token.name = user!.name
         token.email = user!.email
@@ -73,20 +73,20 @@ export const authOptions: NextAuthOptions = {
       return token
     },
   },
-  adapter: PrismaAdapter(prisma),
+  adapter: PrismaAdapter(prisma as any),
   providers: [
     Credentials({
       credentials: {
         email: { label: 'البريد الإلكتروني', type: 'email' },
         password: { label: 'كلمة المرور', type: 'password' },
       },
-      async authorize (credentials, req) {
+      async authorize(credentials, req) {
         const input = loginSchema.safeParse(credentials)
         if (!input.success) return null
 
         const user = await prisma.user.findFirst({
           where: { email: input.data.email },
-          include: { student: true, corrector: true }
+          include: { student: true, corrector: true },
         })
 
         if (!user) return null

@@ -7,27 +7,26 @@ const _prisma = new PrismaClient()
 const adminEmail = 'abdullah.ahmed.a2000@gmail.com'
 const password = '1234'
 
-async function main () {
+async function main() {
   for (const key of [
     SettingKey.EASY_MCQ_QUESTIONS,
     SettingKey.EASY_WRITTEN_QUESTIONS,
     SettingKey.MEDIUM_MCQ_QUESTIONS,
     SettingKey.MEDIUM_WRITTEN_QUESTIONS,
     SettingKey.HARD_MCQ_QUESTIONS,
-    SettingKey.HARD_WRITTEN_QUESTIONS
+    SettingKey.HARD_WRITTEN_QUESTIONS,
   ]) {
     await _prisma.setting.upsert({
       where: {
-        key
+        key,
       },
       update: {},
       create: {
         key,
-        value: '10'
-      }
+        value: '10',
+      },
     })
   }
-
 
   const prisma = withPassword(_prisma)
 
@@ -36,17 +35,16 @@ async function main () {
       email: adminEmail,
       password,
       corrector: { create: {} },
-      student: { create: {} },
       role: UserRole.ADMIN,
-      name: 'الأدمن'
-    }
+      name: 'الأدمن',
+    },
   })
 }
 main()
   .then(async () => {
     await _prisma.$disconnect()
   })
-  .catch(async e => {
+  .catch(async (e) => {
     console.error(e)
     await _prisma.$disconnect()
     process.exit(1)

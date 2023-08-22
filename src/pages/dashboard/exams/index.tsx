@@ -63,7 +63,7 @@ import { AddExamDialog } from '~/components/modals/add-exam'
 import { DeleteExamDialog } from '~/components/modals/delete-exam'
 
 type Row = Exam & {
-  student: (Student & { user: User }) | null
+  user: User
   corrector: User | null
   questions: {
     id: number
@@ -73,18 +73,17 @@ type Row = Exam & {
   cycle: Cycle
 }
 
-
 const columnHelper = createColumnHelper<Row>()
 
 const columns = [
-  columnHelper.accessor('student.user.name', {
+  columnHelper.accessor('user.name', {
     header: 'الطالب',
     cell: (info) => info.getValue() || '-',
     meta: {
       className: 'text-center',
     },
   }),
-  columnHelper.accessor('student.user.email', {
+  columnHelper.accessor('user.email', {
     header: 'الإيميل',
     cell: (info) => info.getValue() || '-',
     meta: {
@@ -407,7 +406,7 @@ const ExamsPage = () => {
       skip: pageIndex * pageSize,
       take: pageSize,
       include: {
-        student: { include: { user: true } },
+        user: true,
         curriculum: true,
         corrector: true,
         cycle: true,
@@ -424,7 +423,7 @@ const ExamsPage = () => {
 
   const pageCount =
     exams !== undefined && count !== undefined
-      ? Math.ceil(count / pageSize)
+      ? Math.ceil((count as number) / pageSize)
       : -1
 
   const table = useReactTable({
@@ -459,9 +458,10 @@ const ExamsPage = () => {
           {session!.user.role === UserRole.ADMIN && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
-                <Button className='flex gap-2 items-center'>
+                <Button className='flex items-center gap-2'>
                   <Plus className='h-4 w-4' />
-                  إضافة إختبار نظام</Button>
+                  إضافة إختبار نظام
+                </Button>
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>إضافة إختبار نظام</DialogHeader>

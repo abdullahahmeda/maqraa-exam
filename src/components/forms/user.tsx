@@ -21,16 +21,24 @@ import { userRoleMapping } from '~/utils/users'
 import { Button } from '../ui/button'
 import { api } from '~/utils/api'
 import { Combobox } from '../ui/combobox'
+import { MultiSelect } from '../ui/multi-select'
 
 export type AddUserFieldValues = {
   name: string
   email: string
   phone: string
   role: UserRole
-  corrector: {
-    cycleId: string | undefined
-    courseId: string | undefined
-  } | undefined
+  corrector:
+    | {
+        cycleId: string | undefined
+        courseId: string | undefined
+      }
+    | undefined
+  student:
+    | {
+        cycles: string[]
+      }
+    | undefined
 }
 
 export type EditUserFieldValues = { id: string } & AddUserFieldValues
@@ -125,7 +133,29 @@ export const UserForm = ({
             </FormItem>
           )}
         />
-        {role === UserRole.CORRECTOR && (
+        {/* {role === 'STUDENT' && (
+          <FormField
+            control={form.control}
+            name='student.cycles'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>الدورات</FormLabel>
+                <FormControl>
+                  <MultiSelect
+                    placeholder='اختر الدورات'
+                    items={cycles || []}
+                    labelKey='name'
+                    valueKey='id'
+                    onSelect={field.onChange}
+                    value={field.value}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        )} */}
+        {role === 'CORRECTOR' && (
           <>
             <FormField
               control={form.control}

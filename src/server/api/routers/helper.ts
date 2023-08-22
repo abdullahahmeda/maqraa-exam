@@ -1,6 +1,7 @@
 import { PrismaClient } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { isPrismaClientKnownRequestError } from '@zenstackhq/runtime'
+import { prisma } from '~/server/db'
 
 export async function checkMutate<T>(
   promise: Promise<T>
@@ -72,5 +73,5 @@ export function db(ctx: any) {
   if (!ctx.prisma) {
     throw new Error('Missing "prisma" field in trpc context')
   }
-  return ctx.prisma as PrismaClient
+  return ctx.prisma as typeof prisma
 }

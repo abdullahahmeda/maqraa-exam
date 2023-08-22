@@ -48,23 +48,28 @@ export const usersRouter = createTRPCRouter({
         password,
         role,
         phone,
-        ...(role !== 'STUDENT' ? { corrector: { create: role === 'CORRECTOR' ? input.corrector : {} } } : undefined),
-        ...(role !== 'CORRECTOR' ? { student: { create: {} } } : undefined)
+        ...(role !== 'STUDENT'
+          ? {
+              corrector: {
+                create: role === 'CORRECTOR' ? input.corrector : {},
+              },
+            }
+          : undefined),
+        ...(role === 'STUDENT'
+          ? {
+              student: { create: {} },
+            }
+          : undefined),
       })
-      const user = await checkMutate(db(ctx).user.create({
-        data
-      }))
+      const user = await checkMutate(db(ctx).user.create({ data }))
 
       await sendMail({
         subject: 'كلمة المرور الخاصة بك في المقرأة',
-        to: [
-          { email }
-        ],
-        textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}/login`
+        to: [{ email }],
+        textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}/login`,
       })
 
       return user
-
     }),
 
   importStudents: protectedProcedure
@@ -103,20 +108,27 @@ export const usersRouter = createTRPCRouter({
             },
             { path: [i + 1] }
           )
-          let s = await checkRead(db(ctx).student.findFirst({ where: { user: { email: student.email } } }))
+          let s = await checkRead(
+            db(ctx).student.findFirst({
+              where: { user: { email: student.email } },
+            })
+          )
           const password = generatePassword()
           // TODO: send email for the user
-          if (!s) s = (await checkMutate(db(ctx).student.create({
-            data: {
-              user: {
-                create: {
-                  ...student,
-                  password,
-                  role: 'STUDENT'
-                }
-              }
-            }
-          })))!
+          if (!s)
+            s = (await checkMutate(
+              db(ctx).student.create({
+                data: {
+                  user: {
+                    create: {
+                      ...student,
+                      password,
+                      role: 'STUDENT',
+                    },
+                  },
+                },
+              })
+            ))!
           await checkMutate(
             db(ctx).studentCycle.create({
               data: {
@@ -127,7 +139,7 @@ export const usersRouter = createTRPCRouter({
                   connect: { id: curriculum.id },
                 },
                 student: {
-                  connect: { id: s.id }
+                  connect: { id: s.id },
                 },
               },
             })
@@ -150,8 +162,9 @@ export const usersRouter = createTRPCRouter({
             if (error.cause.code === 'P2002')
               throw new TRPCError({
                 code: 'BAD_REQUEST',
-                message: `خطأ في الصف رقم ${i + 1
-                  }: هذا الطالب مسجل بالفعل في هذه الدورة`,
+                message: `خطأ في الصف رقم ${
+                  i + 1
+                }: هذا الطالب مسجل بالفعل في هذه الدورة`,
               })
           }
 
@@ -183,15 +196,17 @@ export const usersRouter = createTRPCRouter({
 
   findFirst: protectedProcedure
     .input(UserInputSchema.findFirst.optional())
-    .query(({ ctx, input }) => checkRead(db(ctx).user.findFirst(input))),
+    .query(({ ctx, input }) => checkRead(db(ctx).user.findFirst(input as any))),
 
   findFirstOrThrow: protectedProcedure
     .input(UserInputSchema.findFirst.optional())
-    .query(({ ctx, input }) => checkRead(db(ctx).user.findFirstOrThrow(input))),
+    .query(({ ctx, input }) =>
+      checkRead(db(ctx).user.findFirstOrThrow(input as any))
+    ),
 
   findMany: protectedProcedure
     .input(UserInputSchema.findMany.optional())
-    .query(({ ctx, input }) => checkRead(db(ctx).user.findMany(input))),
+    .query(({ ctx, input }) => checkRead(db(ctx).user.findMany(input as any))),
 
   update: protectedProcedure
     .input(updateUserSchema)
@@ -203,29 +218,42 @@ export const usersRouter = createTRPCRouter({
           email,
           role,
           phone,
-          ...(role !== 'STUDENT' ? {
-            corrector: {
-              upsert: {
-                where: {
-                  userId: id,
+          ...(role !== 'STUDENT'
+            ? {
+                corrector: {
+                  upsert: {
+                    where: {
+                      userId: id,
+                    },
+                    update: {
+                      ...(role === 'CORRECTOR'
+                        ? input.corrector
+                        : { cycleId: null, courseId: null }),
+                    },
+                    create: {
+                      ...(role === 'CORRECTOR'
+                        ? input.corrector
+                        : { cycleId: null, courseId: null }),
+                    },
+                  },
                 },
-                update: {
-                  ...(role === 'CORRECTOR' ? input.corrector : { cycleId: null, courseId: null })
-                },
-                create: {
-                  ...(role === 'CORRECTOR' ? input.corrector : { cycleId: null, courseId: null })
-                }
               }
-            }
-          } : undefined),
-          ...(role !== 'CORRECTOR' ? { student: { connectOrCreate: { where: { userId: id }, create: {} } } } : undefined)
+            : undefined),
+          ...(role === 'STUDENT'
+            ? {
+                student: {
+                  connectOrCreate: { where: { userId: id }, create: {} },
+                },
+              }
+            : undefined),
         })
 
-        return checkMutate(db(ctx).user.update({
-          where: { id },
-          data
-        }))
-
+        return checkMutate(
+          db(ctx).user.update({
+            where: { id },
+            data,
+          })
+        )
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2002')
