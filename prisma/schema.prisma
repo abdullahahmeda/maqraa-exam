@@ -10,7 +10,6 @@ datasource db {
 
 generator client {
     provider = "prisma-client-js"
-    previewFeatures = []
 }
 
 enum UserRole {
@@ -150,6 +149,7 @@ model Student {
     @@index([userId])
 }
 
+/// @@allow('all', true)
 /// @@Gen.model(hide: true)
 model StudentCycle {
     id Int @id() @default(autoincrement())
@@ -256,6 +256,7 @@ model Exam {
 
     @@index([zenstack_transaction])
     @@index([grade])
+    @@index([type])
     @@index([userId])
     @@index([correctorId])
     @@index([curriculumId])

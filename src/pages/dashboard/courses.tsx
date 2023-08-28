@@ -9,7 +9,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Edit, Trash, Plus } from 'lucide-react'
+import { Pencil, Trash, Plus } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useMemo, useState } from 'react'
@@ -148,7 +148,7 @@ const CoursesPage = () => {
                   size='icon'
                   className='hover:bg-orange-50'
                 >
-                  <Edit className='h-4 w-4 text-orange-500' />
+                  <Pencil className='h-4 w-4 text-orange-500' />
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -200,9 +200,10 @@ const CoursesPage = () => {
         <h2 className='ml-2 text-2xl font-bold'>المقررات</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className='flex gap-2 items-center'>
+            <Button className='flex items-center gap-2'>
               <Plus className='h-4 w-4' />
-              إضافة مقرر</Button>
+              إضافة مقرر
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <AddCourseDialog setDialogOpen={setDialogOpen} />

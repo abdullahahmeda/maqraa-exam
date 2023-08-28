@@ -10,7 +10,7 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Edit, Filter, Trash, Plus } from 'lucide-react'
+import { Pencil, Filter, Trash, Plus } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
@@ -168,7 +168,7 @@ const columns = [
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
-    cell: function Cell ({ row }) {
+    cell: function Cell({ row }) {
       const [dialogOpen, setDialogOpen] = useState(false)
       return (
         <div className='flex justify-center gap-2'>
@@ -180,7 +180,7 @@ const columns = [
                 size='icon'
                 className='hover:bg-orange-50'
               >
-                <Edit className='h-4 w-4 text-orange-500' />
+                <Pencil className='h-4 w-4 text-orange-500' />
               </Button>
             </DialogTrigger>
             <DialogContent>
@@ -285,9 +285,10 @@ const CurriculaPage = () => {
         <h2 className='ml-2 text-2xl font-bold'>المناهج</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className='flex gap-2 items-center'>
+            <Button className='flex items-center gap-2'>
               <Plus className='h-4 w-4' />
-              إضافة منهج</Button>
+              إضافة منهج
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <AddCurriculumDialog setDialogOpen={setDialogOpen} />

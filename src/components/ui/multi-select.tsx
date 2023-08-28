@@ -11,11 +11,11 @@ type Props<T> = {
   valueKey: keyof T
   value: string[]
   placeholder?: string
-  onSelect: React.Dispatch<React.SetStateAction<T[]>>
+  onSelect: (newValue: any) => void
   items: T[]
 }
 
-export const MultiSelect = <T,>({
+export const MultiSelect = <T extends Record<string, string>>({
   value,
   onSelect,
   items,
@@ -27,44 +27,41 @@ export const MultiSelect = <T,>({
   const [open, setOpen] = React.useState(false)
   const [inputValue, setInputValue] = React.useState('')
 
-  const handleUnselect = React.useCallback((value: T) => {
-    onSelect((prev) => prev.filter((s) => s !== value))
-  }, [])
+  const handleUnselect = (valueToDelete: string) => {
+    onSelect(value.filter((s) => s !== valueToDelete))
+  }
 
-  const handleKeyDown = React.useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
-      const input = inputRef.current
-      if (input) {
-        if (e.key === 'Delete' || e.key === 'Backspace') {
-          if (input.value === '') {
-            onSelect((prev) => {
-              const newSelected = [...prev]
-              newSelected.pop()
-              return newSelected
-            })
-          }
-        }
-        // This is not a default behaviour of the <input /> field
-        if (e.key === 'Escape') {
-          input.blur()
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const input = inputRef.current
+    if (input) {
+      if (e.key === 'Delete' || e.key === 'Backspace') {
+        if (input.value === '') {
+          const newValue = [...value]
+          newValue.pop()
+          onSelect(newValue)
         }
       }
-    },
-    []
-  )
+      // This is not a default behaviour of the <input /> field
+      if (e.key === 'Escape') {
+        input.blur()
+      }
+    }
+  }
 
   const selectables = inputValue
     ? // @ts-ignore
       fuzzysort
         .go(
           inputValue,
-          items.filter((item) => !value.includes(item[valueKey])),
+          items.filter((item) => !value.includes(item[valueKey] as string)),
           { key: labelKey }
         )
         // @ts-ignore
         .map((item) => item.obj)
-    : items.filter((item) => !value.includes(item[valueKey]))
-  const selected = items.filter((item) => value.includes(item[valueKey]))
+    : items.filter((item) => !value.includes(item[valueKey] as string))
+  const selected = items.filter((item) =>
+    value.includes(item[valueKey] as string)
+  )
 
   return (
     <Command
@@ -83,14 +80,14 @@ export const MultiSelect = <T,>({
                   type='button'
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
-                      handleUnselect(item)
+                      handleUnselect(item[valueKey] as string)
                     }
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
                   }}
-                  onClick={() => handleUnselect(item[valueKey])}
+                  onClick={() => handleUnselect(item[valueKey] as string)}
                 >
                   <X className='h-3 w-3 text-muted-foreground hover:text-foreground' />
                 </button>
@@ -122,9 +119,10 @@ export const MultiSelect = <T,>({
                       e.preventDefault()
                       e.stopPropagation()
                     }}
-                    onSelect={(value) => {
+                    onSelect={(newValue) => {
                       setInputValue('')
-                      onSelect((prev) => [...prev, value])
+                      // onSelect((prev) => [...prev, value])
+                      onSelect(value.concat(newValue))
                     }}
                     className={'cursor-pointer'}
                   >

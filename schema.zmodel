@@ -119,6 +119,8 @@ model StudentCycle {
   @@index([studentId])
   @@index([cycleId])
   @@index([curriculumId])
+
+  @@allow('all', true)
 }
 
 enum UserRole {

@@ -57,7 +57,18 @@ export const usersRouter = createTRPCRouter({
           : undefined),
         ...(role === 'STUDENT'
           ? {
-              student: { create: {} },
+              student: {
+                create: {
+                  cycles: {
+                    create: Object.entries(input.student.cycles).map(
+                      ([cycleId, { curriculumId }]) => ({
+                        curriculumId,
+                        cycleId,
+                      })
+                    ),
+                  },
+                },
+              },
             }
           : undefined),
       })
@@ -89,7 +100,10 @@ export const usersRouter = createTRPCRouter({
 
         const curriculum = await checkRead(
           db(ctx).curriculum.findFirst({
-            where: { name: row[4], track: { course: { name: row[2] } } },
+            where: {
+              name: row[4]?.trim(),
+              track: { course: { name: row[2]?.trim() } },
+            },
           })
         )
 
@@ -242,10 +256,58 @@ export const usersRouter = createTRPCRouter({
           ...(role === 'STUDENT'
             ? {
                 student: {
-                  connectOrCreate: { where: { userId: id }, create: {} },
+                  upsert: {
+                    where: { userId: id },
+                    update: {
+                      cycles: {
+                        deleteMany: {
+                          cycleId: {
+                            notIn: Object.keys(input.student.cycles),
+                          },
+                        },
+                        upsert: Object.entries(input.student.cycles).map(
+                          ([cycleId, { curriculumId, id }]) => ({
+                            where: { id: id || 0 },
+                            create: {
+                              curriculumId,
+                              cycleId,
+                            },
+                            update: {
+                              curriculumId,
+                            },
+                          })
+                        ),
+                      },
+                    },
+                    create: {
+                      cycles: {
+                        create: Object.entries(input.student.cycles).map(
+                          ([cycleId, { curriculumId }]) => ({
+                            curriculumId,
+                            cycleId,
+                          })
+                        ),
+                      },
+                    },
+                  },
+                  //  {
+                  //   cycles: {
+                  //     create: Object.entries(input.student.cycles).map(
+                  //       ([cycleId, { curriculumId }]) => ({
+                  //         curriculumId,
+                  //         cycleId,
+                  //       })
+                  //     ),
+                  //   },
+                  // },
                 },
               }
-            : undefined),
+            : // {
+              //     student: {
+              //       connectOrCreate: { where: { userId: id }, create: {} },
+              //     },
+              //   }
+              undefined),
         })
 
         return checkMutate(

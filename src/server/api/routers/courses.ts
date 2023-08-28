@@ -14,7 +14,7 @@ export const coursesRouter = createTRPCRouter({
     ),
 
   count: protectedProcedure
-    .input(z.object({ where: CourseWhereInputObjectSchema }).optional())
+    .input(z.object({ where: z.any() }).optional())
     .query(async ({ ctx, input }) =>
       checkRead(db(ctx).course.count(input as any))
     ),

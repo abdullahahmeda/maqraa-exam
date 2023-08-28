@@ -6,5 +6,5 @@ export const userSchema = z.object({
     .string()
     .email()
     .min(1)
-    .transform((val) => val.toLowerCase()),
+    .transform((val) => val.toLowerCase().trim()),
 })

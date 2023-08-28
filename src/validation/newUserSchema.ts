@@ -13,9 +13,19 @@ const baseSchema = z.object({
 
 const studentSchema = baseSchema.extend({
   role: z.literal(UserRole.STUDENT),
-  // student: z.object({
-  //   cycles: z.array(z.string().min(1))
-  // })
+  student: z.object({
+    cycles: z
+      .record(
+        z.object({
+          courseId: z.string().min(1),
+          trackId: z.string().min(1),
+          curriculumId: z.string().min(1),
+        })
+      )
+      .refine((cycles) => Object.keys(cycles).length > 0, {
+        message: 'يجب أن ينضم الطالب لدورة واحدة على الأقل',
+      }),
+  }),
 })
 const adminSchema = baseSchema.extend({
   role: z.literal(UserRole.ADMIN),

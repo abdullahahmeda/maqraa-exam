@@ -25,7 +25,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { Edit, Filter, Eye, Trash, UserPlus } from 'lucide-react'
+import { Pencil, Filter, Eye, Trash, UserPlus } from 'lucide-react'
 import { getServerAuthSession } from '~/server/auth'
 import { Combobox } from '~/components/ui/combobox'
 import { EditUserDialog } from '~/components/modals/edit-user'
@@ -104,7 +104,7 @@ const UsersPage = () => {
   )
 
   const pageCount =
-    users !== undefined && count !== undefined
+    users !== undefined && typeof count === 'number'
       ? Math.ceil(count / pageSize)
       : -1
 
@@ -239,7 +239,7 @@ const UsersPage = () => {
                     size='icon'
                     className='hover:bg-orange-50'
                   >
-                    <Edit className='h-4 w-4 text-orange-500' />
+                    <Pencil className='h-4 w-4 text-orange-500' />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>

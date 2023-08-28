@@ -10,7 +10,7 @@ import {
   ImportStudentsFieldValues,
   ImportStudentsForm,
 } from '../forms/import-users'
-import { AddUserFieldValues, UserForm } from '../forms/user'
+import { AddUserFieldValues, UserForm, makeEmptyCycle } from '../forms/user'
 import { DialogHeader } from '../ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { useToast } from '../ui/use-toast'
@@ -25,7 +25,10 @@ const AddSingleUserTab = ({ setDialogOpen }: Props) => {
   const queryClient = useQueryClient()
 
   const form = useForm<AddUserFieldValues>({
-    defaultValues: { role: UserRole.STUDENT, student: { cycles: [] } },
+    defaultValues: {
+      role: UserRole.STUDENT,
+      student: { cycles: {} },
+    },
     resolver: zodResolver(newUserSchema),
   })
 

@@ -10,7 +10,7 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Edit, Eye, Trash } from 'lucide-react'
+import { Pencil, Eye, Trash } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
@@ -63,7 +63,7 @@ const columns = [
         <Dialog>
           <DialogTrigger asChild>
             <Button variant='ghost' size='icon' className='hover:bg-orange-50'>
-              <Edit className='h-4 w-4 text-orange-500' />
+              <Pencil className='h-4 w-4 text-orange-500' />
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -159,9 +159,10 @@ const CyclesPage = () => {
         <h2 className='ml-2 text-2xl font-bold'>الدورات</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className='flex gap-2 items-center'>
+            <Button className='flex items-center gap-2'>
               <Plus className='h-4 w-4' />
-              إضافة دورة</Button>
+              إضافة دورة
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <AddCycleDialog setDialogOpen={setDialogOpen} />

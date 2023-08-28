@@ -29,8 +29,24 @@ export const EditUserDialog = ({
     data: user,
     isLoading,
     error,
-  } = api.users.findFirstOrThrow.useQuery(
-    { where: { id }, include: { corrector: true } },
+  } = api.users.findFirstOrThrow.useQuery<any, any>(
+    {
+      where: { id },
+      include: {
+        corrector: true,
+        student: {
+          include: {
+            cycles: {
+              include: {
+                curriculum: {
+                  include: { track: { include: { course: true } } },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
     { enabled: id != null }
   )
   const userUpdate = api.users.update.useMutation()
@@ -38,16 +54,43 @@ export const EditUserDialog = ({
   const { data: session } = useSession()
 
   useEffect(() => {
-    if (user)
-      form.reset(mapValues(user, (value: any) => value ?? undefined))
+    if (user) {
+      if (user.role === 'STUDENT')
+        form.reset(
+          mapValues(
+            {
+              ...user,
+              student: {
+                cycles: user.student.cycles.reduce(
+                  (acc: object, cycle: any) => ({
+                    ...acc,
+                    [cycle.cycleId]: {
+                      id: cycle.id,
+                      courseId: cycle.curriculum.track.courseId,
+                      trackId: cycle.curriculum.trackId,
+                      curriculumId: cycle.curriculumId,
+                    },
+                  }),
+                  {}
+                ),
+              },
+            },
+            (value: any) => value ?? undefined
+          )
+        )
+      else form.reset(mapValues(user, (value: any) => value ?? undefined))
+    }
   }, [user, form])
+
+  console.log(form.formState.errors)
 
   const onSubmit = (data: EditUserFieldValues) => {
     userUpdate
       .mutateAsync(data as z.infer<typeof updateUserSchema>)
       .then(() => {
         toast({ title: 'تم تعديل بيانات المستخدم بنجاح' })
-        if (id === session!.user.id) toast({ title: 'قم بإعادة تسجيل الدخول لتفعيل الصلاحية الجديدة' })
+        if (id === session!.user.id)
+          toast({ title: 'قم بإعادة تسجيل الدخول لتفعيل الصلاحية الجديدة' })
         setDialogOpen(false)
       })
       .catch((error) => {
