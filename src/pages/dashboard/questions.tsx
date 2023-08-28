@@ -356,7 +356,7 @@ const QuestionsPage = () => {
   const questionsExport = api.questions.export.useMutation()
 
   const pageCount =
-    questions !== undefined && count !== undefined
+    questions !== undefined && typeof count === 'number'
       ? Math.ceil(count / pageSize)
       : -1
 
@@ -405,9 +405,10 @@ const QuestionsPage = () => {
         <h2 className='ml-2 text-2xl font-bold'>الأسئلة</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className='flex gap-2 items-center'>
+            <Button className='flex items-center gap-2'>
               <Plus className='h-4 w-4' />
-              إضافة أسئلة</Button>
+              إضافة أسئلة
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <AddQuestionsDialog setDialogOpen={setDialogOpen} />

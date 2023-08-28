@@ -127,7 +127,7 @@ const CyclesPage = () => {
   )
 
   const pageCount =
-    cycles !== undefined && count !== undefined
+    cycles !== undefined && typeof count === 'number'
       ? Math.ceil(count / pageSize)
       : -1
 

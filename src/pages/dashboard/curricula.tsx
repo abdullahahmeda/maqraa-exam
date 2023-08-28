@@ -254,7 +254,7 @@ const CurriculaPage = () => {
     )
 
   const pageCount =
-    curricula !== undefined && count !== undefined
+    curricula !== undefined && typeof count === 'number'
       ? Math.ceil(count / pageSize)
       : -1
 

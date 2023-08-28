@@ -422,7 +422,7 @@ const ExamsPage = () => {
   )
 
   const pageCount =
-    exams !== undefined && count !== undefined
+    exams !== undefined && typeof count === 'number'
       ? Math.ceil((count as number) / pageSize)
       : -1
 

@@ -156,7 +156,7 @@ const TracksPage = () => {
   )
 
   const pageCount =
-    tracks !== undefined && count !== undefined
+    tracks !== undefined && typeof count === 'number'
       ? Math.ceil(count / pageSize)
       : -1
 
@@ -188,9 +188,10 @@ const TracksPage = () => {
         <h2 className='ml-2 text-2xl font-bold'>المسارات</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
-            <Button className='flex gap-2 items-center'>
+            <Button className='flex items-center gap-2'>
               <Plus className='h-4 w-4' />
-              إضافة مسار</Button>
+              إضافة مسار
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <AddTrackDialog setDialogOpen={setDialogOpen} />
