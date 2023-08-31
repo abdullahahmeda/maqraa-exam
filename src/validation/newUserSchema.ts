@@ -8,6 +8,7 @@ const baseSchema = z.object({
     .email()
     .min(1)
     .transform((val) => val.toLowerCase()),
+  password: z.string().min(4),
   phone: z.string().optional(),
 })
 

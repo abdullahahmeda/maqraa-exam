@@ -3,6 +3,7 @@ import { UseFormReturn, useFieldArray, useWatch } from 'react-hook-form'
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -17,7 +18,7 @@ import {
   SelectContent,
 } from '../ui/select'
 import { DialogFooter } from '../ui/dialog'
-import { userRoleMapping } from '~/utils/users'
+import { generateRandomPassword, userRoleMapping } from '~/utils/users'
 import { Button } from '../ui/button'
 import { api } from '~/utils/api'
 import { Combobox } from '../ui/combobox'
@@ -29,10 +30,13 @@ import {
   AccordionTrigger,
 } from '../ui/accordion'
 import difference from 'lodash.difference'
+import { Eye, EyeOff, RefreshCcw } from 'lucide-react'
+import { useState } from 'react'
 
 export type AddUserFieldValues = {
   name: string
   email: string
+  password: string
   phone: string
   role: UserRole
   corrector:
@@ -233,6 +237,8 @@ export const UserForm = ({
     name: 'role',
   })
 
+  const [showPassword, setShowPassword] = useState(true)
+
   // const {
   //   fields: studentCycles,
   //   remove,
@@ -278,6 +284,52 @@ export const UserForm = ({
               <FormControl>
                 <Input type='email' {...field} />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='password'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>كلمة المرور</FormLabel>
+              <FormControl>
+                <div className='flex items-center gap-2'>
+                  <div className='relative grow'>
+                    <Input
+                      type={showPassword ? 'text' : 'password'}
+                      {...field}
+                    />
+                    <Button
+                      variant='ghost'
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className='absolute left-1 top-1 h-8 px-2'
+                      type='button'
+                    >
+                      {showPassword ? (
+                        <EyeOff className='h-4 w-4' />
+                      ) : (
+                        <Eye className='h-4 w-4' />
+                      )}
+                    </Button>
+                  </div>
+                  <Button
+                    variant='secondary'
+                    className='flex items-center gap-2'
+                    type='button'
+                    onClick={() =>
+                      form.setValue('password', generateRandomPassword())
+                    }
+                  >
+                    <RefreshCcw className='h-4 w-4' />
+                    توليد
+                  </Button>
+                </div>
+              </FormControl>
+              <FormDescription>
+                كلمة المرور ستظهر عند إنشاءها فقط ولن تظهر مرة أخرى
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

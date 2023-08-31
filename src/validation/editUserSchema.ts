@@ -9,6 +9,7 @@ const baseSchema = z.object({
     .email()
     .min(1)
     .transform((val) => val.toLowerCase()),
+  password: z.string().min(4).optional(),
   phone: z.string().nullish(),
 })
 
@@ -42,7 +43,7 @@ const correctorSchema = baseSchema.extend({
 })
 
 // baseSchema is basically the studentSchema
-export const updateUserSchema = z.discriminatedUnion('role', [
+export const editUserSchema = z.discriminatedUnion('role', [
   adminSchema,
   correctorSchema,
   studentSchema,

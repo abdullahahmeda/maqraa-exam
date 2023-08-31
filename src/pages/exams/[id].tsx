@@ -10,7 +10,7 @@ import { useState, useEffect } from 'react'
 import WebsiteLayout from '~/components/layout'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
 import { checkRead } from '~/server/api/routers/helper'
-import { withPresets } from '@zenstackhq/runtime'
+import { enhance } from '@zenstackhq/runtime'
 import { prisma as _prisma } from '~/server/db'
 import { getServerAuthSession } from '~/server/auth'
 import {
@@ -112,7 +112,6 @@ const ExamPage = ({
     0
   )
 
-
   return (
     <>
       <style global jsx>{`
@@ -163,7 +162,9 @@ const ExamPage = ({
           <Form {...form}>
             <form
               onSubmit={
-                exam.submittedAt || session?.user.id !== exam.userId ? () => undefined : form.handleSubmit(onSubmit)
+                exam.submittedAt || session?.user.id !== exam.userId
+                  ? () => undefined
+                  : form.handleSubmit(onSubmit)
               }
             >
               {exam.groups.map((group, i) =>
@@ -173,11 +174,11 @@ const ExamPage = ({
                     className={cn(
                       'mb-4 rounded p-2',
                       exam.grade !== null &&
-                      isCorrect === true &&
-                      'bg-success/20',
+                        isCorrect === true &&
+                        'bg-success/20',
                       exam.grade !== null &&
-                      isCorrect === false &&
-                      'bg-destructive/20'
+                        isCorrect === false &&
+                        'bg-destructive/20'
                     )}
                   >
                     <div className='flex items-center'>
@@ -320,11 +321,11 @@ const ExamPage = ({
 }
 ExamPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
 
-export async function getServerSideProps (ctx: GetServerSidePropsContext) {
+export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const id = ctx.params!.id as string
 
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-  const prisma = withPresets(_prisma, { user: session?.user })
+  const prisma = enhance(_prisma, { user: session?.user })
 
   const exam = await checkRead(
     prisma.exam.findFirst({
@@ -361,6 +362,8 @@ export async function getServerSideProps (ctx: GetServerSidePropsContext) {
         },
       },
     }
+
+  if (exam.endedAt) return { notFound: true }
 
   // not submitted but questions have been made, so hide answers
   if (exam.enteredAt)
@@ -401,7 +404,7 @@ export async function getServerSideProps (ctx: GetServerSidePropsContext) {
     exam.groups.map(async (g) => {
       let styleQuery =
         g.styleOrType === QuestionType.MCQ ||
-          g.styleOrType === QuestionType.WRITTEN
+        g.styleOrType === QuestionType.WRITTEN
           ? { type: (g.styleOrType as QuestionType) || undefined }
           : { style: (g.styleOrType as QuestionStyle) || undefined }
 

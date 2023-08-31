@@ -15,9 +15,9 @@ import {
   BarChart,
   Bar,
 } from 'recharts'
-import dayjs from 'dayjs'
 import { getServerAuthSession } from '~/server/auth'
 import { UserRole } from '@prisma/client'
+import { startOfDay, sub, format } from 'date-fns'
 
 const DashboardPage = ({
   examsCount,
@@ -46,14 +46,12 @@ const DashboardPage = ({
             <CartesianGrid strokeDasharray='3 3' />
             <XAxis
               dataKey='createdAt'
-              tickFormatter={(tickFormat) =>
-                dayjs(tickFormat).format('DD/MM/YYYY')
-              }
+              tickFormatter={(tickFormat) => format(tickFormat, 'dd/MM/yyyy')}
             />
             <YAxis allowDecimals={false} />
             <Tooltip
               labelFormatter={(value) => {
-                return dayjs(value).format('التاريخ: DD/MM/YYYY')
+                return format(value, 'التاريخ: dd/MM/yyyy')
               }}
             />
             <Legend />
@@ -83,7 +81,7 @@ DashboardPage.getLayout = (page: any) => {
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
 
-  if (session?.user.role === UserRole.CORRECTOR)
+  if (session?.user.role !== 'ADMIN')
     return {
       redirect: {
         destination: '/dashboard/exams',
@@ -91,18 +89,15 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       },
     }
 
-  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
-
   const studentsCount = await prisma.user.count({
     where: { role: UserRole.STUDENT },
   })
   const examsCount = await prisma.exam.count()
   const ungradedExamsCount = await prisma.exam.count({ where: { grade: null } })
   const last30DaysExamsCounts =
-    await prisma.$queryRaw`SELECT COUNT("public"."Exam"."grade") AS graded, COUNT(*), CAST("public"."Exam"."createdAt" AS DATE) FROM "public"."Exam" WHERE "public"."Exam"."createdAt" >= ${dayjs()
-      .subtract(30, 'day')
-      .startOf('day')
-      .toDate()} GROUP BY CAST("public"."Exam"."createdAt" AS DATE) ORDER BY CAST("public"."Exam"."createdAt" AS Date) ASC`
+    await prisma.$queryRaw`SELECT COUNT("public"."Exam"."grade") AS graded, COUNT(*), CAST("public"."Exam"."createdAt" AS DATE) FROM "public"."Exam" WHERE "public"."Exam"."createdAt" >= ${startOfDay(
+      sub(new Date(), { days: 30 })
+    )} GROUP BY CAST("public"."Exam"."createdAt" AS DATE) ORDER BY CAST("public"."Exam"."createdAt" AS Date) ASC`
 
   return {
     props: {

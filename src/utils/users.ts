@@ -1,5 +1,6 @@
 import { UserRole as EnUserRole } from '@prisma/client'
 import invert from 'lodash.invert'
+import randomize from 'randomatic'
 
 export const userRoleMapping = {
   أدمن: EnUserRole.ADMIN,
@@ -19,3 +20,5 @@ export const enUserRoleToAr = (enUserRole: string): ArUserRole | string => {
 export const getFirstName = (name?: string | null, fallback = 'مستخدم') => {
   return name?.split(' ')[0] || fallback
 }
+
+export const generateRandomPassword = () => randomize('aA0!', 12)

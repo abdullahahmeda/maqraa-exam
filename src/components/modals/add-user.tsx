@@ -15,6 +15,7 @@ import { DialogHeader } from '../ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { useToast } from '../ui/use-toast'
 import { User, Users } from 'lucide-react'
+import { generateRandomPassword } from '~/utils/users'
 
 type Props = {
   setDialogOpen: (state: boolean) => void
@@ -26,6 +27,7 @@ const AddSingleUserTab = ({ setDialogOpen }: Props) => {
 
   const form = useForm<AddUserFieldValues>({
     defaultValues: {
+      password: generateRandomPassword(),
       role: UserRole.STUDENT,
       student: { cycles: {} },
     },

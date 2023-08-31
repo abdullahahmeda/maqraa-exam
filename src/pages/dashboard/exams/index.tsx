@@ -32,7 +32,14 @@ import {
   AlertDialogContent,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import { FileCheck2, Filter, Trash, Link as LinkIcon, Plus } from 'lucide-react'
+import {
+  FileCheck2,
+  Filter,
+  Trash,
+  Link as LinkIcon,
+  Plus,
+  LogIn,
+} from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
 import {
   Select,
@@ -61,6 +68,11 @@ import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
 import { AddExamDialog } from '~/components/modals/add-exam'
 import { DeleteExamDialog } from '~/components/modals/delete-exam'
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from '~/components/ui/hover-card'
 
 type Row = Exam & {
   user: User
@@ -74,282 +86,6 @@ type Row = Exam & {
 }
 
 const columnHelper = createColumnHelper<Row>()
-
-const columns = [
-  columnHelper.accessor('user.name', {
-    header: 'الطالب',
-    cell: (info) => info.getValue() || '-',
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.accessor('user.email', {
-    header: 'الإيميل',
-    cell: (info) => info.getValue() || '-',
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  // columnHelper.accessor('course.name', {
-  //   id: 'course',
-  //   header: ({ column }) => {
-  //     const { data: courses, isLoading } = api.courses.findMany.useQuery({})
-  //     const filterValue = column.getFilterValue() as string | undefined
-  //     return (
-  //       <div className='flex items-center'>
-  //         المقرر
-  //         <Popover>
-  //           <PopoverTrigger className='mr-4'>
-  //             <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
-  //               <Filter className='h-4 w-4' />
-  //             </Button>
-  //           </PopoverTrigger>
-  //           <PopoverContent>
-  //             <Combobox
-  //               items={[{ name: 'الكل', id: '' }, ...(courses || [])]}
-  //               loading={isLoading}
-  //               labelKey='name'
-  //               valueKey='id'
-  //               onSelect={column.setFilterValue}
-  //               value={filterValue}
-  //               triggerText='الكل'
-  //               triggerClassName='w-full'
-  //             />
-  //           </PopoverContent>
-  //         </Popover>
-  //       </div>
-  //     )
-  //   },
-  //   meta: {
-  //     className: 'text-center',
-  //   },
-  // }),
-  columnHelper.accessor('curriculum.name', {
-    id: 'curriculum',
-    header: ({ column, table }) => {
-      const { data: curricula, isLoading } = api.curricula.findMany.useQuery({
-        where: {
-          track: {
-            courseId:
-              table.getState().columnFilters.find((f) => f.id === 'course')
-                ?.value || undefined,
-          },
-        },
-      })
-      const filterValue = column.getFilterValue() as string | undefined
-      return (
-        <div className='flex items-center'>
-          المنهج
-          <Popover>
-            <PopoverTrigger className='mr-4' asChild>
-              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
-                <Filter className='h-4 w-4' />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent>
-              <Combobox
-                items={[{ name: 'الكل', id: '' }, ...(curricula || [])]}
-                loading={isLoading}
-                labelKey='name'
-                valueKey='id'
-                onSelect={column.setFilterValue}
-                value={filterValue}
-                triggerText='الكل'
-                triggerClassName='w-full'
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      )
-    },
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.accessor('type', {
-    header: ({ column }) => {
-      const filterValue = column.getFilterValue() as string | undefined
-
-      return (
-        <div className='flex items-center'>
-          النوع
-          <Popover>
-            <PopoverTrigger className='mr-4' asChild>
-              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
-                <Filter className='h-4 w-4' />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent>
-              <Select
-                value={filterValue === undefined ? '' : filterValue}
-                onValueChange={column.setFilterValue}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value=''>الكل</SelectItem>
-                  {Object.entries(examTypeMapping).map(([label, value]) => (
-                    <SelectItem key={value} value={value}>
-                      {label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </PopoverContent>
-          </Popover>
-        </div>
-      )
-    },
-    cell: ({ getValue }) => enExamTypeToAr(getValue()),
-  }),
-  // columnHelper.accessor('grade', {
-  //   header: 'الدرجة',
-  //   cell: (info) => (
-  //     <Badge
-  //     // variant={info.getValue() !== null ? 'primary' : 'warning'}
-  //     >
-  //       {info.getValue() === null
-  //         ? 'لم يتم التصحيح'
-  //         : `${info.getValue()} من ${
-  //             info.row.original.questions.length
-  //           } (${percentage(
-  //             info.getValue() as number,
-  //             info.row.original.questions.length
-  //           )}%)`}
-  //     </Badge>
-  //   ),
-  //   meta: {
-  //     className: 'text-center',
-  //   },
-  // }),
-  columnHelper.accessor('cycle.name', {
-    id: 'cycle',
-    header: ({ column }) => {
-      const { data: tracks, isLoading } = api.cycles.findMany.useQuery({})
-
-      const filterValue = column.getFilterValue() as string | undefined
-
-      return (
-        <div className='flex items-center'>
-          الدورة
-          <Popover>
-            <PopoverTrigger className='mr-4' asChild>
-              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
-                <Filter className='h-4 w-4' />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent>
-              <Combobox
-                items={[{ name: 'الكل', id: '' }, ...(tracks || [])]}
-                loading={isLoading}
-                labelKey='name'
-                valueKey='id'
-                onSelect={column.setFilterValue}
-                value={filterValue}
-                triggerText='الكل'
-                triggerClassName='w-full'
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
-      )
-    },
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.accessor('createdAt', {
-    header: 'وقت الإنشاء',
-    cell: (info) => formatDate(info.getValue()),
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.accessor('enteredAt', {
-    header: 'وقت البدأ',
-    cell: (info) =>
-      info.getValue() ? (
-        formatDate(info.getValue() as Date)
-      ) : (
-        <Badge variant='destructive'>لم يتم البدأ</Badge>
-      ),
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.accessor('submittedAt', {
-    header: 'وقت التسليم',
-    cell: (info) =>
-      info.getValue() ? (
-        formatDate(info.getValue() as Date)
-      ) : (
-        <Badge variant='destructive'>لم يتم التسليم</Badge>
-      ),
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.accessor('correctedAt', {
-    header: 'وقت التصحيح',
-    cell: (info) =>
-      info.getValue() ? (
-        formatDate(info.getValue() as Date)
-      ) : (
-        <Badge variant='destructive'>لم يتم التصحيح</Badge>
-      ),
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.accessor('corrector.name', {
-    header: 'المصحح',
-    cell: (info) => info.getValue() || '-',
-    meta: {
-      className: 'text-center',
-    },
-  }),
-  columnHelper.display({
-    id: 'actions',
-    header: 'الإجراءات',
-    cell: ({ row }) => (
-      <div className='flex justify-center gap-2'>
-        {!!row.original.submittedAt && (
-          <Link
-            className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }))}
-            href={`/dashboard/exams/${row.original.id}`}
-          >
-            <FileCheck2 className='h-4 w-4 text-success' />
-          </Link>
-        )}
-        <Button
-          size='icon'
-          variant='ghost'
-          onClick={() =>
-            navigator.clipboard.writeText(
-              `${location.origin}/exams/${row.original.id}`
-            )
-          }
-        >
-          <LinkIcon className='h-4 w-4' />
-        </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant='ghost' size='icon' className='hover:bg-red-50'>
-              <Trash className='h-4 w-4 text-red-600' />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <DeleteExamDialog id={row.original.id} />
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    ),
-    meta: {
-      className: 'text-center',
-    },
-  }),
-]
 
 const PAGE_SIZE = 50
 
@@ -373,6 +109,281 @@ const ExamsPage = () => {
     pageSize,
   }
 
+  const columns = [
+    ...(session?.user.role === 'STUDENT'
+      ? []
+      : [
+          columnHelper.accessor('user.name', {
+            header: 'الطالب',
+
+            cell: (info) => info.getValue() || '-',
+            meta: {
+              className: 'text-center',
+            },
+          }),
+          columnHelper.accessor('user.email', {
+            header: 'الإيميل',
+            cell: (info) => info.getValue() || '-',
+            meta: {
+              className: 'text-center',
+            },
+          }),
+        ]),
+    columnHelper.accessor('curriculum.name', {
+      id: 'curriculum',
+      header: ({ column, table }) => {
+        const { data: curricula, isLoading } = api.curricula.findMany.useQuery({
+          where: {
+            track: {
+              courseId:
+                table.getState().columnFilters.find((f) => f.id === 'course')
+                  ?.value || undefined,
+            },
+          },
+        })
+        const filterValue = column.getFilterValue() as string | undefined
+        return (
+          <div className='flex items-center'>
+            المنهج
+            <Popover>
+              <PopoverTrigger className='mr-4' asChild>
+                <Button
+                  size='icon'
+                  variant={filterValue ? 'secondary' : 'ghost'}
+                >
+                  <Filter className='h-4 w-4' />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <Combobox
+                  items={[{ name: 'الكل', id: '' }, ...(curricula || [])]}
+                  loading={isLoading}
+                  labelKey='name'
+                  valueKey='id'
+                  onSelect={column.setFilterValue}
+                  value={filterValue}
+                  triggerText='الكل'
+                  triggerClassName='w-full'
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )
+      },
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.accessor('type', {
+      header: ({ column }) => {
+        const filterValue = column.getFilterValue() as string | undefined
+
+        return (
+          <div className='flex items-center'>
+            النوع
+            <Popover>
+              <PopoverTrigger className='mr-4' asChild>
+                <Button
+                  size='icon'
+                  variant={filterValue ? 'secondary' : 'ghost'}
+                >
+                  <Filter className='h-4 w-4' />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <Select
+                  value={filterValue === undefined ? '' : filterValue}
+                  onValueChange={column.setFilterValue}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value=''>الكل</SelectItem>
+                    {Object.entries(examTypeMapping).map(([label, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </PopoverContent>
+            </Popover>
+          </div>
+        )
+      },
+      cell: ({ getValue }) => enExamTypeToAr(getValue()),
+    }),
+    columnHelper.accessor('cycle.name', {
+      id: 'cycle',
+      header: ({ column }) => {
+        const { data: tracks, isLoading } = api.cycles.findMany.useQuery({})
+
+        const filterValue = column.getFilterValue() as string | undefined
+
+        return (
+          <div className='flex items-center'>
+            الدورة
+            <Popover>
+              <PopoverTrigger className='mr-4' asChild>
+                <Button
+                  size='icon'
+                  variant={filterValue ? 'secondary' : 'ghost'}
+                >
+                  <Filter className='h-4 w-4' />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent>
+                <Combobox
+                  items={[{ name: 'الكل', id: '' }, ...(tracks || [])]}
+                  loading={isLoading}
+                  labelKey='name'
+                  valueKey='id'
+                  onSelect={column.setFilterValue}
+                  value={filterValue}
+                  triggerText='الكل'
+                  triggerClassName='w-full'
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+        )
+      },
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.accessor('createdAt', {
+      header: 'وقت الإنشاء',
+      cell: (info) => formatDate(info.getValue()),
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.accessor('enteredAt', {
+      header: 'وقت البدأ',
+      cell: (info) =>
+        info.getValue() ? (
+          formatDate(info.getValue() as Date)
+        ) : (
+          <Badge variant='outline'>لم يتم البدأ</Badge>
+        ),
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.accessor('endedAt', {
+      header: 'وقت القفل',
+      cell: (info) =>
+        info.getValue() ? (
+          formatDate(info.getValue() as Date)
+        ) : (
+          <Badge variant='outline'>مفتوح</Badge>
+        ),
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.accessor('submittedAt', {
+      header: 'وقت التسليم',
+      cell: (info) =>
+        info.getValue() ? (
+          formatDate(info.getValue() as Date)
+        ) : (
+          <Badge variant='outline'>لم يتم التسليم</Badge>
+        ),
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.accessor('correctedAt', {
+      header: 'وقت التصحيح',
+      cell: (info) =>
+        info.getValue() ? (
+          formatDate(info.getValue() as Date)
+        ) : (
+          <Badge variant='outline'>لم يتم التصحيح</Badge>
+        ),
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.accessor('corrector.name', {
+      header: 'المصحح',
+      cell: (info) => info.getValue() || '-',
+      meta: {
+        className: 'text-center',
+      },
+    }),
+    columnHelper.display({
+      id: 'actions',
+      header: 'الإجراءات',
+      cell: ({ row }) => (
+        <div className='flex justify-center gap-2'>
+          {session?.user.role !== 'STUDENT' ? (
+            <>
+              {(!!row.original.submittedAt || !!row.original.endedAt) && (
+                <Link
+                  className={cn(
+                    buttonVariants({ variant: 'ghost', size: 'icon' })
+                  )}
+                  href={`/dashboard/exams/${row.original.id}`}
+                >
+                  <FileCheck2 className='h-4 w-4 text-success' />
+                </Link>
+              )}
+              <Button
+                size='icon'
+                variant='ghost'
+                onClick={() =>
+                  navigator.clipboard.writeText(
+                    `${location.origin}/exams/${row.original.id}`
+                  )
+                }
+              >
+                <LinkIcon className='h-4 w-4' />
+              </Button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='hover:bg-red-50'
+                  >
+                    <Trash className='h-4 w-4 text-red-600' />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <DeleteExamDialog id={row.original.id} />
+                </AlertDialogContent>
+              </AlertDialog>
+            </>
+          ) : (
+            <>
+              {!row.original.endedAt && !row.original.submittedAt && (
+                <HoverCard>
+                  <HoverCardTrigger>
+                    <Link
+                      className={cn(
+                        buttonVariants({ variant: 'ghost', size: 'icon' })
+                      )}
+                      href={`/exams/${row.original.id}`}
+                    >
+                      <LogIn className='h-4 w-4' />
+                    </Link>
+                  </HoverCardTrigger>
+                  <HoverCardContent>دخول الإختبار</HoverCardContent>
+                </HoverCard>
+              )}
+            </>
+          )}
+        </div>
+      ),
+      meta: {
+        className: 'text-center',
+      },
+    }),
+  ]
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
     // {
     //   id: 'difficulty',
@@ -391,6 +402,7 @@ const ExamsPage = () => {
       value: ExamType.FULL,
     },
   ])
+
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'cycle')
       return { cycleId: { equals: filter.value as string } }
@@ -482,12 +494,6 @@ ExamsPage.getLayout = (page: ReactNode) => (
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-
-  if (
-    session?.user.role !== UserRole.ADMIN &&
-    session?.user.role !== UserRole.CORRECTOR
-  )
-    return { notFound: true }
 
   return {
     props: {

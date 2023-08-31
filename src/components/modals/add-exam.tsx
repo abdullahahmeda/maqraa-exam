@@ -1,24 +1,60 @@
-import { api } from "~/utils/api"
-import { useFieldArray, useForm, useWatch } from "react-hook-form"
-import { zodResolver } from "@hookform/resolvers/zod"
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
-import { useToast } from "../ui/use-toast"
-import { useQueryClient } from "@tanstack/react-query"
-import { DndContext, DragEndEvent, PointerSensor, closestCenter, useSensor, useSensors } from "@dnd-kit/core"
-import { newSystemExamSchema } from "~/validation/newSystemExamSchema"
-import { z } from "zod"
-import { Select, SelectItem, SelectLabel, SelectTrigger, SelectContent, SelectValue } from "../ui/select"
-import { Curriculum, CurriculumPart, ExamType, QuestionDifficulty, QuestionStyle, QuestionType } from "@prisma/client"
-import { Checkbox } from "../ui/checkbox"
-import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
-import { Accordion } from "../ui/accordion"
-import { Button } from "../ui/button"
-import { CheckedState } from "@radix-ui/react-checkbox"
-import { QuestionGroup, Group } from "../questions-group"
-
+import { api } from '~/utils/api'
+import { useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '../ui/form'
+import { useToast } from '../ui/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
+import {
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
+import { z } from 'zod'
+import {
+  Select,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectContent,
+  SelectValue,
+} from '../ui/select'
+import {
+  Curriculum,
+  CurriculumPart,
+  ExamType,
+  QuestionDifficulty,
+  QuestionStyle,
+  QuestionType,
+} from '@prisma/client'
+import { Checkbox } from '../ui/checkbox'
+import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { Accordion } from '../ui/accordion'
+import { Button } from '../ui/button'
+import { CheckedState } from '@radix-ui/react-checkbox'
+import { QuestionGroup, Group } from '../questions-group'
+import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
+import { cn } from '~/lib/utils'
+import { CalendarIcon } from 'lucide-react'
+import { Calendar } from '../ui/calendar'
+import { formatDate } from '~/utils/formatDate'
+import { arSA } from 'date-fns/locale'
+import { format } from 'date-fns'
 
 type FieldValues = {
   type: string
+  endedAt: Date | null | undefined
   courseId: string
   trackId: string
   curriculumId: string
@@ -26,7 +62,6 @@ type FieldValues = {
   groups: Group[]
   cycleId: string
 }
-
 
 export const AddExamDialog = ({
   setDialogOpen,
@@ -177,6 +212,50 @@ export const AddExamDialog = ({
                   </SelectItem>
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='endedAt'
+          render={({ field }) => (
+            <FormItem className='flex flex-col'>
+              <FormLabel>تاريخ قفل الإختبار</FormLabel>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <Button
+                      variant='outline'
+                      className={cn(
+                        'pl-3 text-right font-normal',
+                        !field.value && 'text-muted-foreground'
+                      )}
+                    >
+                      {field.value ? (
+                        format(field.value, 'dd MMMM yyyy hh:mm a')
+                      ) : (
+                        <span>اختر التاريخ</span>
+                      )}
+                      <CalendarIcon className='mr-auto h-4 w-4 opacity-50' />
+                    </Button>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className='w-auto p-0' align='start'>
+                  <Calendar
+                    mode='single'
+                    selected={field.value || undefined}
+                    locale={arSA}
+                    onSelect={field.onChange}
+                    disabled={(date: Date) => date < new Date()}
+                    initialFocus
+                  />
+                </PopoverContent>
+              </Popover>
+              <FormDescription>
+                اتركه فارعاً إن كان الإختبار مفتوح. قم باختيار نفس التاريخ
+                لإزالة الاختيار
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -350,4 +429,3 @@ export const AddExamDialog = ({
     </Form>
   )
 }
-

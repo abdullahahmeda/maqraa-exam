@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { EditUserFieldValues, UserForm } from '../forms/user'
 import { UserRole } from '@prisma/client'
 import { api } from '~/utils/api'
-import { updateUserSchema } from '~/validation/updateUserSchema'
+import { editUserSchema } from '~/validation/editUserSchema'
 import { Loader2 } from 'lucide-react'
 import { useEffect } from 'react'
 import { DialogHeader } from '../ui/dialog'
@@ -23,7 +23,7 @@ export const EditUserDialog = ({
   const queryClient = useQueryClient()
   const { toast } = useToast()
   const form = useForm<EditUserFieldValues>({
-    resolver: zodResolver(updateUserSchema),
+    resolver: zodResolver(editUserSchema),
   })
   const {
     data: user,
@@ -82,11 +82,9 @@ export const EditUserDialog = ({
     }
   }, [user, form])
 
-  console.log(form.formState.errors)
-
   const onSubmit = (data: EditUserFieldValues) => {
     userUpdate
-      .mutateAsync(data as z.infer<typeof updateUserSchema>)
+      .mutateAsync(data as z.infer<typeof editUserSchema>)
       .then(() => {
         toast({ title: 'تم تعديل بيانات المستخدم بنجاح' })
         if (id === session!.user.id)

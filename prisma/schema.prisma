@@ -87,10 +87,10 @@ model Session {
 
 /// @@allow('all', auth().role == ADMIN)
 /// @@allow('read', auth().role == CORRECTOR)
-/// @@allow('read', auth() == this)
+/// @@allow('read,update', auth() == this)
 model User {
     id String @id() @default(cuid())
-    name String?
+    name String
     email String @unique()
     emailVerified DateTime?
     /// @password
@@ -240,6 +240,7 @@ model Exam {
     enteredAt DateTime?
     submittedAt DateTime?
     correctedAt DateTime?
+    endedAt DateTime?
     repeatFromSameHadith Boolean @default(false)
     curriculumId String
     userId String?

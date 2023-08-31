@@ -1,4 +1,7 @@
-import dayjs from 'dayjs'
+import { format } from 'date-fns'
+import { arSA } from 'date-fns/locale'
 
 export const formatDate = (date: Date) =>
-  dayjs(date).format('DD MMMM YYYY hh:mm A')
+  format(date, 'dd MMMM yyyy hh:mm a', {
+    locale: arSA,
+  })

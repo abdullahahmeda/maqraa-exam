@@ -22,7 +22,7 @@ import {
 } from '~/components/ui/form'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
 import { prisma as _prisma } from '~/server/db'
-import { withPresets } from '@zenstackhq/runtime'
+import { enhance } from '@zenstackhq/runtime'
 import { getServerAuthSession } from '~/server/auth'
 import { Checkbox } from '~/components/ui/checkbox'
 import { formatDate } from '~/utils/formatDate'
@@ -308,7 +308,7 @@ const ExamPage = ({
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   // TODO: auth check
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-  const prisma = withPresets(_prisma, { user: session?.user })
+  const prisma = enhance(_prisma, { user: session?.user })
 
   if (
     session?.user.role !== UserRole.ADMIN &&

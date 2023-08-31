@@ -17,7 +17,7 @@ interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
   setIsSidebarOpen: (state: boolean) => void
 }
 
-export function Sidebar ({ className, links, setIsSidebarOpen }: SidebarProps) {
+export function Sidebar({ className, links, setIsSidebarOpen }: SidebarProps) {
   const router = useRouter()
   const { data: session } = useSession()
 
@@ -43,11 +43,21 @@ export function Sidebar ({ className, links, setIsSidebarOpen }: SidebarProps) {
             </Link>
           ))}
         </div>
-        <div className='flex items-center gap-2'>
+        <div className='flex h-16 items-center justify-start gap-2'>
           <Avatar>
             <AvatarFallback>{session?.user.name?.[0]}</AvatarFallback>
           </Avatar>
-          <p>{session?.user.name}</p>
+          <div>
+            <p>{session?.user.name}</p>
+            <Link
+              href='/dashboard/profile'
+              className={cn(
+                buttonVariants({ variant: 'secondary', size: 'sm' })
+              )}
+            >
+              تعديل الملف الشخصي
+            </Link>
+          </div>
         </div>
       </div>
     </div>

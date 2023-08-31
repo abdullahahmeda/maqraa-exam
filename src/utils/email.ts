@@ -1,5 +1,14 @@
-import axios from 'axios'
 import { env } from '../env.mjs'
+import { createTransport } from 'nodemailer'
+
+const transport = createTransport({
+  host: env.SMTP_HOST,
+  port: env.SMTP_PORT,
+  auth: {
+    user: env.SMTP_EMAIL,
+    pass: env.SMTP_PASSWORD,
+  },
+})
 
 type SendMailOptions = {
   to: { email: string; name?: string }[]
@@ -10,15 +19,25 @@ type SendMailOptions = {
 }
 
 export const sendMail = async (mailOptions: SendMailOptions) => {
-  if (!mailOptions.sender)
-    mailOptions.sender = {
-      name: 'Abdulah Ahmed',
-      email: 'abdullah.ahmed.a2000@gmail.com'
-    }
+  return transport.sendMail({
+    from: `Maqraa <${env.SMTP_EMAIL}>`,
+    text: mailOptions.textContent,
+    html: mailOptions.htmlContent,
+    subject: mailOptions.subject,
+    to: mailOptions.to.map((receiver) => receiver.email).join(','),
+  })
+}
 
-  return axios.post('https://api.brevo.com/v3/smtp/email', mailOptions, {
-    headers: {
-      'api-key': env.SENDINBLUE_API_KEY
-    }
+export const sendPasswordChangedEmail = async ({
+  email,
+  password,
+}: {
+  email: string
+  password: string
+}) => {
+  return sendMail({
+    subject: 'تم تغيير كلمة المرور الخاصة بك',
+    to: [{ email }],
+    textContent: `كلمة المرور الجديدة الخاصة بك ${password}`,
   })
 }

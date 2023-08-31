@@ -3,7 +3,7 @@ import { createTRPCRouter, protectedProcedure } from '../trpc'
 import { UserInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, db, checkRead } from './helper'
 import { UserWhereInputObjectSchema } from '.zenstack/zod/objects'
-import { updateUserSchema } from '~/validation/updateUserSchema'
+import { editUserSchema } from '~/validation/editUserSchema'
 import { Prisma, UserRole } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { newUserSchema } from '~/validation/newUserSchema'
@@ -14,8 +14,10 @@ import { GaxiosError } from 'gaxios'
 import { studentSchema } from '~/validation/studentSchema'
 import { generate as generatePassword } from 'generate-password'
 import { prisma } from '~/server/db'
-import { sendMail } from '~/utils/email'
+import { sendMail, sendPasswordChangedEmail } from '~/utils/email'
 import { getBaseUrl } from '~/utils/api'
+import { updateProfileSchema } from '~/validation/updateProfileSchema'
+import { compareSync } from 'bcryptjs'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -40,8 +42,7 @@ export const usersRouter = createTRPCRouter({
   create: protectedProcedure
     .input(newUserSchema)
     .mutation(async ({ ctx, input }) => {
-      const password = generatePassword()
-      const { email, name, role, phone } = input
+      const { email, password, name, role, phone } = input
       const data = Prisma.validator<Prisma.UserCreateInput>()({
         name,
         email,
@@ -75,7 +76,7 @@ export const usersRouter = createTRPCRouter({
       const user = await checkMutate(db(ctx).user.create({ data }))
 
       await sendMail({
-        subject: 'كلمة المرور الخاصة بك في المقرأة',
+        subject: 'تم إضافة حسابك في المقرأة!',
         to: [{ email }],
         textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}/login`,
       })
@@ -129,6 +130,12 @@ export const usersRouter = createTRPCRouter({
           )
           const password = generatePassword()
           // TODO: send email for the user
+
+          // await sendMail({
+          //   subject: 'تم إضافة حسابك في المقرأة!',
+          //   to: [{ email }],
+          //   textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}/login`,
+          // })
           if (!s)
             s = (await checkMutate(
               db(ctx).student.create({
@@ -223,14 +230,15 @@ export const usersRouter = createTRPCRouter({
     .query(({ ctx, input }) => checkRead(db(ctx).user.findMany(input as any))),
 
   update: protectedProcedure
-    .input(updateUserSchema)
+    .input(editUserSchema)
     .mutation(async ({ ctx, input }) => {
       try {
-        const { id, email, name, role, phone } = input
+        const { id, email, password, name, role, phone } = input
         const data = Prisma.validator<Prisma.UserUpdateInput>()({
           name,
           email,
           role,
+          ...(password ? { password } : {}),
           phone,
           ...(role !== 'STUDENT'
             ? {
@@ -290,32 +298,32 @@ export const usersRouter = createTRPCRouter({
                       },
                     },
                   },
-                  //  {
-                  //   cycles: {
-                  //     create: Object.entries(input.student.cycles).map(
-                  //       ([cycleId, { curriculumId }]) => ({
-                  //         curriculumId,
-                  //         cycleId,
-                  //       })
-                  //     ),
-                  //   },
-                  // },
                 },
               }
-            : // {
-              //     student: {
-              //       connectOrCreate: { where: { userId: id }, create: {} },
-              //     },
-              //   }
-              undefined),
+            : undefined),
         })
 
-        return checkMutate(
+        const response = await checkMutate(
           db(ctx).user.update({
             where: { id },
             data,
           })
         )
+
+        if (password) {
+          // if password changed
+          try {
+            await sendPasswordChangedEmail({ email, password })
+          } catch (error) {
+            console.log('error here', error)
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: 'تم تعديل البيانات لكن حدث خطأ أثناء إرسال الإيميل',
+            })
+          }
+        }
+
+        return response
       } catch (error) {
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
           if (error.code === 'P2002')
@@ -330,5 +338,44 @@ export const usersRouter = createTRPCRouter({
           message: 'حدث خطأ غير متوقع',
         })
       }
+    }),
+
+  updateProfile: protectedProcedure
+    .input(updateProfileSchema)
+    .mutation(async ({ ctx, input }) => {
+      let password: string | undefined = undefined
+      if (input.changePassword) {
+        const user = await prisma.user.findFirstOrThrow({
+          where: { id: ctx.session.user.id },
+        })
+        const isPasswordCorrect = compareSync(
+          input.currentPassword,
+          user.password
+        )
+        if (!isPasswordCorrect)
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'حقل كلمة المرور الحالية غير صحيح',
+            cause: new z.ZodError([
+              {
+                code: 'custom',
+                message: 'كلمة المرور هذه غير صحيحة',
+                path: ['currentPassword'],
+              },
+            ]),
+          })
+        password = input.newPassword
+      }
+
+      return checkMutate(
+        db(ctx).user.update({
+          where: { id: ctx.session.user.id },
+          data: {
+            name: input.name,
+            phone: input.phone,
+            ...(password ? { password } : {}),
+          },
+        })
+      )
     }),
 })

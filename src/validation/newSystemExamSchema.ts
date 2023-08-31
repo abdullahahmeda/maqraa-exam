@@ -8,6 +8,7 @@ export const newSystemExamSchema = z.object({
     z.literal(ExamType.FIRST_MEHWARY),
     z.literal(ExamType.SECOND_MEHWARY),
   ]),
+  endedAt: z.date().nullish(),
   courseId: z.string().min(1),
   trackId: z.string().min(1),
   curriculumId: z.string().min(1),

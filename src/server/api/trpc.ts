@@ -78,15 +78,18 @@ import superjson from 'superjson'
 import { UserRole } from '../../constants'
 import { ZodError } from 'zod'
 import { PrismaClient } from '@prisma/client'
+import { env } from '~/env.mjs'
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter(opts) {
     const { shape, error } = opts
-    if (shape.data.code === 'FORBIDDEN')
-      shape.message = 'لا تملك الصلاحية لهذه العملية'
-    if (shape.data.code === 'INTERNAL_SERVER_ERROR')
-      shape.message = 'حدث خطأ غير متوقع'
+    if (env.NODE_ENV === 'production') {
+      if (shape.data.code === 'FORBIDDEN')
+        shape.message = 'لا تملك الصلاحية لهذه العملية'
+      if (shape.data.code === 'INTERNAL_SERVER_ERROR')
+        shape.message = 'حدث خطأ غير متوقع'
+    }
 
     return {
       ...shape,

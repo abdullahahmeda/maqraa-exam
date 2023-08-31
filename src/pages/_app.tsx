@@ -6,8 +6,8 @@ import { SessionProvider } from 'next-auth/react'
 import { Cairo } from 'next/font/google'
 import { z } from 'zod'
 import { customErrorMap } from '../validation/customErrorMap'
-import dayjs from 'dayjs'
-import 'dayjs/locale/ar-sa'
+import { arSA } from 'date-fns/locale'
+import setDefaultOptions from 'date-fns/setDefaultOptions'
 import { api } from '../utils/api'
 import { Toaster } from '~/components/ui/toaster'
 
@@ -21,8 +21,7 @@ import '../styles/globals.css'
 import { DirectionProvider } from '@radix-ui/react-direction'
 
 z.setErrorMap(customErrorMap)
-
-dayjs.locale('ar-sa')
+setDefaultOptions({ locale: arSA })
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
   getLayout?: (page: ReactElement) => ReactNode

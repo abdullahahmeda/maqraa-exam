@@ -233,6 +233,7 @@ export const examsRouter = createTRPCRouter({
       )
 
       for (const user of studentUsers) {
+        // console.log(user)
         checkMutate(
           db(ctx).exam.create({
             data: {

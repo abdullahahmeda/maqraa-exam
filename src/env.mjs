@@ -21,11 +21,10 @@ const server = z.object({
   ),
   GOOGLE_API_KEY: z.string(),
   LOGTAIL_SOURCE_TOKEN: z.string(),
-  SENDINBLUE_API_KEY: z.string(),
-  DEFAULT_SENDER_NAME: z.string().optional(),
-  DEFAULT_SENDER_EMAIL: z.string(),
-  // EMAIL_SERVER: z.string(),
-  // EMAIL_FROM: z.string().email()
+  SMTP_HOST: z.string(),
+  SMTP_PORT: z.preprocess((v) => Number(v), z.number().int()),
+  SMTP_EMAIL: z.string().email(),
+  SMTP_PASSWORD: z.string(),
 })
 
 /**
@@ -49,11 +48,10 @@ const processEnv = {
   NEXTAUTH_URL: process.env.NEXTAUTH_URL,
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY,
   LOGTAIL_SOURCE_TOKEN: process.env.LOGTAIL_SOURCE_TOKEN,
-  SENDINBLUE_API_KEY: process.env.SENDINBLUE_API_KEY,
-  DEFAULT_SENDER_NAME: process.env.DEFAULT_SENDER_NAME,
-  DEFAULT_SENDER_EMAIL: process.env.DEFAULT_SENDER_EMAIL,
-  // EMAIL_SERVER: process.env.EMAIL_SERVER,
-  // EMAIL_FROM: process.env.EMAIL_FROM
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_EMAIL: process.env.SMTP_EMAIL,
+  SMTP_PASSWORD: process.env.SMTP_PASSWORD,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 }
 

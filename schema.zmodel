@@ -52,7 +52,7 @@ model Session {
 
 model User {
   id String @id @default(cuid())
-  name String?
+  name String
   email String @unique
   emailVerified DateTime?
   password String @password @omit
@@ -68,7 +68,7 @@ model User {
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('read', auth().role == CORRECTOR) // for correctors
   // for user
-  @@allow('read', auth() == this)
+  @@allow('read,update', auth() == this)
   // @@allow('update', auth() == this && future().role == role)
 }
 
@@ -212,6 +212,7 @@ model Exam {
   enteredAt DateTime?
   submittedAt DateTime?
   correctedAt DateTime?
+  endedAt DateTime?
   repeatFromSameHadith Boolean @default(false)
   curriculumId String
   userId String?

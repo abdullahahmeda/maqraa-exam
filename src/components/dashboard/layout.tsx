@@ -61,9 +61,16 @@ const menuLinks = {
       href: '/dashboard/exams',
     },
   ],
+  STUDENT: [
+    {
+      icon: <Construction className='ml-2 h-4 w-4' />,
+      label: 'اختباراتي',
+      href: '/dashboard/exams',
+    },
+  ],
 }
 
-export default function DashboardLayout ({ children }: { children: ReactNode }) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const { data: session } = useSession()
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
@@ -105,7 +112,7 @@ export default function DashboardLayout ({ children }: { children: ReactNode }) 
               : []
           }
         />
-        <main className='min-h-screen bg-[#f8f9fa] flex-1 border-r pb-4 pl-4 pr-4 pt-20 md:pr-[19rem]'>
+        <main className='min-h-screen flex-1 border-r bg-[#f8f9fa] pb-4 pl-4 pr-4 pt-20 md:pr-[19rem]'>
           {children}
         </main>
       </div>
