@@ -29,9 +29,7 @@ import {
   SelectContent,
   SelectValue,
 } from '../ui/select'
-import {
-  ExamType,
-} from '@prisma/client'
+import { ExamType } from '@prisma/client'
 import { Checkbox } from '../ui/checkbox'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Accordion } from '../ui/accordion'
@@ -42,14 +40,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { cn } from '~/lib/utils'
 import { CalendarIcon } from 'lucide-react'
 import { Calendar } from '../ui/calendar'
-import { formatDate } from '~/utils/formatDate'
 import { arSA } from 'date-fns/locale'
 import { format } from 'date-fns'
 
 type FieldValues = {
   type: string
   endedAt: Date | null | undefined
-  courseId: string
+  courseId: any
   trackId: string
   curriculumId: string
   repeatFromSameHadith: CheckedState
