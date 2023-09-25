@@ -74,10 +74,6 @@ const DeleteCourseDialog = ({ id }: { id: string }) => {
   )
 }
 
-type Props = {
-  page: number
-}
-
 const columnHelper = createColumnHelper<Course>()
 
 const PAGE_SIZE = 25

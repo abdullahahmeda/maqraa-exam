@@ -35,7 +35,6 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
 import { useToast } from '~/components/ui/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
 import sampleSize from 'lodash.samplesize'
 import { useSession } from 'next-auth/react'
 
@@ -58,7 +57,7 @@ const ExamPage = ({
   const { toast } = useToast()
   const { data: session } = useSession()
 
-  const examSubmit = api.exams.submit.useMutation()
+  const examSubmit = api.submitExam.useMutation()
 
   useEffect(() => {
     form.reset({
@@ -114,22 +113,6 @@ const ExamPage = ({
 
   return (
     <>
-      <style global jsx>{`
-        body {
-          background: linear-gradient(
-              to bottom,
-              rgba(92, 77, 66, 0.9) 0%,
-              rgba(92, 77, 66, 0.9) 100%
-            ),
-            url(/bg.jpg);
-          background-position: center;
-          background-repeat: no-repeat;
-          background-attachment: scroll;
-          background-size: cover;
-          min-height: 100vh;
-          background-attachment: fixed;
-        }
-      `}</style>
       <Head>
         <title>اختبار</title>
       </Head>
@@ -162,7 +145,7 @@ const ExamPage = ({
           <Form {...form}>
             <form
               onSubmit={
-                exam.submittedAt || session?.user.id !== exam.userId
+                exam.submittedAt || session?.user.id != exam.userId
                   ? () => undefined
                   : form.handleSubmit(onSubmit)
               }

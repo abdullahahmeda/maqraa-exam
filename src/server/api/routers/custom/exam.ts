@@ -263,7 +263,7 @@ export const examRouter = createTRPCRouter({
           message: 'هذا الاختبار تم تسليمه من قبل',
         })
 
-      if (ctx.session?.user.id !== exam.userId)
+      if (ctx.session?.user.id != exam.userId)
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'ليس لديك الصلاحيات لهذه العملية',

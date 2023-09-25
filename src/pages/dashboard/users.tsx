@@ -6,7 +6,12 @@ import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { Course, Cycle, StudentCycle, User, UserRole } from '@prisma/client'
+import {
+  Cycle,
+  StudentCycle,
+  User,
+  UserRole,
+} from '@prisma/client'
 import {
   createColumnHelper,
   useReactTable,
@@ -49,7 +54,6 @@ type Row = User & {
   student: { cycles: (StudentCycle & { cycle: Cycle })[] }
   corrector: {
     cycle: Cycle
-    course: Course
   }
 }
 
@@ -92,7 +96,7 @@ const UsersPage = () => {
         where: { AND: filters },
         include: {
           student: { include: { cycles: { include: { cycle: true } } } },
-          corrector: { include: { cycle: true, courses: true } },
+          corrector: { include: { cycle: true } },
         },
       },
       { networkMode: 'always' }
@@ -272,7 +276,7 @@ const UsersPage = () => {
   )
 
   const table = useReactTable({
-    data: users || [],
+    data: (users as Row[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),

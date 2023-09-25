@@ -81,9 +81,6 @@ const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   )
 }
 
-type Props = {
-  page: number
-}
 
 type RowType = Curriculum & {
   track: Track & { course: { name: string } }
