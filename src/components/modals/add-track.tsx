@@ -20,7 +20,7 @@ export const AddTrackDialog = ({
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const trackCreate = api.tracks.create.useMutation()
+  const trackCreate = api.createTrack.useMutation()
 
   const onSubmit = (data: AddTrackFieldValues) => {
     const t = toast({ title: 'جاري إضافة المسار' })
@@ -36,7 +36,7 @@ export const AddTrackDialog = ({
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['tracks']])
+        queryClient.invalidateQueries([['track']])
       })
   }
 

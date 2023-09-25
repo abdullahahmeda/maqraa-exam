@@ -12,13 +12,13 @@ import { useToast } from '../ui/use-toast'
 
 export const DeleteTrackDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
-  const trackDelete = api.tracks.delete.useMutation()
+  const trackDelete = api.track.delete.useMutation()
   const queryClient = useQueryClient()
 
   const deleteCourse = () => {
     const t = toast({ title: 'جاري حذف المسار...' })
     trackDelete
-      .mutateAsync(id)
+      .mutateAsync({ where: { id } })
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المسار بنجاح' })
@@ -28,7 +28,7 @@ export const DeleteTrackDialog = ({ id }: { id: string }) => {
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['tracks']])
+        queryClient.invalidateQueries([['track']])
       })
   }
 

@@ -12,13 +12,15 @@ import { useToast } from '../ui/use-toast'
 
 export const DeleteUserDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
-  const userDelete = api.users.delete.useMutation()
+  const userDelete = api.user.delete.useMutation()
   const queryClient = useQueryClient()
 
   const deleteUser = () => {
     const t = toast({ title: 'جاري حذف المستخدم' })
     userDelete
-      .mutateAsync(id)
+      .mutateAsync({
+        where: { id }
+      })
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المستخدم بنجاح' })
@@ -28,7 +30,7 @@ export const DeleteUserDialog = ({ id }: { id: string }) => {
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['users']])
+        queryClient.invalidateQueries([['user']])
       })
   }
 

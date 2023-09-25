@@ -85,20 +85,20 @@ const UsersPage = () => {
   })
 
   const { data: users, isFetching: isFetchingUsers } =
-    api.users.findMany.useQuery<any, Row[]>(
+    api.user.findMany.useQuery(
       {
         skip: pageIndex * pageSize,
         take: pageSize,
         where: { AND: filters },
         include: {
           student: { include: { cycles: { include: { cycle: true } } } },
-          corrector: { include: { cycle: true, course: true } },
+          corrector: { include: { cycle: true, courses: true } },
         },
       },
       { networkMode: 'always' }
     )
 
-  const { data: count, isLoading: isCountLoading } = api.users.count.useQuery(
+  const { data: count, isLoading: isCountLoading } = api.user.count.useQuery(
     { where: { AND: filters } },
     { networkMode: 'always' }
   )
@@ -175,7 +175,7 @@ const UsersPage = () => {
         {
           id: 'cycles',
           header: ({ column }) => {
-            const { data: cycles, isLoading } = api.cycles.findMany.useQuery({})
+            const { data: cycles, isLoading } = api.cycle.findMany.useQuery({})
             const filterValue = column.getFilterValue() as string | undefined
             return (
               <div className='flex items-center'>

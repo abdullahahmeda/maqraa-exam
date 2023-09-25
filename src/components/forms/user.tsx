@@ -1,5 +1,5 @@
 import { UserRole } from '@prisma/client'
-import { UseFormReturn, useFieldArray, useWatch } from 'react-hook-form'
+import { UseFormReturn, useWatch } from 'react-hook-form'
 import {
   Form,
   FormControl,
@@ -42,7 +42,7 @@ export type AddUserFieldValues = {
   corrector:
     | {
         cycleId: string | undefined
-        courseId: string | undefined
+        courses: string[]
       }
     | undefined
   student:
@@ -76,10 +76,10 @@ export const makeEmptyCycle = () => ({
 
 const CycleForm = ({ form, path }: { form: UseFormReturn; path: string }) => {
   // const { data: cycles, isLoading: isCyclesLoading } =
-  //   api.cycles.findMany.useQuery({})
+  //   api.cycle.findMany.useQuery({})
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery({})
+    api.course.findMany.useQuery({})
 
   const courseId = useWatch({
     control: form.control,
@@ -94,7 +94,7 @@ const CycleForm = ({ form, path }: { form: UseFormReturn; path: string }) => {
     data: tracks,
     isLoading: isTracksLoading,
     fetchStatus: tracksFetchStatus,
-  } = api.tracks.findMany.useQuery(
+  } = api.track.findMany.useQuery(
     { where: { courseId } },
     { enabled: !!courseId }
   )
@@ -103,12 +103,12 @@ const CycleForm = ({ form, path }: { form: UseFormReturn; path: string }) => {
     isLoading: isCurriculaLoading,
     data: curricula,
     fetchStatus: curriculaFetchStatus,
-  } = api.curricula.findMany.useQuery(
+  } = api.curriculum.findMany.useQuery(
     { where: { trackId } },
     {
       enabled: !!trackId,
       queryKey: [
-        'curricula.findMany',
+        'curriculum.findMany',
         {
           where: { track: { id: trackId, courseId } },
         },
@@ -239,25 +239,16 @@ export const UserForm = ({
 
   const [showPassword, setShowPassword] = useState(true)
 
-  // const {
-  //   fields: studentCycles,
-  //   remove,
-  //   append,
-  // } = useFieldArray({
-  //   control: form.control,
-  //   name: 'student.cycles',
-  // })
-
   const studentCycles = useWatch({
     control: form.control,
     name: 'student.cycles',
   })
 
   const { data: cycles, isLoading: isLoadingCycles } =
-    api.cycles.findMany.useQuery({})
+    api.cycle.findMany.useQuery({})
 
   const { data: courses, isLoading: isLoadingCourses } =
-    api.courses.findMany.useQuery({})
+    api.course.findMany.useQuery({})
 
   return (
     <Form {...form}>
@@ -457,20 +448,20 @@ export const UserForm = ({
             />
             <FormField
               control={form.control}
-              name='corrector.courseId'
+              name='corrector.courses'
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>المقرر</FormLabel>
-                  <Combobox
-                    items={courses || []}
-                    loading={isLoadingCourses}
-                    labelKey='name'
-                    valueKey='id'
-                    onSelect={field.onChange}
-                    value={field.value}
-                    triggerText='اختر'
-                    triggerClassName='w-full'
-                  />
+                    <FormControl>
+                      <MultiSelect
+                        placeholder='اختر المقررات'
+                        items={(courses as any) || []}
+                        labelKey='name'
+                        valueKey='id'
+                        onSelect={field.onChange}
+                        value={field.value}
+                      />
+                    </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

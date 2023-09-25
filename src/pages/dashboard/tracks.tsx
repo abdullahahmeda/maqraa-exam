@@ -60,7 +60,7 @@ const columns = [
   columnHelper.accessor('course.name', {
     id: 'course',
     header: ({ column }) => {
-      const { data: courses, isLoading } = api.courses.findMany.useQuery({})
+      const { data: courses, isLoading } = api.course.findMany.useQuery({})
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -140,7 +140,7 @@ const TracksPage = () => {
   })
 
   const { data: tracks, isFetching: isFetchingTracks } =
-    api.tracks.findMany.useQuery<any, (Track & { course: { name: string } })[]>(
+    api.track.findMany.useQuery(
       {
         skip: pageIndex * pageSize,
         take: pageSize,
@@ -150,7 +150,7 @@ const TracksPage = () => {
       { networkMode: 'always' }
     )
 
-  const { data: count, isLoading: isCountLoading } = api.tracks.count.useQuery(
+  const { data: count, isLoading: isCountLoading } = api.track.count.useQuery(
     { where: { AND: filters } },
     { networkMode: 'always' }
   )

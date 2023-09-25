@@ -42,7 +42,7 @@ import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
 
 const DeleteCurriculumDialog = ({ id }: { id: string }) => {
-  const curriculumDelete = api.curricula.delete.useMutation()
+  const curriculumDelete = api.curriculum.delete.useMutation()
 
   const { toast } = useToast()
 
@@ -51,7 +51,7 @@ const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   const deleteCurriculum = () => {
     const t = toast({ title: 'جاري حذف المنهج' })
     curriculumDelete
-      .mutateAsync(id)
+      .mutateAsync({ where: { id } })
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المنهج بنجاح' })
@@ -61,7 +61,7 @@ const DeleteCurriculumDialog = ({ id }: { id: string }) => {
         toast({ title: error.message })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['curricula']])
+        queryClient.invalidateQueries([['curriculum']])
       })
   }
 
@@ -104,10 +104,7 @@ const columns = [
     {
       id: 'track',
       header: ({ column }) => {
-        const { data: tracks, isLoading } = api.tracks.findMany.useQuery<
-          any,
-          (Track & { course: { name: string } })[]
-        >({
+        const { data: tracks, isLoading } = api.track.findMany.useQuery({
           include: { course: true },
         })
 
@@ -237,7 +234,7 @@ const CurriculaPage = () => {
   })
 
   const { data: curricula, isFetching: isFetchingCurricula } =
-    api.curricula.findMany.useQuery<any, RowType[]>(
+    api.curriculum.findMany.useQuery(
       {
         skip: pageIndex * pageSize,
         take: pageSize,
@@ -248,7 +245,7 @@ const CurriculaPage = () => {
     )
 
   const { data: count, isLoading: isCountLoading } =
-    api.curricula.count.useQuery(
+    api.curriculum.count.useQuery(
       { where: { AND: filters } },
       { networkMode: 'always' }
     )

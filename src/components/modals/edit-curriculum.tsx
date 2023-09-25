@@ -22,7 +22,7 @@ export const EditCurriculumDialog = ({
     resolver: zodResolver(editCurriculumSchema),
   })
 
-  const curriculumUpdate = api.curricula.update.useMutation()
+  const curriculumUpdate = api.updateCurriculum.useMutation()
 
   const { toast } = useToast()
 
@@ -40,7 +40,7 @@ export const EditCurriculumDialog = ({
         toast({ title: error.message })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['curricula']])
+        queryClient.invalidateQueries([['curriculum']])
       })
   }
 

@@ -12,13 +12,15 @@ import { useToast } from '../ui/use-toast'
 
 export const DeleteCycleDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
-  const cycleDelete = api.cycles.delete.useMutation()
+  const cycleDelete = api.cycle.delete.useMutation()
   const queryClient = useQueryClient()
 
   const deleteCycle = () => {
     const t = toast({ title: 'جاري حذف الدورة' })
     cycleDelete
-      .mutateAsync(id)
+      .mutateAsync({
+        where: { id }
+      })
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف الدورة بنجاح' })
@@ -28,7 +30,7 @@ export const DeleteCycleDialog = ({ id }: { id: string }) => {
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['cycles']])
+        queryClient.invalidateQueries([['cycle']])
       })
   }
 

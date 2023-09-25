@@ -5,13 +5,13 @@ import { AlertDialogHeader, AlertDialogAction, AlertDialogCancel, AlertDialogFoo
 
 export const DeleteExamDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
-  const examDelete = api.exams.delete.useMutation()
+  const examDelete = api.exam.delete.useMutation()
   const queryClient = useQueryClient()
 
   const deleteExam = () => {
     const t = toast({ title: 'جاري حذف الإمتحان' })
     examDelete
-      .mutateAsync(id)
+      .mutateAsync({ where: { id } })
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف الإمتحان بنجاح' })
@@ -21,7 +21,7 @@ export const DeleteExamDialog = ({ id }: { id: string }) => {
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['exams']])
+        queryClient.invalidateQueries([['exam']])
       })
   }
 

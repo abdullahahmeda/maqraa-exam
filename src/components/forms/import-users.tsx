@@ -37,13 +37,13 @@ export const ImportStudentsForm = ({
   isLoading,
 }: FormProps) => {
   const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycles.findMany.useQuery({})
+    api.cycle.findMany.useQuery({})
 
   const {
     isFetching: isFetchingSheets,
     data: sheets,
     refetch: refetchSheets,
-  } = api.sheets.listSheets.useQuery(
+  } = api.listSheets.useQuery(
     {
       url: form.getValues('url'),
     },

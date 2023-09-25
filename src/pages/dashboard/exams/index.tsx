@@ -132,7 +132,7 @@ const ExamsPage = () => {
     columnHelper.accessor('curriculum.name', {
       id: 'curriculum',
       header: ({ column, table }) => {
-        const { data: curricula, isLoading } = api.curricula.findMany.useQuery({
+        const { data: curricula, isLoading } = api.curriculum.findMany.useQuery({
           where: {
             track: {
               courseId:
@@ -217,7 +217,7 @@ const ExamsPage = () => {
     columnHelper.accessor('cycle.name', {
       id: 'cycle',
       header: ({ column }) => {
-        const { data: tracks, isLoading } = api.cycles.findMany.useQuery({})
+        const { data: tracks, isLoading } = api.cycle.findMany.useQuery({})
 
         const filterValue = column.getFilterValue() as string | undefined
 
@@ -413,7 +413,7 @@ const ExamsPage = () => {
     return { [filter.id]: { equals: filter.value } }
   })
 
-  const { data: exams, isFetching } = api.exams.findMany.useQuery<any, Row[]>(
+  const { data: exams, isFetching } = api.exam.findMany.useQuery(
     {
       skip: pageIndex * pageSize,
       take: pageSize,
@@ -428,7 +428,7 @@ const ExamsPage = () => {
     { networkMode: 'always' }
   )
 
-  const { data: count, isLoading: isCountLoading } = api.exams.count.useQuery(
+  const { data: count, isLoading: isCountLoading } = api.exam.count.useQuery(
     { where: { AND: filters } },
     { networkMode: 'always' }
   )

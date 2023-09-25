@@ -21,9 +21,9 @@ export const EditCourseDialog = ({ id }: { id: string }) => {
     data: course,
     isLoading,
     error,
-  } = api.courses.findFirst.useQuery({ where: { id } })
+  } = api.course.findFirst.useQuery({ where: { id } })
 
-  const courseUpdate = api.courses.update.useMutation()
+  const courseUpdate = api.updateCourse.useMutation()
 
   useEffect(() => {
     if (course) form.reset(course)
@@ -42,7 +42,7 @@ export const EditCourseDialog = ({ id }: { id: string }) => {
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['courses']])
+        queryClient.invalidateQueries([['course']])
       })
   }
 

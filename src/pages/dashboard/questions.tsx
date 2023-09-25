@@ -102,7 +102,7 @@ const columns = [
   columnHelper.accessor('course.name', {
     id: 'course',
     header: ({ column }) => {
-      const { data: courses, isLoading } = api.courses.findMany.useQuery({})
+      const { data: courses, isLoading } = api.course.findMany.useQuery({})
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -334,10 +334,7 @@ const QuestionsPage = () => {
   })
 
   const { data: questions, isFetching: isFetchingQuestions } =
-    api.questions.findMany.useQuery<
-      any,
-      (Question & { course: { name: string } })[]
-    >(
+    api.question.findMany.useQuery(
       {
         skip: pageIndex * pageSize,
         take: pageSize,
@@ -348,12 +345,12 @@ const QuestionsPage = () => {
     )
 
   const { data: count, isLoading: isCountLoading } =
-    api.questions.count.useQuery(
+    api.question.count.useQuery(
       { where: { AND: filters } },
       { networkMode: 'always' }
     )
 
-  const questionsExport = api.questions.export.useMutation()
+  const questionsExport = api.exportQuestions.useMutation()
 
   const pageCount =
     questions !== undefined && typeof count === 'number'

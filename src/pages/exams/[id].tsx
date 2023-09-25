@@ -9,7 +9,7 @@ import { Button } from '~/components/ui/button'
 import { useState, useEffect } from 'react'
 import WebsiteLayout from '~/components/layout'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
-import { checkRead } from '~/server/api/routers/helper'
+import { checkRead } from '~/server/api/routers/custom/helper'
 import { enhance } from '@zenstackhq/runtime'
 import { prisma as _prisma } from '~/server/db'
 import { getServerAuthSession } from '~/server/auth'
@@ -309,7 +309,7 @@ const ExamPage = ({
                   </div>
                 ))
               )}
-              {!exam.submittedAt && session?.user.id === exam.userId && (
+              {!exam.submittedAt && session?.user.id == exam.userId && (
                 <Button loading={examSubmit.isLoading}>تسليم</Button>
               )}
             </form>

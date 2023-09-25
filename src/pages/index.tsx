@@ -227,7 +227,7 @@ const HomePage = () => {
     },
   })
 
-  const examCreate = api.exams.createPublic.useMutation()
+  const examCreate = api.createPublicExam.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
@@ -243,13 +243,13 @@ const HomePage = () => {
   })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery({})
+    api.course.findMany.useQuery({})
 
   const {
     data: tracks,
     isLoading: isTracksLoading,
     fetchStatus: tracksFetchStatus,
-  } = api.tracks.findMany.useQuery(
+  } = api.track.findMany.useQuery(
     { where: { courseId } },
     { enabled: !!courseId }
   )
@@ -258,18 +258,15 @@ const HomePage = () => {
     isLoading: isCurriculaLoading,
     data: curricula,
     fetchStatus: curriculaFetchStatus,
-  } = api.curricula.findMany.useQuery<
-    any,
-    (Curriculum & { parts: CurriculumPart[] })[]
-  >(
+  } = api.curriculum.findMany.useQuery(
     {
-      where: { trackId: trackId },
+      where: { trackId },
       include: { parts: true },
     },
     {
       enabled: !!trackId,
       queryKey: [
-        'curricula.findMany',
+        'curriculum.findMany',
         {
           where: { track: { id: trackId, courseId } },
           include: { parts: true },

@@ -17,7 +17,7 @@ export const AddCourseDialog = ({
   const form = useForm<AddCourseFieldValues>({
     resolver: zodResolver(newCourseSchema),
   })
-  const courseCreate = api.courses.create.useMutation()
+  const courseCreate = api.createCourse.useMutation()
 
   const onSubmit = (data: AddCourseFieldValues) => {
     const t = toast({ title: 'جاري إضافة المقرر' })
@@ -33,7 +33,7 @@ export const AddCourseDialog = ({
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['courses']])
+        queryClient.invalidateQueries([['course']])
       })
   }
   return (

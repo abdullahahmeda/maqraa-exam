@@ -1,11 +1,9 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import Link from 'next/link'
-import { FaEnvelope } from 'react-icons/fa'
 import { useForm } from 'react-hook-form'
 import { loginSchema } from '../validation/loginSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
-// import Button from '../components/button'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import WebsiteLayout from '../components/layout'
@@ -18,10 +16,11 @@ import {
   FormMessage,
 } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
-import { Button } from '~/components/ui/button'
+import { Button, buttonVariants } from '~/components/ui/button'
 import { GetServerSideProps } from 'next'
 import { getServerAuthSession } from '~/server/auth'
 import { useState } from 'react'
+import { cn } from '~/lib/utils'
 
 type FieldValues = {
   email: string
@@ -62,21 +61,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <style global jsx>{`
-        body {
-          background: linear-gradient(
-              to bottom,
-              rgba(92, 77, 66, 0.9) 0%,
-              rgba(92, 77, 66, 0.9) 100%
-            ),
-            url(/bg.jpg);
-          background-position: center;
-          background-repeat: no-repeat;
-          background-attachment: scroll;
-          background-size: cover;
-          height: 100vh;
-        }
-      `}</style>
       <Head>
         <title>حفاظ الوحيين | تسجيل الدخول</title>
       </Head>
@@ -135,6 +119,7 @@ export default function LoginPage() {
               <FormMessage>
                 {form.formState.errors.root?.serverError?.message}
               </FormMessage>
+              <div><Link href='recover-password' className={cn(buttonVariants({ variant: 'link' }), 'px-0')}>نسيت كلمة السر؟</Link></div>
               <Button className='mt-2' loading={isLoading}>
                 تسجيل الدخول
               </Button>

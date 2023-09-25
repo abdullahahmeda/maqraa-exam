@@ -112,7 +112,7 @@ const CyclesPage = () => {
   })
 
   const { data: cycles, isFetching: isFetchingCycles } =
-    api.cycles.findMany.useQuery(
+    api.cycle.findMany.useQuery(
       {
         skip: pageIndex * pageSize,
         take: pageSize,
@@ -121,7 +121,7 @@ const CyclesPage = () => {
       { networkMode: 'always' }
     )
 
-  const { data: count, isLoading: isCountLoading } = api.cycles.count.useQuery(
+  const { data: count, isLoading: isCountLoading } = api.cycle.count.useQuery(
     { where: { AND: filters } },
     { networkMode: 'always' }
   )

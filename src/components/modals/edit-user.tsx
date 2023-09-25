@@ -3,7 +3,6 @@ import { useToast } from '../ui/use-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { EditUserFieldValues, UserForm } from '../forms/user'
-import { UserRole } from '@prisma/client'
 import { api } from '~/utils/api'
 import { editUserSchema } from '~/validation/editUserSchema'
 import { Loader2 } from 'lucide-react'
@@ -29,11 +28,11 @@ export const EditUserDialog = ({
     data: user,
     isLoading,
     error,
-  } = api.users.findFirstOrThrow.useQuery<any, any>(
+  } = api.user.findFirstOrThrow.useQuery(
     {
       where: { id },
       include: {
-        corrector: true,
+        corrector: { include: { courses: true } },
         student: {
           include: {
             cycles: {
@@ -49,7 +48,7 @@ export const EditUserDialog = ({
     },
     { enabled: id != null }
   )
-  const userUpdate = api.users.update.useMutation()
+  const userUpdate = api.updateUser.useMutation()
 
   const { data: session } = useSession()
 
@@ -61,7 +60,7 @@ export const EditUserDialog = ({
             {
               ...user,
               student: {
-                cycles: user.student.cycles.reduce(
+                cycles: user.student?.cycles.reduce(
                   (acc: object, cycle: any) => ({
                     ...acc,
                     [cycle.cycleId]: {
@@ -78,7 +77,9 @@ export const EditUserDialog = ({
             (value: any) => value ?? undefined
           )
         )
+      else if (user.role === 'CORRECTOR') form.reset({ ...user, corrector: { ...user.corrector, courses: user.corrector!.courses.map(c => c.courseId) } })
       else form.reset(mapValues(user, (value: any) => value ?? undefined))
+      // consol
     }
   }, [user, form])
 
@@ -98,7 +99,7 @@ export const EditUserDialog = ({
         // })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['users']])
+        queryClient.invalidateQueries([['user']])
       })
   }
 

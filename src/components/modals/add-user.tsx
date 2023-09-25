@@ -30,11 +30,12 @@ const AddSingleUserTab = ({ setDialogOpen }: Props) => {
       password: generateRandomPassword(),
       role: UserRole.STUDENT,
       student: { cycles: {} },
+      corrector: { courses: [] },
     },
     resolver: zodResolver(newUserSchema),
   })
 
-  const userCreate = api.users.create.useMutation()
+  const userCreate = api.createUser.useMutation()
 
   const onSubmit = (data: AddUserFieldValues) => {
     const t = toast({ title: 'جاري إضافة المستخدم' })
@@ -51,7 +52,7 @@ const AddSingleUserTab = ({ setDialogOpen }: Props) => {
         toast({ title: error.message })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['users']])
+        queryClient.invalidateQueries([['user']])
       })
   }
 
@@ -71,7 +72,7 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
   })
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const studentsImport = api.users.importStudents.useMutation()
+  const studentsImport = api.importStudents.useMutation()
   const onSubmit = (data: ImportStudentsFieldValues) => {
     const t = toast({ title: 'جاري إضافة الطلبة' })
     studentsImport
@@ -87,7 +88,7 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
         toast({ title: error.message })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['users']])
+        queryClient.invalidateQueries([['user']])
       })
   }
   return (

@@ -48,6 +48,7 @@ const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   }
 }
 
+
 /**
  * This is the actual context you will use in your router. It will be used to
  * process every request that goes through your tRPC endpoint.
@@ -117,6 +118,8 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
  * @see https://trpc.io/docs/router
  */
 export const createTRPCRouter = t.router
+
+export const mergeRouters = t.mergeRouters
 
 /**
  * Public (unauthenticated) procedure

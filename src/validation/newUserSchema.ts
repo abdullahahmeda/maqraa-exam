@@ -35,8 +35,8 @@ const adminSchema = baseSchema.extend({
 const correctorSchema = baseSchema.extend({
   role: z.literal(UserRole.CORRECTOR),
   corrector: z.object({
-    courseId: z.string().min(1),
     cycleId: z.string().min(1),
+    courses: z.array(z.string().min(1)).min(1),
   }),
 })
 

@@ -36,13 +36,15 @@ import { api } from '~/utils/api'
 
 const DeleteCourseDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
-  const courseDelete = api.courses.delete.useMutation()
+  const courseDelete = api.course.delete.useMutation()
   const queryClient = useQueryClient()
 
   const deleteCourse = () => {
     const t = toast({ title: 'جاري حذف المقرر' })
     courseDelete
-      .mutateAsync(id)
+      .mutateAsync({
+        where: { id } 
+      })
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المقرر بنجاح' })
@@ -52,7 +54,7 @@ const DeleteCourseDialog = ({ id }: { id: string }) => {
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['courses']])
+        queryClient.invalidateQueries([['course']])
       })
   }
 
@@ -102,7 +104,7 @@ const CoursesPage = () => {
     data: courses,
     isFetching: isFetchingCourses,
     refetch,
-  } = api.courses.findMany.useQuery(
+  } = api.course.findMany.useQuery(
     {
       take: pageSize,
       skip: pageIndex * pageSize,
@@ -110,8 +112,8 @@ const CoursesPage = () => {
     { networkMode: 'always' }
   )
 
-  const { data: count, isLoading: isCountLoading } = api.courses.count.useQuery(
-    undefined,
+  const { data: count, isLoading: isCountLoading } = api.course.count.useQuery(
+    {},
     { networkMode: 'always' }
   )
 

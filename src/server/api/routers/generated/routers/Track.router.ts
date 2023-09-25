@@ -1,6 +1,6 @@
 /* eslint-disable */
-import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from '.';
-import { TrackInputSchema } from '@zenstackhq/runtime/zod/input';
+import { type RouterFactory, type ProcBuilder, type BaseConfig, type ProcReturns, type PrismaClient, db } from '.';
+import $Schema from '@zenstackhq/runtime/zod/input';
 import { checkRead, checkMutate } from '../helper';
 import type { Prisma } from '@prisma/client';
 import type {
@@ -14,61 +14,59 @@ import type {
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { AnyRouter } from '@trpc/server';
 
-export default function createRouter<Config extends BaseConfig>(
-    router: RouterFactory<Config>,
-    procedure: ProcBuilder<Config>,
+export default function createRouter<Router extends RouterFactory<BaseConfig>, Proc extends ProcBuilder<BaseConfig>>(
+    router: Router,
+    procedure: Proc,
 ) {
     return router({
-        create: procedure
-            .input(TrackInputSchema.create)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).track.create(input as any))),
-
         delete: procedure
-            .input(TrackInputSchema.delete)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).track.delete(input as any))),
+            .input($Schema.TrackInputSchema.delete)
+            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).track.delete(input as any))) as ProcReturns<
+            'mutation',
+            Proc,
+            (typeof $Schema.TrackInputSchema)['delete'],
+            ReturnType<PrismaClient['track']['delete']>
+        >,
 
         findFirst: procedure
-            .input(TrackInputSchema.findFirst)
-            .query(({ ctx, input }) => checkRead(db(ctx).track.findFirst(input as any))),
+            .input($Schema.TrackInputSchema.findFirst)
+            .query(({ ctx, input }) => checkRead(db(ctx).track.findFirst(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.TrackInputSchema)['findFirst'],
+            ReturnType<PrismaClient['track']['findFirst']>
+        >,
 
         findFirstOrThrow: procedure
-            .input(TrackInputSchema.findFirst)
-            .query(({ ctx, input }) => checkRead(db(ctx).track.findFirstOrThrow(input as any))),
+            .input($Schema.TrackInputSchema.findFirst)
+            .query(({ ctx, input }) => checkRead(db(ctx).track.findFirstOrThrow(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.TrackInputSchema)['findFirst'],
+            ReturnType<PrismaClient['track']['findFirstOrThrow']>
+        >,
 
         findMany: procedure
-            .input(TrackInputSchema.findMany)
-            .query(({ ctx, input }) => checkRead(db(ctx).track.findMany(input as any))),
+            .input($Schema.TrackInputSchema.findMany)
+            .query(({ ctx, input }) => checkRead(db(ctx).track.findMany(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.TrackInputSchema)['findMany'],
+            ReturnType<PrismaClient['track']['findMany']>
+        >,
 
-        update: procedure
-            .input(TrackInputSchema.update)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).track.update(input as any))),
+        count: procedure
+            .input($Schema.TrackInputSchema.count)
+            .query(({ ctx, input }) => checkRead(db(ctx).track.count(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.TrackInputSchema)['count'],
+            ReturnType<PrismaClient['track']['count']>
+        >,
     });
 }
 
 export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_def']['_config']['$types']['ctx']> {
-    create: {
-        useMutation: <T extends Prisma.TrackCreateArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.TrackCreateArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.TrackGetPayload<null>,
-                Context
-            >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.TrackGetPayload<T>,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.TrackCreateArgs>,
-                Context
-            >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.TrackCreateArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.TrackGetPayload<T>, Context>,
-            ) => Promise<Prisma.TrackGetPayload<T>>;
-        };
-    };
     delete: {
         useMutation: <T extends Prisma.TrackDeleteArgs>(
             opts?: UseTRPCMutationOptions<
@@ -128,27 +126,51 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             opts?: UseTRPCInfiniteQueryOptions<string, T, Array<Prisma.TrackGetPayload<T>>, Error>,
         ) => UseTRPCInfiniteQueryResult<Array<Prisma.TrackGetPayload<T>>, TRPCClientErrorLike<AppRouter>>;
     };
-    update: {
-        useMutation: <T extends Prisma.TrackUpdateArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.TrackUpdateArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.TrackGetPayload<null>,
-                Context
+    count: {
+        useQuery: <T extends Prisma.TrackCountArgs>(
+            input: Prisma.Subset<T, Prisma.TrackCountArgs>,
+            opts?: UseTRPCQueryOptions<
+                string,
+                T,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.TrackCountAggregateOutputType>
+                    : number,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.TrackCountAggregateOutputType>
+                    : number,
+                Error
             >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.TrackGetPayload<T>,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.TrackUpdateArgs>,
-                Context
+        ) => UseTRPCQueryResult<
+            'select' extends keyof T
+                ? T['select'] extends true
+                    ? number
+                    : Prisma.GetScalarType<T['select'], Prisma.TrackCountAggregateOutputType>
+                : number,
+            TRPCClientErrorLike<AppRouter>
+        >;
+        useInfiniteQuery: <T extends Prisma.TrackCountArgs>(
+            input: Omit<Prisma.Subset<T, Prisma.TrackCountArgs>, 'cursor'>,
+            opts?: UseTRPCInfiniteQueryOptions<
+                string,
+                T,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.TrackCountAggregateOutputType>
+                    : number,
+                Error
             >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.TrackUpdateArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.TrackGetPayload<T>, Context>,
-            ) => Promise<Prisma.TrackGetPayload<T>>;
-        };
+        ) => UseTRPCInfiniteQueryResult<
+            'select' extends keyof T
+                ? T['select'] extends true
+                    ? number
+                    : Prisma.GetScalarType<T['select'], Prisma.TrackCountAggregateOutputType>
+                : number,
+            TRPCClientErrorLike<AppRouter>
+        >;
     };
 }

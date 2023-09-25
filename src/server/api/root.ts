@@ -1,34 +1,24 @@
-import { createTRPCRouter } from './trpc'
-import { questionsRouter } from './routers/questions'
-import { sheetsRouter } from './routers/sheets'
-import { settingsRouter } from './routers/settings'
-import { examsRouter } from './routers/exams'
-// import { emailsrouter } from './routers/emails'
-import { coursesRouter } from './routers/courses'
-import { curriculaRouter } from './routers/curricula'
-import { usersRouter } from './routers/users'
-import { cyclesRouter } from './routers/cycles'
-import { tracksRouter } from './routers/tracks'
-import { studentsRouter } from './routers/students'
+import { createTRPCRouter, mergeRouters, publicProcedure } from './trpc'
+import { createRouter } from './routers/generated/routers'
+import { questionRouter } from './routers/custom/question'
+import { sheetRouter } from './routers/custom/sheet'
+// import { settingsRouter } from './routers/settings'
+import { examRouter } from './routers/custom/exam'
+// // import { emailsrouter } from './routers/emails'
+import { courseRouter } from './routers/custom/course'
+import { cycleRouter } from './routers/custom/cycle'
+import { trackRouter } from './routers/custom/track'
+import { curriculumRouter } from './routers/custom/curriculum'
+import { userRouter } from './routers/custom/user'
+import { studentRouter } from './routers/custom/student'
 
 /**
  * This is the primary router for your server.
  *
  * All routers added in /api/routers should be manually added here
  */
-export const appRouter = createTRPCRouter({
-  questions: questionsRouter,
-  sheets: sheetsRouter,
-  settings: settingsRouter,
-  exams: examsRouter,
-  // emails: emailsrouter,
-  courses: coursesRouter,
-  curricula: curriculaRouter,
-  users: usersRouter,
-  cycles: cyclesRouter,
-  tracks: tracksRouter,
-  students: studentsRouter,
-})
 
-// export type definition of API
+const generatedRouter = createRouter(createTRPCRouter, publicProcedure)
+export const appRouter = mergeRouters(generatedRouter, courseRouter, cycleRouter, trackRouter, curriculumRouter, studentRouter, userRouter, examRouter, sheetRouter, questionRouter)
+
 export type AppRouter = typeof appRouter

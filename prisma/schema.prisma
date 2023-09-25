@@ -64,10 +64,6 @@ model Account {
     session_state String?
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@unique([provider, providerAccountId])
 }
 
@@ -78,11 +74,6 @@ model Session {
     userId String
     expires DateTime
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
 }
 
 /// @@allow('all', auth().role == ADMIN)
@@ -93,7 +84,7 @@ model User {
     name String
     email String @unique()
     emailVerified DateTime?
-    /// @password
+    /// @password(saltLength: 12)
     /// @omit
     password String
     image String?
@@ -104,11 +95,6 @@ model User {
     student Student?
     accounts Account[]
     sessions Session[]
-
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
 }
 
 /// @@allow('all', auth() != null)
@@ -117,18 +103,12 @@ model Corrector {
     id String @id() @default(cuid())
     userId String @unique()
     cycleId String?
-    courseId String?
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-    course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    courses CourseCorrector[]
     correctedExams Exam[]
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([userId])
-    @@index([courseId])
     @@index([cycleId])
 }
 
@@ -142,10 +122,6 @@ model Student {
     user User @relation(fields: [userId], references: [id], onDelete: Cascade)
     cycles StudentCycle[]
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([userId])
 }
 
@@ -160,10 +136,6 @@ model StudentCycle {
     student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
     cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@unique([cycleId, studentId])
     @@index([studentId])
     @@index([cycleId])
@@ -175,6 +147,7 @@ model VerificationToken {
     identifier String
     token String @unique()
     expires DateTime
+
     @@unique([identifier, token])
 }
 
@@ -204,10 +177,6 @@ model Question {
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
     exams GroupQuestion[]
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([partNumber])
     @@index([hadithNumber])
     @@index([difficulty])
@@ -221,11 +190,6 @@ model Question {
 model Setting {
     key String @id()
     value String @db.Text()
-
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
 }
 
 /// @@allow('all', auth().role == ADMIN)
@@ -252,10 +216,6 @@ model Exam {
     cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
     groups ExamQuestionGroup[]
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([grade])
     @@index([type])
     @@index([userId])
@@ -277,10 +237,6 @@ model ExamQuestionGroup {
     exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
     questions GroupQuestion[]
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([examId])
     @@index([order])
 }
@@ -297,10 +253,6 @@ model GroupQuestion {
     group ExamQuestionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
     question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([questionId])
     @@index([order])
     @@index([groupId])
@@ -314,11 +266,6 @@ model Cycle {
     students StudentCycle[]
     exams Exam[]
     correctors Corrector[]
-
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
 }
 
 /// @@allow('create,update,delete', auth().role == ADMIN)
@@ -329,12 +276,19 @@ model Course {
     curricula Track[]
     questions Question[]
     cycles CycleCourse[]
-    correctors Corrector[]
+    correctors CourseCorrector[]
+}
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
+/// @@allow('all', true)
+model CourseCorrector {
+    id String @id() @default(cuid())
+    courseId String
+    correctorId String
+    course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+    corrector Corrector @relation(fields: [correctorId], references: [id], onDelete: Cascade)
 
-    @@index([zenstack_transaction])
+    @@index([courseId])
+    @@index([correctorId])
 }
 
 /// @@Gen.model(hide: true)
@@ -345,10 +299,6 @@ model CycleCourse {
     cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([courseId])
     @@index([cycleId])
 }
@@ -362,10 +312,6 @@ model Track {
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
     curricula Curriculum[]
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([courseId])
 }
 
@@ -380,10 +326,6 @@ model Curriculum {
     exams Exam[]
     students StudentCycle[]
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([trackId])
 }
 
@@ -400,9 +342,5 @@ model CurriculumPart {
     curriculumId String
     curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
 
-    zenstack_guard Boolean @default(true)
-    zenstack_transaction String?
-
-    @@index([zenstack_transaction])
     @@index([curriculumId])
 }

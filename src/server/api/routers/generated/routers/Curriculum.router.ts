@@ -1,6 +1,6 @@
 /* eslint-disable */
-import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from '.';
-import { CurriculumInputSchema } from '@zenstackhq/runtime/zod/input';
+import { type RouterFactory, type ProcBuilder, type BaseConfig, type ProcReturns, type PrismaClient, db } from '.';
+import $Schema from '@zenstackhq/runtime/zod/input';
 import { checkRead, checkMutate } from '../helper';
 import type { Prisma } from '@prisma/client';
 import type {
@@ -14,66 +14,59 @@ import type {
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { AnyRouter } from '@trpc/server';
 
-export default function createRouter<Config extends BaseConfig>(
-    router: RouterFactory<Config>,
-    procedure: ProcBuilder<Config>,
+export default function createRouter<Router extends RouterFactory<BaseConfig>, Proc extends ProcBuilder<BaseConfig>>(
+    router: Router,
+    procedure: Proc,
 ) {
     return router({
-        create: procedure
-            .input(CurriculumInputSchema.create)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).curriculum.create(input as any))),
-
         delete: procedure
-            .input(CurriculumInputSchema.delete)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).curriculum.delete(input as any))),
+            .input($Schema.CurriculumInputSchema.delete)
+            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).curriculum.delete(input as any))) as ProcReturns<
+            'mutation',
+            Proc,
+            (typeof $Schema.CurriculumInputSchema)['delete'],
+            ReturnType<PrismaClient['curriculum']['delete']>
+        >,
 
         findFirst: procedure
-            .input(CurriculumInputSchema.findFirst)
-            .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findFirst(input as any))),
+            .input($Schema.CurriculumInputSchema.findFirst)
+            .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findFirst(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.CurriculumInputSchema)['findFirst'],
+            ReturnType<PrismaClient['curriculum']['findFirst']>
+        >,
 
         findFirstOrThrow: procedure
-            .input(CurriculumInputSchema.findFirst)
-            .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findFirstOrThrow(input as any))),
+            .input($Schema.CurriculumInputSchema.findFirst)
+            .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findFirstOrThrow(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.CurriculumInputSchema)['findFirst'],
+            ReturnType<PrismaClient['curriculum']['findFirstOrThrow']>
+        >,
 
         findMany: procedure
-            .input(CurriculumInputSchema.findMany)
-            .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findMany(input as any))),
+            .input($Schema.CurriculumInputSchema.findMany)
+            .query(({ ctx, input }) => checkRead(db(ctx).curriculum.findMany(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.CurriculumInputSchema)['findMany'],
+            ReturnType<PrismaClient['curriculum']['findMany']>
+        >,
 
-        update: procedure
-            .input(CurriculumInputSchema.update)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).curriculum.update(input as any))),
+        count: procedure
+            .input($Schema.CurriculumInputSchema.count)
+            .query(({ ctx, input }) => checkRead(db(ctx).curriculum.count(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.CurriculumInputSchema)['count'],
+            ReturnType<PrismaClient['curriculum']['count']>
+        >,
     });
 }
 
 export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_def']['_config']['$types']['ctx']> {
-    create: {
-        useMutation: <T extends Prisma.CurriculumCreateArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.CurriculumCreateArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.CurriculumGetPayload<null>,
-                Context
-            >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.CurriculumGetPayload<T>,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.CurriculumCreateArgs>,
-                Context
-            >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.CurriculumCreateArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<
-                    T,
-                    TRPCClientErrorLike<AppRouter>,
-                    Prisma.CurriculumGetPayload<T>,
-                    Context
-                >,
-            ) => Promise<Prisma.CurriculumGetPayload<T>>;
-        };
-    };
     delete: {
         useMutation: <T extends Prisma.CurriculumDeleteArgs>(
             opts?: UseTRPCMutationOptions<
@@ -150,32 +143,51 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             opts?: UseTRPCInfiniteQueryOptions<string, T, Array<Prisma.CurriculumGetPayload<T>>, Error>,
         ) => UseTRPCInfiniteQueryResult<Array<Prisma.CurriculumGetPayload<T>>, TRPCClientErrorLike<AppRouter>>;
     };
-    update: {
-        useMutation: <T extends Prisma.CurriculumUpdateArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.CurriculumUpdateArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.CurriculumGetPayload<null>,
-                Context
+    count: {
+        useQuery: <T extends Prisma.CurriculumCountArgs>(
+            input: Prisma.Subset<T, Prisma.CurriculumCountArgs>,
+            opts?: UseTRPCQueryOptions<
+                string,
+                T,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.CurriculumCountAggregateOutputType>
+                    : number,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.CurriculumCountAggregateOutputType>
+                    : number,
+                Error
             >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.CurriculumGetPayload<T>,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.CurriculumUpdateArgs>,
-                Context
+        ) => UseTRPCQueryResult<
+            'select' extends keyof T
+                ? T['select'] extends true
+                    ? number
+                    : Prisma.GetScalarType<T['select'], Prisma.CurriculumCountAggregateOutputType>
+                : number,
+            TRPCClientErrorLike<AppRouter>
+        >;
+        useInfiniteQuery: <T extends Prisma.CurriculumCountArgs>(
+            input: Omit<Prisma.Subset<T, Prisma.CurriculumCountArgs>, 'cursor'>,
+            opts?: UseTRPCInfiniteQueryOptions<
+                string,
+                T,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.CurriculumCountAggregateOutputType>
+                    : number,
+                Error
             >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.CurriculumUpdateArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<
-                    T,
-                    TRPCClientErrorLike<AppRouter>,
-                    Prisma.CurriculumGetPayload<T>,
-                    Context
-                >,
-            ) => Promise<Prisma.CurriculumGetPayload<T>>;
-        };
+        ) => UseTRPCInfiniteQueryResult<
+            'select' extends keyof T
+                ? T['select'] extends true
+                    ? number
+                    : Prisma.GetScalarType<T['select'], Prisma.CurriculumCountAggregateOutputType>
+                : number,
+            TRPCClientErrorLike<AppRouter>
+        >;
     };
 }

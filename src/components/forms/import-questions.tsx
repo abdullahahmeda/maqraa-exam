@@ -41,7 +41,7 @@ export const ImportQuestionsForm = ({
     isFetching: isFetchingSheets,
     data: sheets,
     refetch: refetchSheets,
-  } = api.sheets.listSheets.useQuery(
+  } = api.listSheets.useQuery(
     {
       url: form.getValues('url'),
     },
@@ -59,7 +59,7 @@ export const ImportQuestionsForm = ({
   )
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery({})
+    api.course.findMany.useQuery({})
 
   const updateSpreadsheet = async () => {
     const isValidUrl = await form.trigger('url')

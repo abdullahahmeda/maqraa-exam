@@ -16,8 +16,8 @@ datasource db {
 
 plugin trpc {
   provider = '@zenstackhq/trpc'
-  output = 'src/server/routers/generated'
-  generateModelActions = 'create,count,delete,findFirst,findFirstOrThrow,findMany,update'
+  output = 'src/server/api/routers/generated'
+  generateModelActions = 'count,delete,findFirst,findFirstOrThrow,findMany'
   generateClientHelpers = 'next'
 }
 
@@ -55,7 +55,7 @@ model User {
   name String
   email String @unique
   emailVerified DateTime?
-  password String @password @omit
+  password String @password(saltLength: 12) @omit
   image String?
   phone String?
   role UserRole
@@ -78,14 +78,12 @@ model Corrector {
   id String @id @default(cuid())
   userId String @unique()
   cycleId String?
-  courseId String?
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  course Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courses CourseCorrector[]
   correctedExams Exam[]
 
   @@index([userId])
-  @@index([courseId])
   @@index([cycleId])
 
   @@allow('all', auth() != null)
@@ -298,10 +296,23 @@ model Course {
   curricula Track[]
   questions Question[]
   cycles CycleCourse[]
-  correctors Corrector[]
+  correctors CourseCorrector[]
 
   @@allow('create,update,delete', auth().role == ADMIN)
   @@allow('read', true)
+}
+
+model CourseCorrector {
+  id String @id @default(cuid())
+  courseId String
+  correctorId String
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  corrector Corrector @relation(fields: [correctorId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@index([correctorId])
+
+  @@allow('all', true)
 }
 
 /// @@Gen.model(hide: true)

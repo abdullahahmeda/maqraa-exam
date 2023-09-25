@@ -46,7 +46,7 @@ export const CurriculumForm = ({
   submitText,
 }: FormProps) => {
   const { data: tracks, isLoading: isTracksLoading } =
-    api.tracks.findMany.useQuery<any, (Track & { course: Course })[]>({
+    api.track.findMany.useQuery({
       include: { course: true },
     })
   const {

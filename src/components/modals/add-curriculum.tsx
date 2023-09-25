@@ -21,7 +21,7 @@ export const AddCurriculumDialog = ({
     },
   })
 
-  const curriculumCreate = api.curricula.create.useMutation()
+  const curriculumCreate = api.createCurriculum.useMutation()
 
   const { toast } = useToast()
 
@@ -39,7 +39,7 @@ export const AddCurriculumDialog = ({
         toast({ title: error.message })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['curricula']])
+        queryClient.invalidateQueries([['curriculum']])
       })
   }
 

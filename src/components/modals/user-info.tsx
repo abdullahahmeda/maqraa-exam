@@ -3,14 +3,6 @@ import { DialogHeader } from '../ui/dialog'
 import { Loader2 } from 'lucide-react'
 import { enUserRoleToAr } from '~/utils/users'
 import { Separator } from '../ui/separator'
-import {
-  User,
-  StudentCycle,
-  Cycle,
-  Course,
-  Student,
-  Corrector,
-} from '@prisma/client'
 import { Progress } from '../ui/progress'
 
 export const UserInfoModal = ({ id }: { id: string }) => {
@@ -18,15 +10,7 @@ export const UserInfoModal = ({ id }: { id: string }) => {
     data: user,
     isLoading,
     error,
-  } = api.users.findFirstOrThrow.useQuery<
-    any,
-    User & {
-      student:
-        | (Student & { cycles: (StudentCycle & { cycle: Cycle })[] })
-        | null
-      corrector: (Corrector & { course: Course; cycle: Cycle }) | null
-    }
-  >({
+  } = api.user.findFirstOrThrow.useQuery({
     where: { id },
     include: {
       student: { include: { cycles: { include: { cycle: true } } } },
@@ -35,7 +19,7 @@ export const UserInfoModal = ({ id }: { id: string }) => {
   })
 
   const { data: overallPerformance } =
-    api.students.getOverallPerformance.useQuery(user?.student?.id as string, {
+    api.student.getOverallPerformance.useQuery(user?.student?.id as string, {
       enabled: !!user?.student?.id,
     })
 

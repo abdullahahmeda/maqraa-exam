@@ -29,7 +29,7 @@ type FormProps = {
 
 export const TrackForm = ({ form, onSubmit, isLoading }: FormProps) => {
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery({})
+    api.course.findMany.useQuery({})
 
   return (
     <Form {...form}>

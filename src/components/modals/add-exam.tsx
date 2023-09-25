@@ -25,18 +25,12 @@ import { z } from 'zod'
 import {
   Select,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectContent,
   SelectValue,
 } from '../ui/select'
 import {
-  Curriculum,
-  CurriculumPart,
   ExamType,
-  QuestionDifficulty,
-  QuestionStyle,
-  QuestionType,
 } from '@prisma/client'
 import { Checkbox } from '../ui/checkbox'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -85,19 +79,19 @@ export const AddExamDialog = ({
     },
   })
 
-  const examCreate = api.exams.createSystem.useMutation()
+  const examCreate = api.createSystemExam.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.courses.findMany.useQuery({})
+    api.course.findMany.useQuery({})
 
   const {
     data: tracks,
     isLoading: isTracksLoading,
     fetchStatus: tracksFetchStatus,
-  } = api.tracks.findMany.useQuery(
+  } = api.track.findMany.useQuery(
     { where: { courseId } },
     { enabled: !!courseId }
   )
@@ -106,12 +100,9 @@ export const AddExamDialog = ({
     isLoading: isCurriculaLoading,
     data: curricula,
     fetchStatus: curriculaFetchStatus,
-  } = api.curricula.findMany.useQuery<
-    any,
-    (Curriculum & { parts: CurriculumPart[] })[]
-  >(
+  } = api.curriculum.findMany.useQuery(
     {
-      where: { trackId: trackId },
+      where: { trackId },
       include: { parts: true },
     },
     {
@@ -137,7 +128,7 @@ export const AddExamDialog = ({
   })
 
   const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycles.findMany.useQuery({})
+    api.cycle.findMany.useQuery({})
 
   const appendGroup = () => {
     append({
@@ -183,7 +174,7 @@ export const AddExamDialog = ({
           })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['exams']])
+        queryClient.invalidateQueries([['exam']])
       })
   }
 

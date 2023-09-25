@@ -1,6 +1,6 @@
 /* eslint-disable */
-import { type RouterFactory, type ProcBuilder, type BaseConfig, db } from '.';
-import { SettingInputSchema } from '@zenstackhq/runtime/zod/input';
+import { type RouterFactory, type ProcBuilder, type BaseConfig, type ProcReturns, type PrismaClient, db } from '.';
+import $Schema from '@zenstackhq/runtime/zod/input';
 import { checkRead, checkMutate } from '../helper';
 import type { Prisma } from '@prisma/client';
 import type {
@@ -14,61 +14,59 @@ import type {
 import type { TRPCClientErrorLike } from '@trpc/client';
 import type { AnyRouter } from '@trpc/server';
 
-export default function createRouter<Config extends BaseConfig>(
-    router: RouterFactory<Config>,
-    procedure: ProcBuilder<Config>,
+export default function createRouter<Router extends RouterFactory<BaseConfig>, Proc extends ProcBuilder<BaseConfig>>(
+    router: Router,
+    procedure: Proc,
 ) {
     return router({
-        create: procedure
-            .input(SettingInputSchema.create)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).setting.create(input as any))),
-
         delete: procedure
-            .input(SettingInputSchema.delete)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).setting.delete(input as any))),
+            .input($Schema.SettingInputSchema.delete)
+            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).setting.delete(input as any))) as ProcReturns<
+            'mutation',
+            Proc,
+            (typeof $Schema.SettingInputSchema)['delete'],
+            ReturnType<PrismaClient['setting']['delete']>
+        >,
 
         findFirst: procedure
-            .input(SettingInputSchema.findFirst)
-            .query(({ ctx, input }) => checkRead(db(ctx).setting.findFirst(input as any))),
+            .input($Schema.SettingInputSchema.findFirst)
+            .query(({ ctx, input }) => checkRead(db(ctx).setting.findFirst(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.SettingInputSchema)['findFirst'],
+            ReturnType<PrismaClient['setting']['findFirst']>
+        >,
 
         findFirstOrThrow: procedure
-            .input(SettingInputSchema.findFirst)
-            .query(({ ctx, input }) => checkRead(db(ctx).setting.findFirstOrThrow(input as any))),
+            .input($Schema.SettingInputSchema.findFirst)
+            .query(({ ctx, input }) => checkRead(db(ctx).setting.findFirstOrThrow(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.SettingInputSchema)['findFirst'],
+            ReturnType<PrismaClient['setting']['findFirstOrThrow']>
+        >,
 
         findMany: procedure
-            .input(SettingInputSchema.findMany)
-            .query(({ ctx, input }) => checkRead(db(ctx).setting.findMany(input as any))),
+            .input($Schema.SettingInputSchema.findMany)
+            .query(({ ctx, input }) => checkRead(db(ctx).setting.findMany(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.SettingInputSchema)['findMany'],
+            ReturnType<PrismaClient['setting']['findMany']>
+        >,
 
-        update: procedure
-            .input(SettingInputSchema.update)
-            .mutation(async ({ ctx, input }) => checkMutate(db(ctx).setting.update(input as any))),
+        count: procedure
+            .input($Schema.SettingInputSchema.count)
+            .query(({ ctx, input }) => checkRead(db(ctx).setting.count(input as any))) as ProcReturns<
+            'query',
+            Proc,
+            (typeof $Schema.SettingInputSchema)['count'],
+            ReturnType<PrismaClient['setting']['count']>
+        >,
     });
 }
 
 export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_def']['_config']['$types']['ctx']> {
-    create: {
-        useMutation: <T extends Prisma.SettingCreateArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.SettingCreateArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SettingGetPayload<null>,
-                Context
-            >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.SettingGetPayload<T>,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.SettingCreateArgs>,
-                Context
-            >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.SettingCreateArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.SettingGetPayload<T>, Context>,
-            ) => Promise<Prisma.SettingGetPayload<T>>;
-        };
-    };
     delete: {
         useMutation: <T extends Prisma.SettingDeleteArgs>(
             opts?: UseTRPCMutationOptions<
@@ -128,27 +126,51 @@ export interface ClientType<AppRouter extends AnyRouter, Context = AppRouter['_d
             opts?: UseTRPCInfiniteQueryOptions<string, T, Array<Prisma.SettingGetPayload<T>>, Error>,
         ) => UseTRPCInfiniteQueryResult<Array<Prisma.SettingGetPayload<T>>, TRPCClientErrorLike<AppRouter>>;
     };
-    update: {
-        useMutation: <T extends Prisma.SettingUpdateArgs>(
-            opts?: UseTRPCMutationOptions<
-                Prisma.SettingUpdateArgs,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SettingGetPayload<null>,
-                Context
+    count: {
+        useQuery: <T extends Prisma.SettingCountArgs>(
+            input: Prisma.Subset<T, Prisma.SettingCountArgs>,
+            opts?: UseTRPCQueryOptions<
+                string,
+                T,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.SettingCountAggregateOutputType>
+                    : number,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.SettingCountAggregateOutputType>
+                    : number,
+                Error
             >,
-        ) => Omit<
-            UseTRPCMutationResult<
-                Prisma.SettingGetPayload<T>,
-                TRPCClientErrorLike<AppRouter>,
-                Prisma.SelectSubset<T, Prisma.SettingUpdateArgs>,
-                Context
+        ) => UseTRPCQueryResult<
+            'select' extends keyof T
+                ? T['select'] extends true
+                    ? number
+                    : Prisma.GetScalarType<T['select'], Prisma.SettingCountAggregateOutputType>
+                : number,
+            TRPCClientErrorLike<AppRouter>
+        >;
+        useInfiniteQuery: <T extends Prisma.SettingCountArgs>(
+            input: Omit<Prisma.Subset<T, Prisma.SettingCountArgs>, 'cursor'>,
+            opts?: UseTRPCInfiniteQueryOptions<
+                string,
+                T,
+                'select' extends keyof T
+                    ? T['select'] extends true
+                        ? number
+                        : Prisma.GetScalarType<T['select'], Prisma.SettingCountAggregateOutputType>
+                    : number,
+                Error
             >,
-            'mutateAsync'
-        > & {
-            mutateAsync: <T extends Prisma.SettingUpdateArgs>(
-                variables: T,
-                opts?: UseTRPCMutationOptions<T, TRPCClientErrorLike<AppRouter>, Prisma.SettingGetPayload<T>, Context>,
-            ) => Promise<Prisma.SettingGetPayload<T>>;
-        };
+        ) => UseTRPCInfiniteQueryResult<
+            'select' extends keyof T
+                ? T['select'] extends true
+                    ? number
+                    : Prisma.GetScalarType<T['select'], Prisma.SettingCountAggregateOutputType>
+                : number,
+            TRPCClientErrorLike<AppRouter>
+        >;
     };
 }

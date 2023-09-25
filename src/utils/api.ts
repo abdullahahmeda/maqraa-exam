@@ -6,7 +6,8 @@
  * We also create a few inference helpers for input and output types
  */
 import { httpBatchLink, loggerLink } from '@trpc/client'
-import { createTRPCNext } from '@trpc/next'
+// import { createTRPCNext } from '@trpc/next'
+import { createTRPCNext } from '~/server/api/routers/generated/client/next'
 import { type inferRouterInputs, type inferRouterOutputs } from '@trpc/server'
 import superjson from 'superjson'
 

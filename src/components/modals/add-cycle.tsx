@@ -19,7 +19,7 @@ export const AddCycleDialog = ({
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const cycleCreate = api.cycles.create.useMutation()
+  const cycleCreate = api.createCycle.useMutation()
 
   const onSubmit = (data: AddCycleFieldValues) => {
     const t = toast({ title: 'جاري إضافة الدورة' })
@@ -35,7 +35,7 @@ export const AddCycleDialog = ({
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['cycles']])
+        queryClient.invalidateQueries([['cycle']])
       })
   }
 

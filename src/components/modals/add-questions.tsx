@@ -23,7 +23,7 @@ export const AddQuestionsDialog = ({
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const questionsImport = api.questions.import.useMutation()
+  const questionsImport = api.importQuestions.useMutation()
 
   const onSubmit = (data: ImportQuestionsFieldValues) => {
     const t = toast({ title: 'جاري إضافة الأسئلة' })
@@ -39,7 +39,7 @@ export const AddQuestionsDialog = ({
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['questions']])
+        queryClient.invalidateQueries([['question']])
       })
   }
 

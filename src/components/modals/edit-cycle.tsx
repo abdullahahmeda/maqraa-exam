@@ -21,13 +21,13 @@ export const EditCycleDialog = ({ id }: { id: string }) => {
     data: cycle,
     isLoading,
     error,
-  } = api.cycles.findFirstOrThrow.useQuery({ where: { id } })
+  } = api.cycle.findFirstOrThrow.useQuery({ where: { id } })
 
   useEffect(() => {
     if (cycle) form.reset(cycle)
   }, [cycle, form])
 
-  const cycleUpdate = api.cycles.update.useMutation()
+  const cycleUpdate = api.updateCycle.useMutation()
 
   const onSubmit = (data: EditCycleFieldValues) => {
     const t = toast({ title: 'جاري تعديل الدورة' })
@@ -43,7 +43,7 @@ export const EditCycleDialog = ({ id }: { id: string }) => {
         toast({ title: error.message, variant: 'destructive' })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['cycles']])
+        queryClient.invalidateQueries([['cycle']])
       })
   }
 
