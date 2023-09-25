@@ -77,7 +77,14 @@ export const EditUserDialog = ({
             (value: any) => value ?? undefined
           )
         )
-      else if (user.role === 'CORRECTOR') form.reset({ ...user, corrector: { ...user.corrector, courses: user.corrector!.courses.map(c => c.courseId) } })
+      else if (user.role === 'CORRECTOR')
+        form.reset({
+          ...user,
+          corrector: {
+            ...user.corrector,
+            courses: user.corrector!.courses.map((c) => c.courseId),
+          },
+        } as any) // Please leave me alone typescript
       else form.reset(mapValues(user, (value: any) => value ?? undefined))
       // consol
     }

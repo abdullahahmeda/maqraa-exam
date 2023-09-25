@@ -37,11 +37,11 @@ export type AddUserFieldValues = {
   name: string
   email: string
   password: string
-  phone: string
+  phone: string | null
   role: UserRole
   corrector:
     | {
-        cycleId: string | undefined
+        cycleId: string | null | undefined
         courses: string[]
       }
     | undefined
