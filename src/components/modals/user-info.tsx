@@ -14,14 +14,14 @@ export const UserInfoModal = ({ id }: { id: string }) => {
     where: { id },
     include: {
       student: { include: { cycles: { include: { cycle: true } } } },
-      corrector: { include: { course: true, cycle: true } },
+      corrector: { include: { courses: { include: { course: true } }, cycle: true } },
     },
   })
 
-  const { data: overallPerformance } =
-    api.student.getOverallPerformance.useQuery(user?.student?.id as string, {
-      enabled: !!user?.student?.id,
-    })
+  const { data: overallPerformance } = { data: 50 }
+    // api.student.getOverallPerformance.useQuery(user?.student?.id as string, {
+    //   enabled: !!user?.student?.id,
+    // })
 
   if (isLoading)
     return (
@@ -52,7 +52,7 @@ export const UserInfoModal = ({ id }: { id: string }) => {
             <Separator className='my-2' />
             <h3 className='font-semibold'>معلومات عن المصحح</h3>
             <p>الدورة: {user.corrector!.cycle!.name}</p>
-            <p>المقرر: {user.corrector!.course!.name}</p>
+            <p>المقررات: {user.corrector!.courses.map(({ course }) => course.name).join('، ')}</p>
           </>
         )}
         {user.role === 'STUDENT' && (
