@@ -34,8 +34,6 @@ import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { CheckedState } from '@radix-ui/react-checkbox'
 import {
-  Curriculum,
-  CurriculumPart,
   QuestionStyle,
   QuestionType,
 } from '@prisma/client'
@@ -72,7 +70,7 @@ type Group = {
 }
 
 type FieldValues = {
-  courseId: string
+  courseId: any
   trackId: string
   curriculumId: string
   repeatFromSameHadith: CheckedState
@@ -260,7 +258,7 @@ const HomePage = () => {
     fetchStatus: curriculaFetchStatus,
   } = api.curriculum.findMany.useQuery(
     {
-      where: { trackId },
+      where: { track: { id: trackId, courseId: undefined } },
       include: { parts: true },
     },
     {

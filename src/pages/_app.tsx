@@ -1,7 +1,7 @@
 import { type AppType } from 'next/app'
 import { type Session } from 'next-auth'
 import type { NextPage } from 'next'
-import { ReactElement, ReactNode, useEffect } from 'react'
+import { ReactElement, ReactNode } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { Cairo } from 'next/font/google'
 import { z } from 'zod'
