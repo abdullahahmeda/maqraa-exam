@@ -48,7 +48,7 @@ export const EditCurriculumDialog = ({
     data: course,
     isLoading,
     error,
-  } = api.curricula.findFirst.useQuery({
+  } = api.curriculum.findFirst.useQuery({
     where: { id },
     include: { parts: true },
   })

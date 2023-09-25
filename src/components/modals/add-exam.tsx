@@ -102,13 +102,13 @@ export const AddExamDialog = ({
     fetchStatus: curriculaFetchStatus,
   } = api.curriculum.findMany.useQuery(
     {
-      where: { trackId },
+      where: { track: { id: trackId, courseId: undefined } },
       include: { parts: true },
     },
     {
       enabled: !!trackId,
       queryKey: [
-        'curricula.findMany',
+        'curriculum.findMany',
         {
           where: { track: { id: trackId, courseId } },
           include: { parts: true },
