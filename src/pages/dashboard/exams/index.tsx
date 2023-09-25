@@ -4,7 +4,6 @@ import {
   Cycle,
   Exam,
   ExamType,
-  Student,
   User,
   UserRole,
 } from '@prisma/client'
@@ -439,7 +438,7 @@ const ExamsPage = () => {
       : -1
 
   const table = useReactTable({
-    data: exams || [],
+    data: (exams as Row[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
