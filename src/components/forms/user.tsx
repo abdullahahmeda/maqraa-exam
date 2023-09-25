@@ -37,7 +37,7 @@ export type AddUserFieldValues = {
   name: string
   email: string
   password: string
-  phone: string | null
+  phone: string | null 
   role: UserRole
   corrector:
     | {
@@ -332,6 +332,7 @@ export const UserForm = ({
             <FormItem>
               <FormLabel>رقم الهاتف (اختياري)</FormLabel>
               <FormControl>
+                {/* @ts-ignore */}
                 <Input {...field} />
               </FormControl>
               <FormMessage />
@@ -437,7 +438,7 @@ export const UserForm = ({
                       labelKey='name'
                       valueKey='id'
                       onSelect={field.onChange}
-                      value={field.value}
+                      value={field.value || undefined}
                       triggerText='اختر'
                       triggerClassName='w-full'
                     />
