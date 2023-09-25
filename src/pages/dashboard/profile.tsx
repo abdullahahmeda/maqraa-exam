@@ -52,7 +52,7 @@ const ProfilePage = ({ user }: Props) => {
     name: 'changePassword',
   })
 
-  const profileUpdate = api.users.updateProfile.useMutation()
+  const profileUpdate = api.updateUserProfile.useMutation()
 
   useEffect(() => {
     form.reset(user as any)
