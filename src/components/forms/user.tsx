@@ -104,7 +104,7 @@ const CycleForm = ({ form, path }: { form: UseFormReturn; path: string }) => {
     data: curricula,
     fetchStatus: curriculaFetchStatus,
   } = api.curriculum.findMany.useQuery(
-    { where: { trackId } },
+    { where: { track: { id: trackId, courseId: undefined } } },
     {
       enabled: !!trackId,
       queryKey: [
