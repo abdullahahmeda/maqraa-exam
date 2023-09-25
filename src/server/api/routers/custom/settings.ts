@@ -5,7 +5,7 @@
 // import { adminOnlyProcedure, createTRPCRouter, publicProcedure } from '../trpc'
 
 import { z } from 'zod'
-import { createTRPCRouter, protectedProcedure } from '../trpc'
+import { createTRPCRouter, protectedProcedure } from '../../trpc'
 import { SettingInputSchema } from '@zenstackhq/runtime/zod/input'
 import { checkMutate, db, checkRead } from './helper'
 
