@@ -9,7 +9,7 @@ import DashboardLayout from '~/components/dashboard/layout'
 import { QuestionType } from '~/constants'
 import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
-import { enStyleToAr, enTypeToAr } from '~/utils/questions'
+import { enStyleToAr } from '~/utils/questions'
 import { isCorrectAnswer, normalizeText } from '~/utils/strings'
 import { Badge } from '~/components/ui/badge'
 import { User, UserRole } from '@prisma/client'
@@ -29,7 +29,6 @@ import { formatDate } from '~/utils/formatDate'
 import { CheckedState } from '@radix-ui/react-checkbox'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { correctExamSchema } from '~/validation/correctExamSchema'
-import { z } from 'zod'
 import { useToast } from '~/components/ui/use-toast'
 
 type FieldValues = {
@@ -52,7 +51,7 @@ const ExamPage = ({
   })
   const router = useRouter()
 
-  const examCorrect = api.exams.correct.useMutation()
+  const examCorrect = api.correctExam.useMutation()
   // const gradeEmailSend = api.emails.sendGradeEmail.useMutation()
 
   useEffect(() => {
@@ -86,7 +85,8 @@ const ExamPage = ({
         id: exam.id,
         groups: form.getValues('groups') as any,
       })
-      .then((isEmailSent) => {
+      .then(() => {
+        const isEmailSent = false
         if (isEmailSent) {
           // toast({ title: 'تم حفظ الاختبار وارسال الدرجة بنجاح' })
         }
@@ -142,7 +142,7 @@ const ExamPage = ({
         //   }
         // )
       })
-      .catch((error) => {
+      .catch((error: any) => {
         if (error.message) toast({ title: error.message })
         else toast({ title: 'حدث خطأ غير متوقع' })
       })
