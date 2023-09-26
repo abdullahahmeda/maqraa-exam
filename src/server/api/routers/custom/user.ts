@@ -20,7 +20,10 @@ import { sendMail, sendPasswordChangedEmail } from '~/utils/email'
 import { getBaseUrl } from '~/utils/api'
 import { updateProfileSchema } from '~/validation/updateProfileSchema'
 import { compareSync } from 'bcryptjs'
-import { recoverPasswordSchema } from '~/validation/recoverPasswordSchema'
+import { forgotPasswordSchema } from '~/validation/forgotPasswordSchema'
+import { add } from 'date-fns'
+import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
+import { withPassword } from '@zenstackhq/runtime'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -382,8 +385,8 @@ export const userRouter = createTRPCRouter({
       )
     }),
 
-  recoverPassword: publicProcedure
-    .input(recoverPasswordSchema)
+  forgotPassword: publicProcedure
+    .input(forgotPasswordSchema)
     .mutation(async ({ ctx, input }) => {
       const user = await prisma.user.findFirst({
         where: { email: input.email },
@@ -393,7 +396,43 @@ export const userRouter = createTRPCRouter({
           code: 'BAD_REQUEST',
           message: 'هذا الحساب غير موجود',
         })
-      
+      const expires = add(new Date(), { hours: 24 })
+      const { token } = await prisma.resetPasswordToken.create({
+        data: { user: { connect: { email: input.email } }, expires },
+      })
+      await sendMail({
+        subject: 'طلب تغيير كلمة المرور',
+        to: [{ email: input.email }],
+        textContent: `قم بتغيير كلمة المرور الخاصة بك من خلال الرابط: ${
+          getBaseUrl() + '/reset-password/' + token
+        }`,
+      })
+      return true
+    }),
+
+  resetPassword: publicProcedure
+    .input(resetPasswordSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { token, password } = input
+      const passwordToken = await prisma.resetPasswordToken.findFirst({
+        where: { token },
+      })
+      if (!passwordToken)
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'هذا التوكين غير موجود',
+        })
+
+      // This prisma object will handle hashing passwords
+      const prismaWithPasswordUtility = withPassword(prisma)
+      await prismaWithPasswordUtility.$transaction(async (tx) => {
+        await tx.user.update({
+          where: { id: passwordToken.userId },
+          data: { password },
+        })
+        await tx.resetPasswordToken.delete({ where: { token } })
+      })
+
       return true
     }),
 })

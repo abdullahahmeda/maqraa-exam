@@ -64,6 +64,7 @@ model User {
   student Student?
   accounts Account[]
   sessions Session[]
+  resetPasswordTokens ResetPasswordToken[]
 
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('read', auth().role == CORRECTOR) // for correctors
@@ -134,6 +135,16 @@ model VerificationToken {
   expires DateTime
 
   @@unique([identifier, token])
+}
+
+/// @@Gen.model(hide: true)
+model ResetPasswordToken {
+  token String @id @default(cuid())
+  userId String
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expires DateTime
+
+  @@index([userId])
 }
 
 model Question {

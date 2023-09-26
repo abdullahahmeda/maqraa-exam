@@ -119,7 +119,7 @@ export default function LoginPage() {
               <FormMessage>
                 {form.formState.errors.root?.serverError?.message}
               </FormMessage>
-              <div><Link href='recover-password' className={cn(buttonVariants({ variant: 'link' }), 'px-0')}>نسيت كلمة السر؟</Link></div>
+              <div><Link href='forgot-password' className={cn(buttonVariants({ variant: 'link' }), 'px-0')}>نسيت كلمة السر؟</Link></div>
               <Button className='mt-2' loading={isLoading}>
                 تسجيل الدخول
               </Button>

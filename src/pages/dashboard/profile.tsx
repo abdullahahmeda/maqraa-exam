@@ -174,7 +174,7 @@ const ProfilePage = ({ user }: Props) => {
                 />
               </>
             )}
-            <Button>حفظ</Button>
+            <Button loading={profileUpdate.isLoading}>حفظ</Button>
           </form>
         </Form>
       </div>

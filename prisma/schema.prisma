@@ -95,6 +95,7 @@ model User {
     student Student?
     accounts Account[]
     sessions Session[]
+    resetPasswordTokens ResetPasswordToken[]
 }
 
 /// @@allow('all', auth() != null)
@@ -149,6 +150,16 @@ model VerificationToken {
     expires DateTime
 
     @@unique([identifier, token])
+}
+
+/// @@Gen.model(hide: true)
+model ResetPasswordToken {
+    token String @id() @default(cuid())
+    userId String
+    user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+    expires DateTime
+
+    @@index([userId])
 }
 
 /// @@allow('create,update,delete', auth().role == ADMIN)
