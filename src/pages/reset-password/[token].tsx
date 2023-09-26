@@ -99,7 +99,7 @@ export const PasswordTokenPage = ({ token }: { token: string }) => {
 }
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const token = ctx.params.token
+  const token = ctx.params!.token
   const passwordToken = await prisma.resetPasswordToken.findFirst({
     where: { token, expires: { gt: new Date() } },
   })
