@@ -20,7 +20,7 @@ export const prisma = xprisma.$extends({
           return async () => {
             const exams = await xprisma.exam.findMany({
               where: {
-                userId: student.userId,
+                examineeId: student.userId,
                 grade: { not: null },
                 type: { not: 'PUBLIC' },
               },
