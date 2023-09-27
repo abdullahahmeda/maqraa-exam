@@ -73,6 +73,7 @@ export const EditUserDialog = ({
                   {}
                 ),
               },
+            corrector: { courses: [] }
             },
             (value: any) => value ?? undefined
           )
@@ -84,8 +85,9 @@ export const EditUserDialog = ({
             ...user.corrector,
             courses: user.corrector!.courses.map((c) => c.courseId),
           },
+        student: { cycles: {} }
         } as any) // Please leave me alone typescript
-      else form.reset(mapValues(user, (value: any) => value ?? undefined))
+      else form.reset(mapValues({ ...user, corrector: { courses: [] }, student: {cycles: {}} }, (value: any) => value ?? undefined))
       // consol
     }
   }, [user, form])

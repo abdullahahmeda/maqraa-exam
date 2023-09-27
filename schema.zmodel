@@ -59,12 +59,13 @@ model User {
   image String?
   phone String?
   role UserRole
-  exams Exam[]
+  exams Exam[] @relation("Exam_examinee")
   corrector Corrector?
   student Student?
   accounts Account[]
   sessions Session[]
   resetPasswordTokens ResetPasswordToken[]
+  correctedExams Exam[] @relation("Exam_corrector")
 
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('read', auth().role == CORRECTOR) // for correctors
@@ -82,7 +83,6 @@ model Corrector {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   courses CourseCorrector[]
-  correctedExams Exam[]
 
   @@index([userId])
   @@index([cycleId])
@@ -221,21 +221,21 @@ model Exam {
   enteredAt DateTime?
   submittedAt DateTime?
   correctedAt DateTime?
-  endedAt DateTime?
+  endsAt DateTime?
   repeatFromSameHadith Boolean @default(false)
   curriculumId String
-  userId String?
+  examineeId String?
   correctorId String?
   cycleId String?
-  corrector Corrector? @relation(fields: [correctorId], references: [id], onDelete: Cascade)
-  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+  corrector User? @relation("Exam_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
+  examinee User? @relation("Exam_examinee", fields: [examineeId], references: [id], onDelete: Cascade)
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
   groups ExamQuestionGroup[]
 
   @@index([grade])
   @@index([type])
-  @@index([userId])
+  @@index([examineeId])
   @@index([correctorId])
   @@index([curriculumId])
   @@index([cycleId])
@@ -243,8 +243,8 @@ model Exam {
   // TODO: maybe update read rules
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('create', true) // anyone
-  @@allow('read,update', auth().role == CORRECTOR && cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[user == auth()]) // for correctors
-  @@allow('read,update', user == auth()) // for students
+  @@allow('read,update', auth().role == CORRECTOR && cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[corrector.id == auth().correctorId]) // for correctors
+  @@allow('read,update', examinee == auth()) // for students
 }
 
 enum ExamType {
@@ -277,7 +277,7 @@ model GroupQuestion {
   id Int @id @default(autoincrement())
   answer String? @db.Text()
   order Int @default(1)
-  isCorrect Boolean @default(false)
+  grade Int @default(0)
   groupId String
   questionId String
   group ExamQuestionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)

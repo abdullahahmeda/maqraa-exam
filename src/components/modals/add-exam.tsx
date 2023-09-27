@@ -45,7 +45,7 @@ import { format } from 'date-fns'
 
 type FieldValues = {
   type: string
-  endedAt: Date | null | undefined
+  endsAt: Date | null | undefined
   courseId: any
   trackId: string
   curriculumId: string
@@ -206,7 +206,7 @@ export const AddExamDialog = ({
         />
         <FormField
           control={form.control}
-          name='endedAt'
+          name='endsAt'
           render={({ field }) => (
             <FormItem className='flex flex-col'>
               <FormLabel>تاريخ قفل الإختبار</FormLabel>

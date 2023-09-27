@@ -72,9 +72,15 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from '~/components/ui/hover-card'
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from '~/components/ui/tooltip'
 
 type Row = Exam & {
-  user: User
+  examinee: User
   corrector: User | null
   questions: {
     id: number
@@ -112,7 +118,7 @@ const ExamsPage = () => {
     ...(session?.user.role === 'STUDENT'
       ? []
       : [
-          columnHelper.accessor('user.name', {
+          columnHelper.accessor('examinee.name', {
             header: 'الطالب',
 
             cell: (info) => info.getValue() || '-',
@@ -120,7 +126,7 @@ const ExamsPage = () => {
               className: 'text-center',
             },
           }),
-          columnHelper.accessor('user.email', {
+          columnHelper.accessor('examinee.email', {
             header: 'الإيميل',
             cell: (info) => info.getValue() || '-',
             meta: {
@@ -131,15 +137,17 @@ const ExamsPage = () => {
     columnHelper.accessor('curriculum.name', {
       id: 'curriculum',
       header: ({ column, table }) => {
-        const { data: curricula, isLoading } = api.curriculum.findMany.useQuery({
-          where: {
-            track: {
-              courseId:
-                table.getState().columnFilters.find((f) => f.id === 'course')
-                  ?.value || undefined,
+        const { data: curricula, isLoading } = api.curriculum.findMany.useQuery(
+          {
+            where: {
+              track: {
+                courseId:
+                  table.getState().columnFilters.find((f) => f.id === 'course')
+                    ?.value || undefined,
+              },
             },
-          },
-        })
+          }
+        )
         const filterValue = column.getFilterValue() as string | undefined
         return (
           <div className='flex items-center'>
@@ -213,6 +221,11 @@ const ExamsPage = () => {
       },
       cell: ({ getValue }) => enExamTypeToAr(getValue()),
     }),
+    columnHelper.accessor('grade', {
+      header: 'الدرجة',
+      cell: (info) =>
+        info.row.original.correctedAt ? info.getValue() ?? '-' : '-',
+    }),
     columnHelper.accessor('cycle.name', {
       id: 'cycle',
       header: ({ column }) => {
@@ -259,26 +272,18 @@ const ExamsPage = () => {
         className: 'text-center',
       },
     }),
-    columnHelper.accessor('enteredAt', {
-      header: 'وقت البدأ',
+    columnHelper.accessor('endsAt', {
+      header: 'وقت القفل',
       cell: (info) =>
-        info.getValue() ? (
-          formatDate(info.getValue() as Date)
-        ) : (
-          <Badge variant='outline'>لم يتم البدأ</Badge>
-        ),
+        info.getValue() ? formatDate(info.getValue() as Date) : '-',
       meta: {
         className: 'text-center',
       },
     }),
-    columnHelper.accessor('endedAt', {
-      header: 'وقت القفل',
+    columnHelper.accessor('enteredAt', {
+      header: 'وقت البدأ',
       cell: (info) =>
-        info.getValue() ? (
-          formatDate(info.getValue() as Date)
-        ) : (
-          <Badge variant='outline'>مفتوح</Badge>
-        ),
+        info.getValue() ? formatDate(info.getValue() as Date) : '-',
       meta: {
         className: 'text-center',
       },
@@ -286,11 +291,7 @@ const ExamsPage = () => {
     columnHelper.accessor('submittedAt', {
       header: 'وقت التسليم',
       cell: (info) =>
-        info.getValue() ? (
-          formatDate(info.getValue() as Date)
-        ) : (
-          <Badge variant='outline'>لم يتم التسليم</Badge>
-        ),
+        info.getValue() ? formatDate(info.getValue() as Date) : '-',
       meta: {
         className: 'text-center',
       },
@@ -298,11 +299,7 @@ const ExamsPage = () => {
     columnHelper.accessor('correctedAt', {
       header: 'وقت التصحيح',
       cell: (info) =>
-        info.getValue() ? (
-          formatDate(info.getValue() as Date)
-        ) : (
-          <Badge variant='outline'>لم يتم التصحيح</Badge>
-        ),
+        info.getValue() ? formatDate(info.getValue() as Date) : '-',
       meta: {
         className: 'text-center',
       },
@@ -321,7 +318,7 @@ const ExamsPage = () => {
         <div className='flex justify-center gap-2'>
           {session?.user.role !== 'STUDENT' ? (
             <>
-              {(!!row.original.submittedAt || !!row.original.endedAt) && (
+              {!!row.original.submittedAt && (
                 <Link
                   className={cn(
                     buttonVariants({ variant: 'ghost', size: 'icon' })
@@ -331,17 +328,26 @@ const ExamsPage = () => {
                   <FileCheck2 className='h-4 w-4 text-success' />
                 </Link>
               )}
-              <Button
-                size='icon'
-                variant='ghost'
-                onClick={() =>
-                  navigator.clipboard.writeText(
-                    `${location.origin}/exams/${row.original.id}`
-                  )
-                }
-              >
-                <LinkIcon className='h-4 w-4' />
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <Button
+                      size='icon'
+                      variant='ghost'
+                      onClick={() => {
+                        navigator.clipboard.writeText(
+                          `${location.origin}/exams/${row.original.id}`
+                        )
+                      }}
+                    >
+                      <LinkIcon className='h-4 w-4' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>نسخ رابط الإختبار</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <AlertDialog>
                 <AlertDialogTrigger asChild>
                   <Button
@@ -359,7 +365,7 @@ const ExamsPage = () => {
             </>
           ) : (
             <>
-              {!row.original.endedAt && !row.original.submittedAt && (
+              {!row.original.endsAt && !row.original.submittedAt && (
                 <HoverCard>
                   <HoverCardTrigger>
                     <Link
@@ -417,7 +423,7 @@ const ExamsPage = () => {
       skip: pageIndex * pageSize,
       take: pageSize,
       include: {
-        user: true,
+        examinee: true,
         curriculum: true,
         corrector: true,
         cycle: true,

@@ -106,8 +106,8 @@ const ExamPage = ({
       })
   }
 
-  const totalQuestions = (exam.groups as any[]).reduce(
-    (acc, group) => acc + group.questions.length,
+  const totalGrade = (exam.groups as any[]).reduce(
+    (acc, group) => acc + group.questions.length * group.gradePerQuestion,
     0
   )
 
@@ -138,29 +138,32 @@ const ExamPage = ({
           {exam.grade !== null && (
             <div className='sticky top-3 z-10 float-left'>
               <Badge className='shadow'>
-                الدرجة: {exam.grade} من {totalQuestions}
+                الدرجة: {exam.grade} من {totalGrade}
               </Badge>
             </div>
           )}
           <Form {...form}>
             <form
               onSubmit={
-                exam.submittedAt || session?.user.id != exam.userId
+                exam.submittedAt || session?.user.id != exam.examineeId
                   ? () => undefined
                   : form.handleSubmit(onSubmit)
               }
             >
               {exam.groups.map((group, i) =>
-                group.questions.map(({ question, id, order, isCorrect }) => (
+                group.questions.map(({ question, id, order, grade }) => (
                   <div
                     key={id}
                     className={cn(
                       'mb-4 rounded p-2',
                       exam.grade !== null &&
-                        isCorrect === true &&
+                        grade === group.gradePerQuestion &&
                         'bg-success/20',
                       exam.grade !== null &&
-                        isCorrect === false &&
+                        0 < grade && grade < group.gradePerQuestion &&
+                        'bg-orange-500/20',
+                      exam.grade !== null &&
+                        grade === 0 &&
                         'bg-destructive/20'
                     )}
                   >
@@ -292,7 +295,7 @@ const ExamPage = ({
                   </div>
                 ))
               )}
-              {!exam.submittedAt && session?.user.id == exam.userId && (
+              {!exam.submittedAt && session?.user.id == exam.examineeId && (
                 <Button loading={examSubmit.isLoading}>تسليم</Button>
               )}
             </form>
@@ -302,6 +305,7 @@ const ExamPage = ({
     </>
   )
 }
+
 ExamPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
@@ -322,7 +326,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
                 order: true,
                 id: true,
                 answer: true,
-                isCorrect: true,
+                grade: true,
               },
               orderBy: { order: 'asc' },
             },
@@ -346,7 +350,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       },
     }
 
-  if (exam.endedAt) return { notFound: true }
+  // If exam time has ended, return not found
+  if (exam.endsAt && exam.endsAt <= new Date()) return { notFound: true }
 
   // not submitted but questions have been made, so hide answers
   if (exam.enteredAt)
@@ -457,7 +462,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
                   order: true,
                   id: true,
                   answer: true,
-                  isCorrect: true,
+                  grade: true,
                 },
                 orderBy: { order: 'asc' },
               },

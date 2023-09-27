@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { createTRPCRouter, protectedProcedure, publicProcedure } from '../../trpc'
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from '../../trpc'
 import { checkMutate, checkRead, db } from './helper'
 import { newExamSchema } from '~/validation/newExamSchema'
 import { ExamType, QuestionType, UserRole } from '@prisma/client'
@@ -97,7 +101,7 @@ export const examRouter = createTRPCRouter({
         db(ctx).exam.create({
           data: {
             ...data,
-            userId: ctx.session?.user.id,
+            examineeId: ctx.session?.user.id,
             type: ExamType.PUBLIC,
             groups: { create: groups },
           },
@@ -231,13 +235,12 @@ export const examRouter = createTRPCRouter({
       )
 
       for (const user of studentUsers) {
-        // console.log(user)
         checkMutate(
           db(ctx).exam.create({
             data: {
               ...data,
               cycleId,
-              userId: user.id,
+              examineeId: user.id,
               groups: { create: groups },
             },
           })
@@ -263,13 +266,13 @@ export const examRouter = createTRPCRouter({
           message: 'هذا الاختبار تم تسليمه من قبل',
         })
 
-      if (ctx.session?.user.id != exam.userId)
+      if (ctx.session?.user.id != exam.examineeId)
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'ليس لديك الصلاحيات لهذه العملية',
         })
 
-      let grade = 0
+      let examGrade = 0
       const update = await Promise.all(
         Object.entries(groups).map(async ([groupId, { questions }]) => ({
           where: { id: groupId },
@@ -288,12 +291,13 @@ export const examRouter = createTRPCRouter({
                     answer === undefined
                       ? false
                       : isCorrectAnswer(examQuestion.question, answer)
-                  grade +=
+                  const questionGrade =
                     Number(isCorrect) * examQuestion.group.gradePerQuestion
+                  examGrade += questionGrade
 
                   return {
                     where: { id: Number(questionId) },
-                    data: { answer, isCorrect },
+                    data: { answer, grade: questionGrade },
                   }
                 })
               ),
@@ -307,7 +311,7 @@ export const examRouter = createTRPCRouter({
           where: { id },
           data: {
             submittedAt: new Date(),
-            grade,
+            grade: examGrade,
             groups: { update },
           },
         })
@@ -329,7 +333,7 @@ export const examRouter = createTRPCRouter({
                     order: true,
                     id: true,
                     answer: true,
-                    isCorrect: true,
+                    grade: true,
                   },
                   orderBy: { order: 'asc' },
                 },
@@ -378,51 +382,35 @@ export const examRouter = createTRPCRouter({
     .mutation(async ({ input, ctx }) => {
       const { id, groups } = input
 
-      let grade = 0
-      const update = await Promise.all(
-        Object.entries(groups).map(async ([groupId, { questions }]) => ({
-          where: { id: groupId },
-          data: {
-            questions: {
-              update: await Promise.all(
-                Object.entries(questions).map(
-                  async ([questionId, isCorrect]) => {
-                    const examQuestion = await checkRead(
-                      db(ctx).groupQuestion.findFirstOrThrow({
-                        where: { id: Number(questionId) },
-                        include: { question: true, group: true },
-                      })
-                    )
-                    grade +=
-                      Number(isCorrect) * examQuestion.group.gradePerQuestion
+      let examGrade = 0
+      const update = Object.entries(groups).map(([groupId, { questions }]) => ({
+        where: { id: groupId },
+        data: {
+          questions: {
+            update: Object.entries(questions).map(
+              ([questionId, questionGrade]) => {
+                examGrade += questionGrade
 
-                    return {
-                      where: { id: Number(questionId) },
-                      data: { isCorrect },
-                    }
-                  }
-                )
-              ),
-            },
+                return {
+                  where: { id: Number(questionId) },
+                  data: { grade: questionGrade },
+                }
+              }
+            ),
           },
-        }))
-      )
+        },
+      }))
 
       return checkMutate(
         db(ctx).exam.update({
           where: { id },
           data: {
             correctedAt: new Date(),
-            corrector: { connect: { id: ctx.session.user.correctorId } },
-            grade,
+            corrector: { connect: { id: ctx.session.user.id } },
+            grade: examGrade,
             groups: { update },
           },
         })
       )
     }),
-  // update: protectedProcedure
-  //   .input(ExamInputSchema.update)
-  //   .mutation(async ({ ctx, input }) =>
-  //     checkMutate(db(ctx).exam.update(input))
-  //   ),
 })
