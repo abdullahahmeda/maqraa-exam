@@ -365,21 +365,25 @@ const ExamsPage = () => {
             </>
           ) : (
             <>
-              {!row.original.endsAt && !row.original.submittedAt && (
-                <HoverCard>
-                  <HoverCardTrigger>
-                    <Link
-                      className={cn(
-                        buttonVariants({ variant: 'ghost', size: 'icon' })
-                      )}
-                      href={`/exams/${row.original.id}`}
-                    >
-                      <LogIn className='h-4 w-4' />
-                    </Link>
-                  </HoverCardTrigger>
-                  <HoverCardContent>دخول الإختبار</HoverCardContent>
-                </HoverCard>
-              )}
+              {(!row.original.endsAt ||
+                (row.original.endsAt && row.original.endsAt > new Date())) &&
+                !row.original.submittedAt && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          className={cn(
+                            buttonVariants({ variant: 'ghost', size: 'icon' })
+                          )}
+                          href={`/exams/${row.original.id}`}
+                        >
+                          <LogIn className='h-4 w-4' />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>دخول الإختبار</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
             </>
           )}
         </div>
