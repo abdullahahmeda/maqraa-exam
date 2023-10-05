@@ -341,7 +341,7 @@ const ExamPage = ({
             </Form>
             <DialogContent>
               <ReportErrorDialog
-                questionId={selectedQuestion}
+                questionId={selectedQuestion as string}
                 closeDialog={() => setSelectedQuestion(null)}
               />
             </DialogContent>
