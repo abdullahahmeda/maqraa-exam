@@ -34,9 +34,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
+import {
+  PopoverTrigger,
+  Popover,
+  PopoverContent,
+} from '~/components/ui/popover'
 import { useToast } from '~/components/ui/use-toast'
 import sampleSize from 'lodash.samplesize'
 import { useSession } from 'next-auth/react'
+import { AlertTriangleIcon } from 'lucide-react'
+import { Dialog, DialogTrigger, DialogContent } from '~/components/ui/dialog'
+import { ReportErrorDialog } from '~/components/modals/report-error'
 
 type FieldValues = {
   id: string
@@ -56,6 +64,8 @@ const ExamPage = ({
   const form = useForm<FieldValues>()
   const { toast } = useToast()
   const { data: session } = useSession()
+
+  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null)
 
   const examSubmit = api.submitExam.useMutation()
 
@@ -142,164 +152,200 @@ const ExamPage = ({
               </Badge>
             </div>
           )}
-          <Form {...form}>
-            <form
-              onSubmit={
-                exam.submittedAt || session?.user.id != exam.examineeId
-                  ? () => undefined
-                  : form.handleSubmit(onSubmit)
-              }
-            >
-              {exam.groups.map((group, i) =>
-                group.questions.map(({ question, id, order, grade }) => (
-                  <div
-                    key={id}
-                    className={cn(
-                      'mb-4 rounded p-2',
-                      exam.grade !== null &&
-                        grade === group.gradePerQuestion &&
-                        'bg-success/20',
-                      exam.grade !== null &&
-                        0 < grade && grade < group.gradePerQuestion &&
-                        'bg-orange-500/20',
-                      exam.grade !== null &&
-                        grade === 0 &&
-                        'bg-destructive/20'
-                    )}
-                  >
-                    <div className='flex items-center'>
-                      {exam.groups
-                        .slice(0, i)
-                        .reduce(
-                          (acc, g) => acc + g.order * g.questions.length,
-                          0
-                        ) + order}
-                      .
-                      <Badge className='ml-2 mr-1'>
-                        {enStyleToAr(question.style)}
-                      </Badge>
-                      <p>{question.text}</p>
+          <Dialog
+            open={selectedQuestion !== null}
+            onOpenChange={(open) =>
+              setSelectedQuestion(open ? selectedQuestion : null)
+            }
+          >
+            <Form {...form}>
+              <form
+                onSubmit={
+                  exam.submittedAt || session?.user.id != exam.examineeId
+                    ? () => undefined
+                    : form.handleSubmit(onSubmit)
+                }
+              >
+                {exam.groups.map((group, i) =>
+                  group.questions.map(({ question, id, order, grade }) => (
+                    <div
+                      key={id}
+                      className={cn(
+                        'mb-4 rounded p-2',
+                        exam.grade !== null &&
+                          grade === group.gradePerQuestion &&
+                          'bg-success/20',
+                        exam.grade !== null &&
+                          0 < grade &&
+                          grade < group.gradePerQuestion &&
+                          'bg-orange-500/20',
+                        exam.grade !== null &&
+                          grade === 0 &&
+                          'bg-destructive/20'
+                      )}
+                    >
+                      <div className='flex items-center'>
+                        {exam.groups
+                          .slice(0, i)
+                          .reduce(
+                            (acc, g) => acc + g.order * g.questions.length,
+                            0
+                          ) + order}
+                        .
+                        <Badge className='ml-2 mr-1'>
+                          {enStyleToAr(question.style)}
+                        </Badge>
+                        <p>{question.text}</p>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              size='icon'
+                              variant='ghost'
+                              className='mr-2'
+                              onClick={() => setSelectedQuestion(question.id)}
+                            >
+                              <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent>الإبلاغ عن خطأ</PopoverContent>
+                        </Popover>
+                      </div>
+                      <div className='mt-2'>
+                        <FormField
+                          control={form.control}
+                          name={`groups.${group.id}.questions.${id}`}
+                          render={({ field }) => (
+                            <FormItem
+                              className={cn(
+                                question.type === QuestionType.MCQ &&
+                                  'space-y-2'
+                              )}
+                            >
+                              <FormLabel>
+                                {exam.submittedAt
+                                  ? 'الإجابة الخاصة بك'
+                                  : 'الإجابة'}
+                              </FormLabel>
+                              {question.type === QuestionType.WRITTEN ? (
+                                <FormControl>
+                                  <Textarea
+                                    {...field}
+                                    disabled={!!exam.submittedAt}
+                                    className='bg-white'
+                                  />
+                                </FormControl>
+                              ) : question.style === QuestionStyle.CHOOSE ? (
+                                <FormControl>
+                                  <RadioGroup
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    disabled={!!exam.submittedAt}
+                                  >
+                                    {question.option1 && (
+                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                        <FormControl>
+                                          <RadioGroupItem
+                                            value={question.option1}
+                                          />
+                                        </FormControl>
+                                        <FormLabel>
+                                          {question.option1}
+                                        </FormLabel>
+                                      </FormItem>
+                                    )}
+                                    {question.option2 && (
+                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                        <FormControl>
+                                          <RadioGroupItem
+                                            value={question.option2}
+                                          />
+                                        </FormControl>
+                                        <FormLabel>
+                                          {question.option2}
+                                        </FormLabel>
+                                      </FormItem>
+                                    )}
+                                    {question.option3 && (
+                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                        <FormControl>
+                                          <RadioGroupItem
+                                            value={question.option3}
+                                          />
+                                        </FormControl>
+                                        <FormLabel>
+                                          {question.option3}
+                                        </FormLabel>
+                                      </FormItem>
+                                    )}
+                                    {question.option4 && (
+                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                        <FormControl>
+                                          <RadioGroupItem
+                                            value={question.option4}
+                                          />
+                                        </FormControl>
+                                        <FormLabel>
+                                          {question.option4}
+                                        </FormLabel>
+                                      </FormItem>
+                                    )}
+                                  </RadioGroup>
+                                </FormControl>
+                              ) : (
+                                <FormControl>
+                                  <RadioGroup
+                                    value={field.value}
+                                    onValueChange={field.onChange}
+                                    disabled={!!exam.submittedAt}
+                                  >
+                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                      <FormControl>
+                                        <RadioGroupItem
+                                          value={question.textForTrue!}
+                                        />
+                                      </FormControl>
+                                      <FormLabel>
+                                        {question.textForTrue}
+                                      </FormLabel>
+                                    </FormItem>
+                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
+                                      <FormControl>
+                                        <RadioGroupItem
+                                          value={question.textForFalse!}
+                                        />
+                                      </FormControl>
+                                      <FormLabel>
+                                        {question.textForFalse}
+                                      </FormLabel>
+                                    </FormItem>
+                                  </RadioGroup>
+                                </FormControl>
+                              )}
+                              <FormMessage />
+                            </FormItem>
+                          )}
+                        />
+                      </div>
+                      {(question as any)?.answer && (
+                        <p className='mt-2'>
+                          الإجابة الصحيحة: {(question as any).answer}
+                        </p>
+                      )}
                     </div>
-                    <div className='mt-2'>
-                      <FormField
-                        control={form.control}
-                        name={`groups.${group.id}.questions.${id}`}
-                        render={({ field }) => (
-                          <FormItem
-                            className={cn(
-                              question.type === QuestionType.MCQ && 'space-y-2'
-                            )}
-                          >
-                            <FormLabel>
-                              {exam.submittedAt
-                                ? 'الإجابة الخاصة بك'
-                                : 'الإجابة'}
-                            </FormLabel>
-                            {question.type === QuestionType.WRITTEN ? (
-                              <FormControl>
-                                <Textarea
-                                  {...field}
-                                  disabled={!!exam.submittedAt}
-                                  className='bg-white'
-                                />
-                              </FormControl>
-                            ) : question.style === QuestionStyle.CHOOSE ? (
-                              <FormControl>
-                                <RadioGroup
-                                  value={field.value}
-                                  onValueChange={field.onChange}
-                                  disabled={!!exam.submittedAt}
-                                >
-                                  {question.option1 && (
-                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                      <FormControl>
-                                        <RadioGroupItem
-                                          value={question.option1}
-                                        />
-                                      </FormControl>
-                                      <FormLabel>{question.option1}</FormLabel>
-                                    </FormItem>
-                                  )}
-                                  {question.option2 && (
-                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                      <FormControl>
-                                        <RadioGroupItem
-                                          value={question.option2}
-                                        />
-                                      </FormControl>
-                                      <FormLabel>{question.option2}</FormLabel>
-                                    </FormItem>
-                                  )}
-                                  {question.option3 && (
-                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                      <FormControl>
-                                        <RadioGroupItem
-                                          value={question.option3}
-                                        />
-                                      </FormControl>
-                                      <FormLabel>{question.option3}</FormLabel>
-                                    </FormItem>
-                                  )}
-                                  {question.option4 && (
-                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                      <FormControl>
-                                        <RadioGroupItem
-                                          value={question.option4}
-                                        />
-                                      </FormControl>
-                                      <FormLabel>{question.option4}</FormLabel>
-                                    </FormItem>
-                                  )}
-                                </RadioGroup>
-                              </FormControl>
-                            ) : (
-                              <FormControl>
-                                <RadioGroup
-                                  value={field.value}
-                                  onValueChange={field.onChange}
-                                  disabled={!!exam.submittedAt}
-                                >
-                                  <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                    <FormControl>
-                                      <RadioGroupItem
-                                        value={question.textForTrue!}
-                                      />
-                                    </FormControl>
-                                    <FormLabel>
-                                      {question.textForTrue}
-                                    </FormLabel>
-                                  </FormItem>
-                                  <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                    <FormControl>
-                                      <RadioGroupItem
-                                        value={question.textForFalse!}
-                                      />
-                                    </FormControl>
-                                    <FormLabel>
-                                      {question.textForFalse}
-                                    </FormLabel>
-                                  </FormItem>
-                                </RadioGroup>
-                              </FormControl>
-                            )}
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    {(question as any)?.answer && (
-                      <p className='mt-2'>
-                        الإجابة الصحيحة: {(question as any).answer}
-                      </p>
-                    )}
-                  </div>
-                ))
-              )}
-              {!exam.submittedAt && session?.user.id == exam.examineeId && (
-                <Button loading={examSubmit.isLoading}>تسليم</Button>
-              )}
-            </form>
-          </Form>
+                  ))
+                )}
+                {!exam.submittedAt && session?.user.id == exam.examineeId && (
+                  <Button loading={examSubmit.isLoading}>تسليم</Button>
+                )}
+              </form>
+            </Form>
+            <DialogContent>
+              <ReportErrorDialog
+                questionId={selectedQuestion}
+                closeDialog={() => setSelectedQuestion(null)}
+              />
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </>

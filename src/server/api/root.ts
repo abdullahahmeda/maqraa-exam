@@ -11,6 +11,7 @@ import { trackRouter } from './routers/custom/track'
 import { curriculumRouter } from './routers/custom/curriculum'
 import { userRouter } from './routers/custom/user'
 import { studentRouter } from './routers/custom/student'
+import { errorReportRouter } from './routers/custom/error-report'
 
 /**
  * This is the primary router for your server.
@@ -19,6 +20,18 @@ import { studentRouter } from './routers/custom/student'
  */
 
 const generatedRouter = createRouter(createTRPCRouter, publicProcedure)
-export const appRouter = mergeRouters(generatedRouter, courseRouter, cycleRouter, trackRouter, curriculumRouter, studentRouter, userRouter, examRouter, sheetRouter, questionRouter)
+export const appRouter = mergeRouters(
+  generatedRouter,
+  courseRouter,
+  cycleRouter,
+  trackRouter,
+  curriculumRouter,
+  studentRouter,
+  userRouter,
+  examRouter,
+  sheetRouter,
+  questionRouter,
+  errorReportRouter
+)
 
 export type AppRouter = typeof appRouter

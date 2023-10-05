@@ -40,7 +40,8 @@
     "baseUrl": ".",
     "paths": {
       "~/*": ["./src/*"]
-    }
+    },
+    "strictPropertyInitialization": false
   },
   "include": [
     ".eslintrc.cjs",

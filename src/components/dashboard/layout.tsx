@@ -49,6 +49,11 @@ const menuLinks = {
       href: '/dashboard/tracks',
     },
     {
+      icon: <Home className='ml-2 h-4 w-4' />,
+      label: 'تبليغات الأخطاء',
+      href: '/dashboard/error-reports',
+    },
+    {
       icon: <Settings className='ml-2 h-4 w-4' />,
       label: 'الإعدادات',
       href: '/dashboard/settings',

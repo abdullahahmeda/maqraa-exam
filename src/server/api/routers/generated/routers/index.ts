@@ -20,6 +20,7 @@ import createCourseRouter from './Course.router';
 import createCourseCorrectorRouter from './CourseCorrector.router';
 import createTrackRouter from './Track.router';
 import createCurriculumRouter from './Curriculum.router';
+import createErrorReportRouter from './ErrorReport.router';
 import { ClientType as UserClientType } from './User.router';
 import { ClientType as QuestionClientType } from './Question.router';
 import { ClientType as SettingClientType } from './Setting.router';
@@ -29,6 +30,7 @@ import { ClientType as CourseClientType } from './Course.router';
 import { ClientType as CourseCorrectorClientType } from './CourseCorrector.router';
 import { ClientType as TrackClientType } from './Track.router';
 import { ClientType as CurriculumClientType } from './Curriculum.router';
+import { ClientType as ErrorReportClientType } from './ErrorReport.router';
 
 export { PrismaClient } from '@prisma/client';
 
@@ -95,6 +97,7 @@ export function createRouter<Router extends RouterFactory<BaseConfig>, Proc exte
         courseCorrector: createCourseCorrectorRouter<Router, Proc>(router, procedure),
         track: createTrackRouter<Router, Proc>(router, procedure),
         curriculum: createCurriculumRouter<Router, Proc>(router, procedure),
+        errorReport: createErrorReportRouter<Router, Proc>(router, procedure),
     });
 }
 
@@ -108,4 +111,5 @@ export interface ClientType<AppRouter extends AnyRouter> {
     courseCorrector: CourseCorrectorClientType<AppRouter>;
     track: TrackClientType<AppRouter>;
     curriculum: CurriculumClientType<AppRouter>;
+    errorReport: ErrorReportClientType<AppRouter>;
 }

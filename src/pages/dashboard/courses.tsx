@@ -43,7 +43,7 @@ const DeleteCourseDialog = ({ id }: { id: string }) => {
     const t = toast({ title: 'جاري حذف المقرر' })
     courseDelete
       .mutateAsync({
-        where: { id } 
+        where: { id },
       })
       .then(() => {
         t.dismiss()

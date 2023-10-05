@@ -4,8 +4,8 @@
 //////////////////////////////////////////////////////////////////////////////////////////////
 
 datasource db {
-    provider="postgresql"
-    url=env("DATABASE_URL")
+    provider = "postgresql"
+    url = env("DATABASE_URL")
 }
 
 generator client {
@@ -187,6 +187,7 @@ model Question {
     courseId String
     course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
     exams GroupQuestion[]
+    errorReports ErrorReport[]
 
     @@index([partNumber])
     @@index([hadithNumber])
@@ -354,4 +355,19 @@ model CurriculumPart {
     curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
 
     @@index([curriculumId])
+}
+
+/// @@allow('all', auth().role == ADMIN)
+/// @@allow('create', true)
+model ErrorReport {
+    id String @id() @default(cuid())
+    name String
+    email String
+    description String @db.Text()
+    createdAt DateTime @default(now())
+    questionId String
+    question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+    @@index([questionId])
+    @@index([createdAt])
 }
