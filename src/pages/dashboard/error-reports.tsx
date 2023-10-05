@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { ErrorReport, UserRole } from '@prisma/client'
+import { ErrorReport, UserRole, Question } from '@prisma/client'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   PaginationState,
@@ -74,7 +74,7 @@ const DeleteErrorReportDialog = ({ id }: { id: string }) => {
   )
 }
 
-const columnHelper = createColumnHelper<ErrorReport>()
+const columnHelper = createColumnHelper<ErrorReport & { question: Question }>()
 
 const PAGE_SIZE = 25
 
