@@ -59,13 +59,13 @@ model User {
   image String?
   phone String?
   role UserRole
-  exams Exam[] @relation("Exam_examinee")
+  quizzes Quiz[] @relation("Quiz_examinee")
   corrector Corrector?
   student Student?
   accounts Account[]
   sessions Session[]
   resetPasswordTokens ResetPasswordToken[]
-  correctedExams Exam[] @relation("Exam_corrector")
+  correctedQuizzes Quiz[] @relation("Quiz_corrector")
 
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('read', auth().role == CORRECTOR) // for correctors
@@ -169,7 +169,7 @@ model Question {
   objective String
   courseId String
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  exams GroupQuestion[]
+  quizzes QuizQuestion[]
   errorReports ErrorReport[]
 
   @@index([partNumber])
@@ -214,10 +214,34 @@ model Setting {
   @@allow('read', true)
 }
 
-model Exam {
+model SystemExam {
   id String @id @default(cuid())
-  type ExamType
+  name String
+  type QuizType
+  createdAt DateTime @default(now())
+  endsAt DateTime?
+  repeatFromSameHadith Boolean @default(false)
+  curriculumId String
+  cycleId String
+  curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  quizzes Quiz[]
+  groups QuestionsGroup[]
+
+  @@index([type])
+  @@index([curriculumId])
+  @@index([cycleId])
+
+  @@allow('all', auth().role == ADMIN)
+}
+
+
+model Quiz {
+  id String @id @default(cuid())
+  type QuizType @default(WHOLE_CURRICULUM)
   grade Int?
+  total Int?
+  // percentage Float?
   createdAt DateTime @default(now())
   enteredAt DateTime?
   submittedAt DateTime?
@@ -227,66 +251,67 @@ model Exam {
   curriculumId String
   examineeId String?
   correctorId String?
-  cycleId String?
-  corrector User? @relation("Exam_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
-  examinee User? @relation("Exam_examinee", fields: [examineeId], references: [id], onDelete: Cascade)
+  systemExamId String?
+  corrector User? @relation("Quiz_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
+  examinee User? @relation("Quiz_examinee", fields: [examineeId], references: [id], onDelete: Cascade)
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
-  cycle Cycle? @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  groups ExamQuestionGroup[]
+  systemExam SystemExam? @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
+  questions QuizQuestion[]
+  groups QuestionsGroup[]
 
   @@index([grade])
   @@index([type])
   @@index([examineeId])
   @@index([correctorId])
   @@index([curriculumId])
-  @@index([cycleId])
+  @@index([systemExamId])
 
   // TODO: maybe update read rules
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('create', true) // anyone
-  @@allow('read,update', auth().role == CORRECTOR && cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[corrector.id == auth().correctorId]) // for correctors
+  @@allow('read,update', auth().role == CORRECTOR && systemExam.cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[corrector.id == auth().correctorId]) // for correctors
   @@allow('read,update', examinee == auth()) // for students
 }
 
-enum ExamType {
-  PUBLIC
-  FULL
+enum QuizType {
+  WHOLE_CURRICULUM
   FIRST_MEHWARY
   SECOND_MEHWARY
 }
 
 /// @@Gen.model(hide: true)
-model ExamQuestionGroup {
+model QuestionsGroup {
   id String @id @default(cuid())
-  number Int
-  gradePerQuestion Float
+  questionsNumber Int
+  gradePerQuestion Int
   order Int
   difficulty QuestionDifficulty?
   styleOrType String?
-  examId String
-  exam Exam @relation(fields: [examId], references: [id], onDelete: Cascade)
-  questions GroupQuestion[]
+  quizId String?
+  systemExamId String?
+  quiz Quiz? @relation(fields: [quizId], references: [id], onDelete: Cascade)
+  systemExam SystemExam? @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
 
-  @@index([examId])
+  @@index([quizId])
   @@index([order])
 
   @@allow('create,read,update', true)
 }
 
 /// @@Gen.model(hide: true)
-model GroupQuestion {
-  id Int @id @default(autoincrement())
+model QuizQuestion {
+  id String @id @default(cuid())
   answer String? @db.Text()
   order Int @default(1)
   grade Int @default(0)
-  groupId String
+  weight Int
   questionId String
-  group ExamQuestionGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  quizId String
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
   @@index([questionId])
   @@index([order])
-  @@index([groupId])
 
   @@allow('create,read,update', true)
 }
@@ -296,7 +321,7 @@ model Cycle {
   name String
   courses CycleCourse[]
   students StudentCycle[]
-  exams Exam[]
+  systemExams SystemExam[]
   correctors Corrector[]
 
   @@allow('all', auth() != null)
@@ -305,7 +330,7 @@ model Cycle {
 model Course {
   id String @id @default(cuid())
   name String
-  curricula Track[]
+  tracks Track[]
   questions Question[]
   cycles CycleCourse[]
   correctors CourseCorrector[]
@@ -358,7 +383,8 @@ model Curriculum {
   trackId String
   track Track @relation(fields: [trackId], references: [id], onDelete: Cascade)
   parts CurriculumPart[]
-  exams Exam[]
+  quizzes Quiz[]
+  systemExams SystemExam[]
   students StudentCycle[]
 
   @@index([trackId])

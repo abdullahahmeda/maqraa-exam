@@ -49,6 +49,7 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import { DeleteQuestionDialog } from '~/components/modals/delete-question'
+import { saveAs } from 'file-saver'
 
 const columnHelper = createColumnHelper<
   Question & { course: { name: string } }
@@ -378,14 +379,15 @@ const QuestionsPage = () => {
 
   const handleDownload = async () => {
     const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
-    const XLSX = await import('xlsx')
     questionsExport
       .mutateAsync()
-      .then(async (workbook) => {
-        XLSX.writeFile(workbook, 'قاعدة بيانات الأسئلة.xlsx')
+      .then((arrayBuffer) => {
+        const content = new Blob([arrayBuffer])
+        saveAs(content, 'قاعدة بيانات الأسئلة.xlsx')
         toast({ title: 'تم بدأ تحميل الملف' })
       })
-      .catch(() => {
+      .catch((e) => {
+        console.log(e)
         toast({ title: 'حدث خطأ أثناء تحميل الملف' })
       })
       .finally(() => {
@@ -420,7 +422,7 @@ const QuestionsPage = () => {
           onClick={handleDownload}
         >
           <Download className='h-4 w-4' />
-          تصدير {!!questions && questions.length > 0 && `(${count} سؤال)`}
+          تصدير
         </Button>
         <DataTable table={table} fetching={isFetchingQuestions} />
       </div>

@@ -29,7 +29,7 @@ import {
   SelectContent,
   SelectValue,
 } from '../ui/select'
-import { ExamType } from '@prisma/client'
+import { QuizType } from '@prisma/client'
 import { Checkbox } from '../ui/checkbox'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Accordion } from '../ui/accordion'
@@ -42,8 +42,10 @@ import { CalendarIcon } from 'lucide-react'
 import { Calendar } from '../ui/calendar'
 import { arSA } from 'date-fns/locale'
 import { format } from 'date-fns'
+import { Input } from '../ui/input'
 
 type FieldValues = {
+  name: string
   type: string
   endsAt: Date | null | undefined
   courseId: any
@@ -54,7 +56,7 @@ type FieldValues = {
   cycleId: string
 }
 
-export const AddExamDialog = ({
+export const AddSystemExamDialog = ({
   setDialogOpen,
 }: {
   setDialogOpen: (state: boolean) => void
@@ -67,7 +69,7 @@ export const AddExamDialog = ({
       repeatFromSameHadith: false,
       groups: [
         {
-          number: 25,
+          questionsNumber: 25,
           gradePerQuestion: 1,
           difficulty: '',
           styleOrType: '',
@@ -129,7 +131,7 @@ export const AddExamDialog = ({
 
   const appendGroup = () => {
     append({
-      number: 25,
+      questionsNumber: 25,
       gradePerQuestion: 1,
       difficulty: '',
       styleOrType: '',
@@ -171,13 +173,26 @@ export const AddExamDialog = ({
           })
       })
       .finally(() => {
-        queryClient.invalidateQueries([['exam']])
+        queryClient.invalidateQueries([['systemExam']])
       })
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+        <FormField
+          control={form.control}
+          name='name'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>اسم مميز للإختبار</FormLabel>
+              <FormControl>
+                <Input {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <FormField
           control={form.control}
           name='type'
@@ -191,11 +206,13 @@ export const AddExamDialog = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value={ExamType.FULL}>المنهج كامل</SelectItem>
-                  <SelectItem value={ExamType.FIRST_MEHWARY}>
+                  <SelectItem value={QuizType.WHOLE_CURRICULUM}>
+                    المنهج كامل
+                  </SelectItem>
+                  <SelectItem value={QuizType.FIRST_MEHWARY}>
                     الإختبار المحوري الأول
                   </SelectItem>
-                  <SelectItem value={ExamType.SECOND_MEHWARY}>
+                  <SelectItem value={QuizType.SECOND_MEHWARY}>
                     الإختبار المحوري الثاني
                   </SelectItem>
                 </SelectContent>

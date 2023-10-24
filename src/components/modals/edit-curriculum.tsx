@@ -27,12 +27,12 @@ export const EditCurriculumDialog = ({
   const { toast } = useToast()
 
   const onSubmit = (data: EditCurriculumFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المنهج' })
+    const t = toast({ title: 'جاري تعديل المنهج' })
     curriculumUpdate
       .mutateAsync(data as z.infer<typeof editCurriculumSchema>)
       .then(() => {
         t.dismiss()
-        toast({ title: 'تم إضافة المنهج بنجاح' })
+        toast({ title: 'تم تعديل المنهج بنجاح' })
         setDialogOpen(false)
       })
       .catch((error) => {

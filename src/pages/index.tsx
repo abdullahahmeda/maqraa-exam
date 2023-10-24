@@ -9,7 +9,7 @@ import {
   useWatch,
 } from 'react-hook-form'
 import { api } from '../utils/api'
-import { newExamSchema } from '../validation/newExamSchema'
+import { newQuizSchema } from '../validation/newQuizSchema'
 import { useRouter } from 'next/router'
 import WebsiteLayout from '../components/layout'
 import { GetServerSideProps } from 'next'
@@ -33,10 +33,7 @@ import {
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { CheckedState } from '@radix-ui/react-checkbox'
-import {
-  QuestionStyle,
-  QuestionType,
-} from '@prisma/client'
+import { QuestionStyle, QuestionType } from '@prisma/client'
 import { Input } from '~/components/ui/input'
 import { difficultyMapping, styleMapping, typeMapping } from '~/utils/questions'
 import {
@@ -61,9 +58,11 @@ import {
 import { CSS } from '@dnd-kit/utilities'
 import { Trash } from 'lucide-react'
 import { z } from 'zod'
+import { useState } from 'react'
+import { handleFormError } from '~/utils/errors'
 
 type Group = {
-  number: number
+  questionsNumber: number
   gradePerQuestion: number
   difficulty: QuestionDifficulty | string | undefined
   styleOrType: QuestionStyle | QuestionType | string | undefined
@@ -122,7 +121,7 @@ const QuestionGroup = ({
           <div className='flex gap-2'>
             <FormField
               control={form.control}
-              name={`groups.${index}.number`}
+              name={`groups.${index}.questionsNumber`}
               render={({ field }) => (
                 <FormItem className='flex-grow'>
                   <FormLabel>عدد الأسئلة</FormLabel>
@@ -210,13 +209,16 @@ const QuestionGroup = ({
 
 const HomePage = () => {
   const { toast } = useToast()
+
+  const [submitting, setSubmitting] = useState(false)
+
   const form = useForm<FieldValues>({
-    resolver: zodResolver(newExamSchema),
+    resolver: zodResolver(newQuizSchema),
     defaultValues: {
       repeatFromSameHadith: false,
       groups: [
         {
-          number: 25,
+          questionsNumber: 25,
           gradePerQuestion: 1,
           difficulty: '',
           styleOrType: '',
@@ -225,7 +227,7 @@ const HomePage = () => {
     },
   })
 
-  const examCreate = api.createPublicExam.useMutation()
+  const quizCreate = api.createQuiz.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
@@ -276,27 +278,26 @@ const HomePage = () => {
   const router = useRouter()
 
   const onSubmit = (data: FieldValues) => {
-    examCreate
-      .mutateAsync(data as z.infer<typeof newExamSchema>)
-      .then((exam) => {
-        if (exam) router.push(`/exams/${exam.id}`)
+    setSubmitting(true)
+    quizCreate
+      .mutateAsync(data as z.infer<typeof newQuizSchema>)
+      .then((quiz) => {
+        if (quiz) router.push(`/quizzes/${quiz.id}`)
       })
       .catch((error) => {
-        if (error.message) {
-          toast({
-            title: 'حدث خطأ',
-            description: error.message,
-          })
-        } else
-          toast({
-            title: 'حدث خطأ غير متوقع',
-          })
+        setSubmitting(false)
+        handleFormError(error, {
+          fields: (key, message) =>
+            form.setError(key as keyof FieldValues, { message }),
+          form: (message) => form.setError('root.form', { message }),
+          default: (message) => toast({ title: message }),
+        })
       })
   }
 
   const appendGroup = () => {
     append({
-      number: 25,
+      questionsNumber: 25,
       gradePerQuestion: 1,
       difficulty: '',
       styleOrType: '',
@@ -470,7 +471,7 @@ const HomePage = () => {
                   إضافة مجموعة أخرى
                 </Button>
               </div>
-              <Button>بدأ الاختبار</Button>
+              <Button loading={submitting}>بدأ الاختبار</Button>
             </form>
           </Form>
         </div>
@@ -485,13 +486,6 @@ export const getServerSideProps: GetServerSideProps = async (context) => {
   const { req, res } = context
   const session = await getServerAuthSession({ req, res })
 
-  // if (!session)
-  //   return {
-  //     redirect: {
-  //       destination: `/login?callbackUrl=${getBaseUrl()}`,
-  //       permanent: false,
-  //     },
-  //   }
   return { props: { session } }
 }
 

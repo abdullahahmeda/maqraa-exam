@@ -5,7 +5,7 @@ import { ReactElement, ReactNode } from 'react'
 import { SessionProvider } from 'next-auth/react'
 import { Cairo } from 'next/font/google'
 import { z } from 'zod'
-import { customErrorMap } from '../validation/customErrorMap'
+import { errorMap } from '../validation/errorMap'
 import { arSA } from 'date-fns/locale'
 import setDefaultOptions from 'date-fns/setDefaultOptions'
 import { api } from '../utils/api'
@@ -20,7 +20,7 @@ const cairo = Cairo({
 import '../styles/globals.css'
 import { DirectionProvider } from '@radix-ui/react-direction'
 
-z.setErrorMap(customErrorMap)
+z.setErrorMap(errorMap)
 setDefaultOptions({ locale: arSA })
 
 export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {

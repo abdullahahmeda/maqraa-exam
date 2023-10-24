@@ -35,7 +35,7 @@ export const DeleteTrackDialog = ({ id }: { id: string }) => {
   return (
     <>
       <AlertDialogHeader>
-        <AlertDialogTitle>هل تريد حقاً حذف هذا المسار</AlertDialogTitle>
+        <AlertDialogTitle>هل تريد حقاً حذف هذا المسار؟</AlertDialogTitle>
       </AlertDialogHeader>
       <AlertDialogDescription>
         هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً

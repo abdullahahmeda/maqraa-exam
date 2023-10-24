@@ -19,7 +19,7 @@ export const DeleteUserDialog = ({ id }: { id: string }) => {
     const t = toast({ title: 'جاري حذف المستخدم' })
     userDelete
       .mutateAsync({
-        where: { id }
+        where: { id },
       })
       .then(() => {
         t.dismiss()
@@ -37,7 +37,7 @@ export const DeleteUserDialog = ({ id }: { id: string }) => {
   return (
     <>
       <AlertDialogHeader>
-        <AlertDialogTitle>هل تريد حقاً حذف هذا المستخدم</AlertDialogTitle>
+        <AlertDialogTitle>هل تريد حقاً حذف هذا المستخدم؟</AlertDialogTitle>
       </AlertDialogHeader>
       <AlertDialogDescription>
         هذا سيحذف الإختبارات المرتبطة به أيضاً

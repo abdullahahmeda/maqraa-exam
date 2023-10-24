@@ -205,16 +205,4 @@ const TracksPage = () => {
 
 TracksPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-
-  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
-
-  return {
-    props: {
-      session,
-    },
-  }
-}
-
 export default TracksPage

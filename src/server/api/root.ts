@@ -3,7 +3,7 @@ import { createRouter } from './routers/generated/routers'
 import { questionRouter } from './routers/custom/question'
 import { sheetRouter } from './routers/custom/sheet'
 // import { settingsRouter } from './routers/settings'
-import { examRouter } from './routers/custom/exam'
+import { quizRouter } from './routers/custom/quizzes'
 // // import { emailsrouter } from './routers/emails'
 import { courseRouter } from './routers/custom/course'
 import { cycleRouter } from './routers/custom/cycle'
@@ -28,7 +28,7 @@ export const appRouter = mergeRouters(
   curriculumRouter,
   studentRouter,
   userRouter,
-  examRouter,
+  quizRouter,
   sheetRouter,
   questionRouter,
   errorReportRouter

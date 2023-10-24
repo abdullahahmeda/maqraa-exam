@@ -1,5 +1,5 @@
 import { compareTwoStrings } from 'string-similarity'
-import { QuestionType } from '~/constants'
+import { QuestionType } from '@prisma/client'
 
 export const normalizeText = function (text: string) {
   //remove special characters
@@ -27,14 +27,21 @@ export const normalizeText = function (text: string) {
   return text
 }
 
-export const isCorrectAnswer = (
-  question: { type: string; answer: string },
+export const correctQuestion = (
+  question: { type: QuestionType; answer: string; weight: number },
   answer: string | null
 ) => {
-  return question.type === QuestionType.MCQ
-    ? question.answer === answer
-    : compareTwoStrings(
-        normalizeText('' + answer),
-        normalizeText(question.answer)
-      ) >= 0.85
+  if (answer === null) return 0
+  if (question.type === 'MCQ')
+    return question.answer === answer ? question.weight : 0
+  const similarity = compareTwoStrings(
+    normalizeText('' + answer),
+    normalizeText(question.answer)
+  )
+  if (similarity < 0.85) return 0
+  if (similarity >= 0.85 && similarity < 0.9)
+    return Math.ceil(0.75 * question.weight)
+  else if (similarity >= 0.9 && similarity < 0.95)
+    return Math.ceil(0.85 * question.weight)
+  return question.weight
 }

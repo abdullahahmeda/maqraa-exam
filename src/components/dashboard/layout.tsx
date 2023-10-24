@@ -25,8 +25,13 @@ const menuLinks = {
     },
     {
       icon: <Construction className='ml-2 h-4 w-4' />,
-      label: 'الإختبارات',
-      href: '/dashboard/exams',
+      label: 'إختبارات النظام',
+      href: '/dashboard/system-exams',
+    },
+    {
+      icon: <Construction className='ml-2 h-4 w-4' />,
+      label: 'الإختبارات المفتوحة',
+      href: '/dashboard/quizzes',
     },
     {
       icon: <Construction className='ml-2 h-4 w-4' />,
@@ -54,6 +59,11 @@ const menuLinks = {
       href: '/dashboard/error-reports',
     },
     {
+      icon: <Home className='ml-2 h-4 w-4' />,
+      label: 'التقارير',
+      href: '/dashboard/reports',
+    },
+    {
       icon: <Settings className='ml-2 h-4 w-4' />,
       label: 'الإعدادات',
       href: '/dashboard/settings',
@@ -62,15 +72,20 @@ const menuLinks = {
   CORRECTOR: [
     {
       icon: <Construction className='ml-2 h-4 w-4' />,
-      label: 'الإختبارات',
-      href: '/dashboard/exams',
+      label: 'إختبارات النظام',
+      href: '/dashboard/system-exams',
     },
   ],
   STUDENT: [
     {
       icon: <Construction className='ml-2 h-4 w-4' />,
-      label: 'اختباراتي',
-      href: '/dashboard/exams',
+      label: 'إختبارات النظام',
+      href: '/dashboard/system-exams',
+    },
+    {
+      icon: <Construction className='ml-2 h-4 w-4' />,
+      label: 'الإختبارات المفتوحة',
+      href: '/dashboard/quizzes',
     },
   ],
 }

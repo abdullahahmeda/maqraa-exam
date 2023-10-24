@@ -84,7 +84,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   if (session?.user.role !== 'ADMIN')
     return {
       redirect: {
-        destination: '/dashboard/exams',
+        destination: '/dashboard/system-exams',
         permanent: false,
       },
     }
@@ -92,12 +92,12 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const studentsCount = await prisma.user.count({
     where: { role: UserRole.STUDENT },
   })
-  const examsCount = await prisma.exam.count()
-  const ungradedExamsCount = await prisma.exam.count({ where: { grade: null } })
+  const examsCount = await prisma.quiz.count()
+  const ungradedExamsCount = await prisma.quiz.count({ where: { grade: null } })
   const last30DaysExamsCounts =
-    await prisma.$queryRaw`SELECT COUNT("public"."Exam"."grade") AS graded, COUNT(*), CAST("public"."Exam"."createdAt" AS DATE) FROM "public"."Exam" WHERE "public"."Exam"."createdAt" >= ${startOfDay(
+    await prisma.$queryRaw`SELECT COUNT("public"."Quiz"."grade") AS graded, COUNT(*), CAST("public"."Quiz"."createdAt" AS DATE) FROM "public"."Quiz" WHERE "public"."Quiz"."createdAt" >= ${startOfDay(
       sub(new Date(), { days: 30 })
-    )} GROUP BY CAST("public"."Exam"."createdAt" AS DATE) ORDER BY CAST("public"."Exam"."createdAt" AS Date) ASC`
+    )} GROUP BY CAST("public"."Quiz"."createdAt" AS DATE) ORDER BY CAST("public"."Quiz"."createdAt" AS Date) ASC`
 
   return {
     props: {

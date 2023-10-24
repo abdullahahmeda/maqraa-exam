@@ -14,7 +14,8 @@ import type z from 'zod';
 import createUserRouter from './User.router';
 import createQuestionRouter from './Question.router';
 import createSettingRouter from './Setting.router';
-import createExamRouter from './Exam.router';
+import createSystemExamRouter from './SystemExam.router';
+import createQuizRouter from './Quiz.router';
 import createCycleRouter from './Cycle.router';
 import createCourseRouter from './Course.router';
 import createCourseCorrectorRouter from './CourseCorrector.router';
@@ -24,7 +25,8 @@ import createErrorReportRouter from './ErrorReport.router';
 import { ClientType as UserClientType } from './User.router';
 import { ClientType as QuestionClientType } from './Question.router';
 import { ClientType as SettingClientType } from './Setting.router';
-import { ClientType as ExamClientType } from './Exam.router';
+import { ClientType as SystemExamClientType } from './SystemExam.router';
+import { ClientType as QuizClientType } from './Quiz.router';
 import { ClientType as CycleClientType } from './Cycle.router';
 import { ClientType as CourseClientType } from './Course.router';
 import { ClientType as CourseCorrectorClientType } from './CourseCorrector.router';
@@ -91,7 +93,8 @@ export function createRouter<Router extends RouterFactory<BaseConfig>, Proc exte
         user: createUserRouter<Router, Proc>(router, procedure),
         question: createQuestionRouter<Router, Proc>(router, procedure),
         setting: createSettingRouter<Router, Proc>(router, procedure),
-        exam: createExamRouter<Router, Proc>(router, procedure),
+        systemExam: createSystemExamRouter<Router, Proc>(router, procedure),
+        quiz: createQuizRouter<Router, Proc>(router, procedure),
         cycle: createCycleRouter<Router, Proc>(router, procedure),
         course: createCourseRouter<Router, Proc>(router, procedure),
         courseCorrector: createCourseCorrectorRouter<Router, Proc>(router, procedure),
@@ -105,7 +108,8 @@ export interface ClientType<AppRouter extends AnyRouter> {
     user: UserClientType<AppRouter>;
     question: QuestionClientType<AppRouter>;
     setting: SettingClientType<AppRouter>;
-    exam: ExamClientType<AppRouter>;
+    systemExam: SystemExamClientType<AppRouter>;
+    quiz: QuizClientType<AppRouter>;
     cycle: CycleClientType<AppRouter>;
     course: CourseClientType<AppRouter>;
     courseCorrector: CourseCorrectorClientType<AppRouter>;

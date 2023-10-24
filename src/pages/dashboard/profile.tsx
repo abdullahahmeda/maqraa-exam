@@ -186,7 +186,6 @@ ProfilePage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-  if (!session?.user) return { notFound: true }
 
   const prisma = enhance(_prisma, { user: session?.user })
 

@@ -48,7 +48,6 @@ const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   }
 }
 
-
 /**
  * This is the actual context you will use in your router. It will be used to
  * process every request that goes through your tRPC endpoint.
@@ -97,9 +96,8 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
       data: {
         ...shape.data,
         zodError:
-          error.code === 'BAD_REQUEST' && error.cause instanceof ZodError
-            ? error.cause.flatten()
-            : null,
+          // error.code === 'BAD_REQUEST' &&
+          error.cause instanceof ZodError ? error.cause.flatten() : null,
       },
     }
   },

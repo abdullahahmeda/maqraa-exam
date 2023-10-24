@@ -6,12 +6,7 @@ import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import {
-  Cycle,
-  StudentCycle,
-  User,
-  UserRole,
-} from '@prisma/client'
+import { Cycle, StudentCycle, User, UserRole } from '@prisma/client'
 import {
   createColumnHelper,
   useReactTable,
@@ -326,17 +321,5 @@ const UsersPage = () => {
 }
 
 UsersPage.getLayout = (page: any) => <DashboardLayout>{page}</DashboardLayout>
-
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-
-  if (session?.user.role !== UserRole.ADMIN) return { notFound: true }
-
-  return {
-    props: {
-      session,
-    },
-  }
-}
 
 export default UsersPage

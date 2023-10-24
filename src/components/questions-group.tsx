@@ -1,17 +1,33 @@
-import { AccordionTrigger, AccordionItem, AccordionContent } from "./ui/accordion"
-import { Button } from "./ui/button"
-import { useSortable } from "@dnd-kit/sortable"
-import { UseFormReturn, UseFieldArrayRemove } from "react-hook-form"
-import { FormControl, FormItem, FormMessage, FormField, FormLabel } from "./ui/form"
-import { Trash } from "lucide-react"
-import { Input } from "./ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select"
-import { difficultyMapping, styleMapping, typeMapping } from "~/utils/questions"
+import {
+  AccordionTrigger,
+  AccordionItem,
+  AccordionContent,
+} from './ui/accordion'
+import { Button } from './ui/button'
+import { useSortable } from '@dnd-kit/sortable'
+import { UseFormReturn, UseFieldArrayRemove } from 'react-hook-form'
+import {
+  FormControl,
+  FormItem,
+  FormMessage,
+  FormField,
+  FormLabel,
+} from './ui/form'
+import { Trash } from 'lucide-react'
+import { Input } from './ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from './ui/select'
+import { difficultyMapping, styleMapping, typeMapping } from '~/utils/questions'
 import { CSS } from '@dnd-kit/utilities'
-import { QuestionDifficulty, QuestionStyle, QuestionType } from "@prisma/client"
+import { QuestionDifficulty, QuestionStyle, QuestionType } from '@prisma/client'
 
 export type Group = {
-  number: number
+  questionsNumber: number
   gradePerQuestion: number
   difficulty: QuestionDifficulty | string | undefined
   styleOrType: QuestionStyle | QuestionType | string | undefined
@@ -66,7 +82,7 @@ export const QuestionGroup = ({
           <div className='flex gap-2'>
             <FormField
               control={form.control}
-              name={`groups.${index}.number`}
+              name={`groups.${index}.questionsNumber`}
               render={({ field }) => (
                 <FormItem className='flex-grow'>
                   <FormLabel>عدد الأسئلة</FormLabel>

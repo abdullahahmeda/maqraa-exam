@@ -2,10 +2,13 @@ import {
   Course,
   Curriculum,
   Cycle,
-  Exam,
-  ExamType,
+  Quiz,
+  QuizType,
+  Prisma,
+  SystemExam,
   User,
   UserRole,
+  Track,
 } from '@prisma/client'
 import {
   ColumnFiltersState,
@@ -38,6 +41,7 @@ import {
   Link as LinkIcon,
   Plus,
   LogIn,
+  EyeIcon,
 } from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
 import {
@@ -65,36 +69,27 @@ import {
 import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { AddExamDialog } from '~/components/modals/add-exam'
-import { DeleteExamDialog } from '~/components/modals/delete-exam'
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '~/components/ui/hover-card'
+import { AddSystemExamDialog } from '~/components/modals/add-system-exam'
+import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
 } from '~/components/ui/tooltip'
+import { DeleteSystemExamDialog } from '~/components/modals/delete-system-exam'
 
-type Row = Exam & {
-  examinee: User
-  corrector: User | null
-  questions: {
-    id: number
-  }[]
-  course: Course
-  curriculum: Curriculum
+type Row = SystemExam & {
   cycle: Cycle
+  curriculum: Curriculum & { track: Track & { course: Course } }
+  quizzes: { id: any }[]
 }
 
 const columnHelper = createColumnHelper<Row>()
 
 const PAGE_SIZE = 50
 
-const ExamsPage = () => {
+const SystemExamsPage = () => {
   const router = useRouter()
 
   const { data: session } = useSession()
@@ -115,44 +110,17 @@ const ExamsPage = () => {
   }
 
   const columns = [
-    ...(session?.user.role === 'STUDENT'
-      ? []
-      : [
-          columnHelper.accessor('examinee.name', {
-            header: 'الطالب',
+    columnHelper.accessor('name', {
+      header: ({ column }) => {
+        // const { data: systemExams, isLoading } =
+        //   api.systemExam.findMany.useQuery({})
 
-            cell: (info) => info.getValue() || '-',
-            meta: {
-              className: 'text-center',
-            },
-          }),
-          columnHelper.accessor('examinee.email', {
-            header: 'الإيميل',
-            cell: (info) => info.getValue() || '-',
-            meta: {
-              className: 'text-center',
-            },
-          }),
-        ]),
-    columnHelper.accessor('curriculum.name', {
-      id: 'curriculum',
-      header: ({ column, table }) => {
-        const { data: curricula, isLoading } = api.curriculum.findMany.useQuery(
-          {
-            where: {
-              track: {
-                courseId:
-                  table.getState().columnFilters.find((f) => f.id === 'course')
-                    ?.value || undefined,
-              },
-            },
-          }
-        )
-        const filterValue = column.getFilterValue() as string | undefined
+        // const filterValue = column.getFilterValue() as string | undefined
+
         return (
           <div className='flex items-center'>
-            المنهج
-            <Popover>
+            الإختبار
+            {/* <Popover>
               <PopoverTrigger className='mr-4' asChild>
                 <Button
                   size='icon'
@@ -163,7 +131,7 @@ const ExamsPage = () => {
               </PopoverTrigger>
               <PopoverContent>
                 <Combobox
-                  items={[{ name: 'الكل', id: '' }, ...(curricula || [])]}
+                  items={[{ name: 'الكل', id: '' }, ...(systemExams || [])]}
                   loading={isLoading}
                   labelKey='name'
                   valueKey='id'
@@ -173,7 +141,7 @@ const ExamsPage = () => {
                   triggerClassName='w-full'
                 />
               </PopoverContent>
-            </Popover>
+            </Popover> */}
           </div>
         )
       },
@@ -181,6 +149,55 @@ const ExamsPage = () => {
         className: 'text-center',
       },
     }),
+    columnHelper.accessor(
+      (row) => `${row.curriculum.track.course.name} :${row.curriculum.name}`,
+      {
+        id: 'curriculum',
+        header: ({ column, table }) => {
+          const { data: curricula, isLoading } =
+            api.curriculum.findMany.useQuery({
+              include: { track: { select: { course: true } } },
+            })
+          const filterValue = column.getFilterValue() as string | undefined
+          return (
+            <div className='flex items-center'>
+              المنهج
+              <Popover>
+                <PopoverTrigger className='mr-4' asChild>
+                  <Button
+                    size='icon'
+                    variant={filterValue ? 'secondary' : 'ghost'}
+                  >
+                    <Filter className='h-4 w-4' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Combobox
+                    items={[
+                      { name: 'الكل', id: '' },
+                      ...(curricula?.map((c) => ({
+                        ...c,
+                        name: `${c.track.course.name}: ${c.name}`,
+                      })) || []),
+                    ]}
+                    loading={isLoading}
+                    labelKey='name'
+                    valueKey='id'
+                    onSelect={column.setFilterValue}
+                    value={filterValue}
+                    triggerText='الكل'
+                    triggerClassName='w-full'
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )
+        },
+        meta: {
+          className: 'text-center',
+        },
+      }
+    ),
     columnHelper.accessor('type', {
       header: ({ column }) => {
         const filterValue = column.getFilterValue() as string | undefined
@@ -221,11 +238,7 @@ const ExamsPage = () => {
       },
       cell: ({ getValue }) => enExamTypeToAr(getValue()),
     }),
-    columnHelper.accessor('grade', {
-      header: 'الدرجة',
-      cell: (info) =>
-        info.row.original.correctedAt ? info.getValue() ?? '-' : '-',
-    }),
+
     columnHelper.accessor('cycle.name', {
       id: 'cycle',
       header: ({ column }) => {
@@ -275,38 +288,25 @@ const ExamsPage = () => {
     columnHelper.accessor('endsAt', {
       header: 'وقت القفل',
       cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        info.getValue() ? (
+          <div>
+            {formatDate(info.getValue() as Date)}{' '}
+            {(info.getValue() as Date) > new Date() ? (
+              <Badge>مفتوح</Badge>
+            ) : (
+              <Badge variant='destructive'>مغلق</Badge>
+            )}
+          </div>
+        ) : (
+          '-'
+        ),
       meta: {
         className: 'text-center',
       },
     }),
-    columnHelper.accessor('enteredAt', {
-      header: 'وقت البدأ',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('submittedAt', {
-      header: 'وقت التسليم',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('correctedAt', {
-      header: 'وقت التصحيح',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('corrector.name', {
-      header: 'المصحح',
-      cell: (info) => info.getValue() || '-',
+    columnHelper.accessor('quizzes', {
+      header: 'الطلاب المستحقين للإختبار',
+      cell: (info) => info.getValue().length,
       meta: {
         className: 'text-center',
       },
@@ -316,76 +316,33 @@ const ExamsPage = () => {
       header: 'الإجراءات',
       cell: ({ row }) => (
         <div className='flex justify-center gap-2'>
-          {session?.user.role !== 'STUDENT' ? (
-            <>
-              {!!row.original.submittedAt && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Link
                   className={cn(
-                    buttonVariants({ variant: 'ghost', size: 'icon' })
+                    buttonVariants({ size: 'icon', variant: 'ghost' })
                   )}
-                  href={`/dashboard/exams/${row.original.id}`}
+                  href={`/dashboard/system-exams/${row.original.id}`}
                 >
-                  <FileCheck2 className='h-4 w-4 text-success' />
+                  <EyeIcon className='h-4 w-4' />
                 </Link>
-              )}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Button
-                      size='icon'
-                      variant='ghost'
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          `${location.origin}/exams/${row.original.id}`
-                        )
-                      }}
-                    >
-                      <LinkIcon className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>نسخ رابط الإختبار</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='hover:bg-red-50'
-                  >
-                    <Trash className='h-4 w-4 text-red-600' />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <DeleteExamDialog id={row.original.id} />
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          ) : (
-            <>
-              {(!row.original.endsAt ||
-                (row.original.endsAt && row.original.endsAt > new Date())) &&
-                !row.original.submittedAt && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          className={cn(
-                            buttonVariants({ variant: 'ghost', size: 'icon' })
-                          )}
-                          href={`/exams/${row.original.id}`}
-                        >
-                          <LogIn className='h-4 w-4' />
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>دخول الإختبار</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-            </>
-          )}
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>عرض</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant='ghost' size='icon' className='hover:bg-red-50'>
+                <Trash className='h-4 w-4 text-red-600' />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <DeleteSystemExamDialog id={row.original.id} />
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
       ),
       meta: {
@@ -393,54 +350,35 @@ const ExamsPage = () => {
       },
     }),
   ]
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
-    // {
-    //   id: 'difficulty',
-    //   value: '',
-    // },
-    // {
-    //   id: 'grade',
-    //   value: '',
-    // },
-    // {
-    //   id: 'graded',
-    //   value: '',
-    // },
-    {
-      id: 'type',
-      value: ExamType.FULL,
-    },
-  ])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
 
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'cycle')
-      return { cycleId: { equals: filter.value as string } }
-    else if (filter.id === 'course')
-      return { courseId: { equals: filter.value as string } }
+      return { systemExam: { cycleId: { equals: filter.value as string } } }
     else if (filter.id === 'curriculum')
       return { curriculumId: { equals: filter.value as string } }
     return { [filter.id]: { equals: filter.value } }
   })
 
-  const { data: exams, isFetching } = api.exam.findMany.useQuery(
+  const { data: exams, isFetching } = api.systemExam.findMany.useQuery(
     {
       skip: pageIndex * pageSize,
       take: pageSize,
       include: {
-        examinee: true,
-        curriculum: true,
-        corrector: true,
+        curriculum: { include: { track: { select: { course: true } } } },
         cycle: true,
+        quizzes: { select: { id: true } },
       },
       where: { AND: filters },
     },
     { networkMode: 'always' }
   )
 
-  const { data: count, isLoading: isCountLoading } = api.exam.count.useQuery(
-    { where: { AND: filters } },
-    { networkMode: 'always' }
-  )
+  const { data: count, isLoading: isCountLoading } =
+    api.systemExam.count.useQuery(
+      { where: { AND: filters } },
+      { networkMode: 'always' }
+    )
 
   const pageCount =
     exams !== undefined && typeof count === 'number'
@@ -471,11 +409,11 @@ const ExamsPage = () => {
   return (
     <>
       <Head>
-        <title>الإختبارات</title>
+        <title>إختبارات النظام</title>
       </Head>
       <div>
         <div className='mb-2 flex items-center gap-2'>
-          <h2 className='text-2xl font-bold'>الإختبارات</h2>
+          <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
           {session!.user.role === UserRole.ADMIN && (
             <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <DialogTrigger asChild>
@@ -486,7 +424,7 @@ const ExamsPage = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>إضافة إختبار نظام</DialogHeader>
-                <AddExamDialog setDialogOpen={setDialogOpen} />
+                <AddSystemExamDialog setDialogOpen={setDialogOpen} />
               </DialogContent>
             </Dialog>
           )}
@@ -497,12 +435,15 @@ const ExamsPage = () => {
   )
 }
 
-ExamsPage.getLayout = (page: ReactNode) => (
+SystemExamsPage.getLayout = (page: ReactNode) => (
   <DashboardLayout>{page}</DashboardLayout>
 )
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+
+  if (session?.user.role !== 'ADMIN' && session?.user.role !== 'CORRECTOR')
+    return { notFound: true }
 
   return {
     props: {
@@ -510,4 +451,4 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     },
   }
 }
-export default ExamsPage
+export default SystemExamsPage

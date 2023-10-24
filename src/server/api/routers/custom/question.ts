@@ -11,6 +11,7 @@ import { QuestionWhereInputObjectSchema } from '.zenstack/zod/objects'
 import { prisma } from '~/server/db'
 import XLSX from 'xlsx'
 import { enDifficultyToAr, enStyleToAr, enTypeToAr } from '~/utils/questions'
+import { exportSheet } from '~/services/sheet'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -113,35 +114,26 @@ export const questionRouter = createTRPCRouter({
         ...(input as any),
         orderBy: { number: 'asc' },
       })
-      const worksheet = XLSX.utils.json_to_sheet(
-        questions.map((q) => ({
-          'رقم السؤال': q.number,
-          'رقم الصفحة': q.pageNumber,
-          'رقم الجزء': q.partNumber,
-          'رقم الحديث': q.hadithNumber,
-          'نوع السؤال': enTypeToAr(q.type),
-          'طريقة السؤال': enStyleToAr(q.style),
-          'مستوى السؤال': enDifficultyToAr(q.difficulty),
-          السؤال: q.text,
-          صح: q.textForTrue,
-          خطأ: q.textForFalse,
-          خيار1: q.option1,
-          خيار2: q.option2,
-          خيار3: q.option3,
-          خيار4: q.option4,
-          الإجابة: q.answer,
-          'هل يوجد إجابة أخرى': q.anotherAnswer,
-          'داخل المظلل': q.isInsideShaded ? 'نعم' : 'لا',
-          'يستهدف السؤال': q.objective,
-        }))
-      )
-      const workbook = XLSX.utils.book_new()
-      XLSX.utils.book_append_sheet(
-        workbook,
-        worksheet,
-        'نموذج لقاعدة بيانات الأسئلة'
-      )
-      return workbook
-      // return XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' })
+
+      return exportSheet(questions, (q) => ({
+        'رقم السؤال': q.number,
+        'رقم الصفحة': q.pageNumber,
+        'رقم الجزء': q.partNumber,
+        'رقم الحديث': q.hadithNumber,
+        'نوع السؤال': enTypeToAr(q.type),
+        'طريقة السؤال': enStyleToAr(q.style),
+        'مستوى السؤال': enDifficultyToAr(q.difficulty),
+        السؤال: q.text,
+        صح: q.textForTrue,
+        خطأ: q.textForFalse,
+        خيار1: q.option1,
+        خيار2: q.option2,
+        خيار3: q.option3,
+        خيار4: q.option4,
+        الإجابة: q.answer,
+        'هل يوجد إجابة أخرى': q.anotherAnswer,
+        'داخل المظلل': q.isInsideShaded ? 'نعم' : 'لا',
+        'يستهدف السؤال': q.objective,
+      }))
     }),
 })

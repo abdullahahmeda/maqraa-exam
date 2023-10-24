@@ -35,7 +35,7 @@ export const DeleteQuestionDialog = ({ id }: { id: string }) => {
   return (
     <>
       <AlertDialogHeader>
-        <AlertDialogTitle>هل تريد حقاً حذف هذا السؤال</AlertDialogTitle>
+        <AlertDialogTitle>هل تريد حقاً حذف هذا السؤال؟</AlertDialogTitle>
       </AlertDialogHeader>
       <AlertDialogDescription>
         هذا سيحذفه من الإختبارات الموجودة أيضاً

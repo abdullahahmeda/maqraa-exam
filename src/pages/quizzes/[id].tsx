@@ -35,25 +35,22 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
 import {
-  PopoverTrigger,
-  Popover,
-  PopoverContent,
-} from '~/components/ui/popover'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 import { useToast } from '~/components/ui/use-toast'
-import sampleSize from 'lodash.samplesize'
 import { useSession } from 'next-auth/react'
 import { AlertTriangleIcon } from 'lucide-react'
 import { Dialog, DialogTrigger, DialogContent } from '~/components/ui/dialog'
 import { ReportErrorDialog } from '~/components/modals/report-error'
+import { QuizService } from '~/services/quiz'
+import { Alert, AlertTitle } from '~/components/ui/alert'
 
 type FieldValues = {
   id: string
-  groups: Record<
-    string,
-    {
-      questions: Record<string, string>
-    }
-  >
+  questions: Record<string, string>
 }
 
 const ExamPage = ({
@@ -72,30 +69,20 @@ const ExamPage = ({
   useEffect(() => {
     form.reset({
       id: exam.id,
-      groups: (exam.groups as any[]).reduce(
-        (groupAcc, group) => ({
-          ...groupAcc,
-          [group.id]: {
-            questions: (group.questions as any[]).reduce(
-              (questionAcc, question) => ({
-                ...questionAcc,
-                [question.id]: question.answer || undefined,
-              }),
-              {}
-            ),
-          },
+      questions: (exam.questions as any[]).reduce(
+        (questionAcc, question) => ({
+          ...questionAcc,
+          [question.id]: question.answer || undefined,
         }),
         {}
       ),
     })
-  }, [form, exam.id, exam.groups])
+  }, [form, exam.id, exam.questions])
 
   const onSubmit = (data: FieldValues) => {
-    for (let group of Object.values(data.groups)) {
-      for (let question of Object.values(group.questions)) {
-        if ([undefined, ''].includes(question))
-          return setConfirmationDialogOpen(true)
-      }
+    for (let question of Object.values(data.questions)) {
+      if ([undefined, ''].includes(question))
+        return setConfirmationDialogOpen(true)
     }
     submitForm()
   }
@@ -105,7 +92,7 @@ const ExamPage = ({
       .mutateAsync({
         id: exam!.id,
         // id: 'clet8uawe000g356lbmte45my',
-        groups: form.getValues('groups'),
+        questions: form.getValues('questions'),
       })
       .then(() => {
         router.reload()
@@ -116,8 +103,8 @@ const ExamPage = ({
       })
   }
 
-  const totalGrade = (exam.groups as any[]).reduce(
-    (acc, group) => acc + group.questions.length * group.gradePerQuestion,
+  const totalGrade = (exam.questions as any[]).reduce(
+    (acc, question) => acc + question.weight,
     0
   )
 
@@ -144,6 +131,15 @@ const ExamPage = ({
         </AlertDialogContent>
       </AlertDialog>
       <div className='container mx-auto py-4'>
+        {!!exam.submittedAt ||
+          (session?.user.id != exam.examineeId && (
+            <Alert className='border-orange-300 bg-orange-300'>
+              <AlertTitle>
+                هذا لعرض الإختبار فقط ولا يمكنك تسليم الإختبار.
+              </AlertTitle>
+            </Alert>
+          ))}
+
         <div className='rounded-md bg-white p-4 shadow'>
           {exam.grade !== null && (
             <div className='sticky top-3 z-10 float-left'>
@@ -161,23 +157,23 @@ const ExamPage = ({
             <Form {...form}>
               <form
                 onSubmit={
-                  exam.submittedAt || session?.user.id != exam.examineeId
+                  !!exam.submittedAt || session?.user.id != exam.examineeId
                     ? () => undefined
                     : form.handleSubmit(onSubmit)
                 }
               >
-                {exam.groups.map((group, i) =>
-                  group.questions.map(({ question, id, order, grade }) => (
+                {exam.questions.map(
+                  ({ question, id, order, grade, weight }) => (
                     <div
                       key={id}
                       className={cn(
                         'mb-4 rounded p-2',
                         exam.grade !== null &&
-                          grade === group.gradePerQuestion &&
+                          grade === weight &&
                           'bg-success/20',
                         exam.grade !== null &&
                           0 < grade &&
-                          grade < group.gradePerQuestion &&
+                          grade < weight &&
                           'bg-orange-500/20',
                         exam.grade !== null &&
                           grade === 0 &&
@@ -185,35 +181,34 @@ const ExamPage = ({
                       )}
                     >
                       <div className='flex items-center'>
-                        {exam.groups
-                          .slice(0, i)
-                          .reduce(
-                            (acc, g) => acc + g.order * g.questions.length,
-                            0
-                          ) + order}
-                        .
+                        {order}.
                         <Badge className='ml-2 mr-1'>
                           {enStyleToAr(question.style)}
                         </Badge>
                         <p>{question.text}</p>
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              size='icon'
-                              variant='ghost'
-                              className='mr-2'
-                              onClick={() => setSelectedQuestion(question.id)}
-                            >
-                              <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent>الإبلاغ عن خطأ</PopoverContent>
-                        </Popover>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size='icon'
+                                variant='ghost'
+                                className='mr-2'
+                                onClick={() => setSelectedQuestion(question.id)}
+                                type='button'
+                              >
+                                <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>الإبلاغ عن خطأ</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                       <div className='mt-2'>
                         <FormField
                           control={form.control}
-                          name={`groups.${group.id}.questions.${id}`}
+                          name={`questions.${id}`}
                           render={({ field }) => (
                             <FormItem
                               className={cn(
@@ -332,7 +327,7 @@ const ExamPage = ({
                         </p>
                       )}
                     </div>
-                  ))
+                  )
                 )}
                 {!exam.submittedAt && session?.user.id == exam.examineeId && (
                   <Button loading={examSubmit.isLoading}>تسليم</Button>
@@ -359,63 +354,59 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
   const prisma = enhance(_prisma, { user: session?.user })
+  const quizService = new QuizService(prisma)
 
-  const exam = await checkRead(
-    prisma.exam.findFirst({
+  const quiz = await checkRead(
+    prisma.quiz.findFirst({
       where: { id },
       include: {
-        groups: {
-          include: {
-            questions: {
-              select: {
-                question: true,
-                order: true,
-                id: true,
-                answer: true,
-                grade: true,
-              },
-              orderBy: { order: 'asc' },
-            },
+        questions: {
+          select: {
+            question: true,
+            order: true,
+            id: true,
+            answer: true,
+            grade: true,
+            weight: true,
           },
           orderBy: { order: 'asc' },
         },
+        groups: true,
         curriculum: { include: { parts: true, track: true } },
       },
     })
   )
 
-  if (!exam) return { notFound: true }
+  if (!quiz) return { notFound: true }
 
-  if (exam.submittedAt)
+  if (quiz.submittedAt)
     return {
       props: {
         exam: {
-          ...exam,
+          ...quiz,
           curriculum: undefined,
         },
       },
     }
 
   // If exam time has ended, return not found
-  if (exam.endsAt && exam.endsAt <= new Date()) return { notFound: true }
+  if (quiz.endsAt && quiz.endsAt <= new Date())
+    return { redirect: { destination: '/quizzes/expired', permanent: false } }
 
   // not submitted but questions have been made, so hide answers
-  if (exam.enteredAt)
+  if (quiz.enteredAt)
     return {
       props: {
         exam: {
-          ...exam,
-          groups: exam.groups.map((g) => ({
-            ...g,
-            questions: g.questions.map((q) => ({
-              ...q,
-              question: {
-                ...q.question,
-                answer: undefined,
-                anotherAnswer: undefined,
-                isInsideShaded: undefined,
-              },
-            })),
+          ...quiz,
+          questions: quiz.questions.map((q) => ({
+            ...q,
+            question: {
+              ...q.question,
+              answer: undefined,
+              anotherAnswer: undefined,
+              isInsideShaded: undefined,
+            },
           })),
           curriculum: undefined,
         },
@@ -423,95 +414,54 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     }
 
   // exam is entered for the first time, create questions
-  const parts = exam.curriculum.parts.map((part) => ({
-    partNumber: part.number,
-    hadithNumber: {
-      gte: part.from,
-      lte: part.to,
+  const questions = await quizService.getQuestionsForGroups({
+    groups: quiz.groups,
+    curriculumId: quiz.curriculumId,
+    repeatFromSameHadith: quiz.repeatFromSameHadith,
+  })
+
+  await _prisma.quiz.update({
+    where: { id },
+    data: {
+      enteredAt: new Date(),
+      questions: {
+        create: questions.map((q) => ({
+          questionId: q.id,
+          weight: q.weight,
+          order: q.order,
+        })),
+      },
     },
-  }))
-
-  let usedQuestions: string[] = []
-  let usedHathidths: number[] = []
-
-  await Promise.all(
-    exam.groups.map(async (g) => {
-      let styleQuery =
-        g.styleOrType === QuestionType.MCQ ||
-        g.styleOrType === QuestionType.WRITTEN
-          ? { type: (g.styleOrType as QuestionType) || undefined }
-          : { style: (g.styleOrType as QuestionStyle) || undefined }
-
-      const questions = []
-      const allPossibleQuestions = await _prisma.question.findMany({
-        where: {
-          AND: [
-            { courseId: exam.curriculum.track.courseId },
-            { id: { notIn: usedQuestions } },
-            { OR: parts },
-            { difficulty: g.difficulty || undefined },
-            styleQuery,
-            { hadithNumber: { notIn: usedHathidths } },
-          ],
-        },
-        // take: g.number,
-        select: { id: true, hadithNumber: true },
-      })
-
-      const _questions = sampleSize(allPossibleQuestions, g.number)
-
-      for (let [i, q] of _questions.entries()) {
-        usedQuestions.push(q.id)
-        if (!exam.repeatFromSameHadith) usedHathidths.push(q.hadithNumber)
-        questions.push({
-          question: { connect: { id: q.id } },
-          order: i + 1,
-        })
-      }
-
-      return _prisma.examQuestionGroup.update({
-        where: { id: g.id },
-        data: {
-          questions: { create: questions },
-        },
-      })
-    })
-  )
-
-  await _prisma.exam.update({ where: { id }, data: { enteredAt: new Date() } })
+  })
 
   return {
     props: {
-      exam: (await prisma.exam.findFirst({
+      exam: (await prisma.quiz.findFirst({
         where: { id },
         include: {
-          groups: {
-            include: {
-              questions: {
+          questions: {
+            select: {
+              question: {
                 select: {
-                  question: {
-                    select: {
-                      type: true,
-                      difficulty: true,
-                      id: true,
-                      number: true,
-                      option1: true,
-                      option2: true,
-                      option3: true,
-                      option4: true,
-                      text: true,
-                      textForFalse: true,
-                      textForTrue: true,
-                      style: true,
-                    },
-                  },
-                  order: true,
+                  type: true,
+                  difficulty: true,
                   id: true,
-                  answer: true,
-                  grade: true,
+                  number: true,
+                  option1: true,
+                  option2: true,
+                  option3: true,
+                  option4: true,
+                  text: true,
+                  textForFalse: true,
+                  textForTrue: true,
+                  style: true,
                 },
-                orderBy: { order: 'asc' },
               },
+              order: true,
+              id: true,
+              answer: true,
+              grade: true,
+              weight: true,
             },
             orderBy: { order: 'asc' },
           },
