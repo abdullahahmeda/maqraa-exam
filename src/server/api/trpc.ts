@@ -62,7 +62,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   return createInnerTRPCContext({
     session,
-    // @ts-expect-error
+    // @ts-ignore
     prisma: enhance(prisma, { user: session?.user }),
   })
 }
