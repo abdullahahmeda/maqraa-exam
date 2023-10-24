@@ -15,9 +15,9 @@ export const handleFormError = (
     message = error.message
     if (error.data.zodError) {
       Object.entries(error.data?.zodError?.fieldErrors).forEach(
-        ([key, errors]: [key: string, errors: string[]]) => {
+        ([key, errors]: [key: string, errors: unknown]) => {
           receivedFeedback = true
-          handlers.fields(key, errors[0] as string)
+          handlers.fields(key, (errors as string[])[0] as string)
         }
       )
       if (error.data?.zodError?.formErrors?.length > 0) receivedFeedback = true
