@@ -10,6 +10,8 @@ export const studentRouter = createTRPCRouter({
         db(ctx).student.findFirstOrThrow({ where: { id: input } })
       )
 
-      return student.getOverallPerformance()
+      return 'kofta'
+      // TODO: implement this
+      // return student.getOverallPerformance()
     }),
 })
