@@ -190,21 +190,21 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
   const prisma = enhance(_prisma, { user: session?.user })
 
-  const examsCountByType = await prisma.exam.groupBy({
+  const examsCountByType = await prisma.quiz.groupBy({
     by: ['type'],
     where: { systemExamId: null },
     _count: true,
   })
-  const examsCount = await prisma.exam.count({ where: { systemExamId: null } })
+  const examsCount = await prisma.quiz.count({ where: { systemExamId: null } })
 
-  const gradesAverageByType = await prisma.exam.groupBy({
-    by: ['type'],
-    where: { systemExamId: null },
-    _avg: { percentage: true },
-  })
-  const gradesAverage = await prisma.exam.aggregate({
-    _avg: { percentage: true },
-  })
+  // const gradesAverageByType = await prisma.quiz.groupBy({
+  //   by: ['type'],
+  //   where: { systemExamId: null },
+  //   _avg: { percentage: true },
+  // })
+  // const gradesAverage = await prisma.quiz.aggregate({
+  //   _avg: { percentage: true },
+  // })
 
   return {
     props: {

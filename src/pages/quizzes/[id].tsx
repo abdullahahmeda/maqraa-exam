@@ -415,7 +415,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
 
   // exam is entered for the first time, create questions
   const questions = await quizService.getQuestionsForGroups({
-    groups: quiz.groups,
+    // TODO: check this type, maybe its incorrect?
+    groups: quiz.groups as any,
     curriculumId: quiz.curriculumId,
     repeatFromSameHadith: quiz.repeatFromSameHadith,
   })
