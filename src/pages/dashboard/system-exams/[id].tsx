@@ -148,13 +148,6 @@ const ExamsPage = ({
             )}%)`
           : '-',
     }),
-    columnHelper.accessor('createdAt', {
-      header: 'وقت الإنشاء',
-      cell: (info) => formatDate(info.getValue()),
-      meta: {
-        className: 'text-center',
-      },
-    }),
     columnHelper.accessor('endsAt', {
       header: 'وقت القفل',
       cell: (info) =>
@@ -312,12 +305,6 @@ const ExamsPage = ({
   ])
 
   const filters = columnFilters.map((filter) => {
-    if (filter.id === 'cycle')
-      return { systemExam: { cycleId: { equals: filter.value as string } } }
-    else if (filter.id === 'course')
-      return { courseId: { equals: filter.value as string } }
-    else if (filter.id === 'curriculum')
-      return { curriculumId: { equals: filter.value as string } }
     return { [filter.id]: { equals: filter.value } }
   })
 
@@ -370,7 +357,7 @@ const ExamsPage = ({
   const handleDownload = async () => {
     const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
     quizzesExport
-      .mutateAsync()
+      .mutateAsync({ systemExamId: systemExam.id })
       .then((arrayBuffer) => {
         const content = new Blob([arrayBuffer])
         saveAs(content, `الإختبار ${systemExam.name}.xlsx`)

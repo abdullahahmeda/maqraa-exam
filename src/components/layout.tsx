@@ -38,8 +38,8 @@ const Navbar = () => {
                   </Link>
                 </li>
                 <li className='block font-bold'>
-                  <Link href='/' className='block'>
-                    بدأ اختبار
+                  <Link href='/start-quiz' className='block'>
+                    بدأ إختبار تجريبي
                   </Link>
                 </li>
                 <li className='block font-bold'>
@@ -54,8 +54,13 @@ const Navbar = () => {
             ) : (
               <>
                 <li className='block font-bold'>
-                  <Link href='/login' className='block'>
+                  <Link href='/' className='block'>
                     دخول
+                  </Link>
+                </li>
+                <li className='block font-bold'>
+                  <Link href='/start-quiz' className='block'>
+                    بدأ إختبار تجريبي
                   </Link>
                 </li>
                 {/* <li className='block font-bold'>

@@ -94,7 +94,7 @@ export const userRouter = createTRPCRouter({
       await sendMail({
         subject: 'تم إضافة حسابك في المقرأة!',
         to: [{ email }],
-        textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}/login`,
+        textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}`,
       })
 
       return user
@@ -145,13 +145,12 @@ export const userRouter = createTRPCRouter({
             })
           )
           const password = generatePassword()
-          // TODO: send email for the user
 
-          // await sendMail({
-          //   subject: 'تم إضافة حسابك في المقرأة!',
-          //   to: [{ email }],
-          //   textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}/login`,
-          // })
+          await sendMail({
+            subject: 'تم إضافة حسابك في المقرأة!',
+            to: [{ email: student.email }],
+            textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}`,
+          })
           if (!s)
             s = (await checkMutate(
               db(ctx).student.create({
@@ -211,12 +210,6 @@ export const userRouter = createTRPCRouter({
           })
         }
       }
-
-      // return checkMutate(
-      //   db(ctx).studentCycle.create({
-      //     data: users,
-      //   })
-      // )
     }),
 
   updateUser: protectedProcedure

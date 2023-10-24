@@ -68,7 +68,7 @@ model User {
   correctedQuizzes Quiz[] @relation("Quiz_corrector")
 
   @@allow('all', auth().role == ADMIN) // for admins
-  @@allow('read', auth().role == CORRECTOR) // for correctors
+  @@allow('read', auth().role != ADMIN) // for correctors and students
   // for user
   @@allow('read,update', auth() == this)
   // @@allow('update', auth() == this && future().role == role)
@@ -233,6 +233,7 @@ model SystemExam {
   @@index([cycleId])
 
   @@allow('all', auth().role == ADMIN)
+  @@allow('read', auth() != null && auth().role != ADMIN)
 }
 
 
@@ -269,7 +270,7 @@ model Quiz {
   // TODO: maybe update read rules
   @@allow('all', auth().role == ADMIN) // for admins
   @@allow('create', true) // anyone
-  @@allow('read,update', auth().role == CORRECTOR && systemExam.cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[corrector.id == auth().correctorId]) // for correctors
+  @@allow('read,update', auth().role == CORRECTOR && (correctorId == auth().id || correctorId == null) && systemExam.cycle.correctors?[id == auth().correctorId] && curriculum.track.course.correctors?[corrector.id == auth().correctorId]) // for correctors
   @@allow('read,update', examinee == auth()) // for students
 }
 
@@ -414,7 +415,6 @@ model ErrorReport {
   id String @id @default(cuid())
   name String
   email String
-  description String @db.Text
   createdAt DateTime @default(now())
   questionId String
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)

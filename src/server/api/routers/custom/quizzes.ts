@@ -17,6 +17,8 @@ import { QuizService } from '~/services/quiz'
 import { SystemExamService } from '~/services/systemExam'
 import { editQuizSchema } from '~/validation/editQuizSchema'
 import { exportSheet } from '~/services/sheet'
+import { percentage } from '~/utils/percentage'
+import { formatDate } from '~/utils/formatDate'
 
 export const quizRouter = createTRPCRouter({
   createQuiz: publicProcedure
@@ -83,27 +85,34 @@ export const quizRouter = createTRPCRouter({
 
       const { systemExamId } = input
 
-      const quizzes = await prisma.quiz.findMany({ where: { systemExamId } })
+      const quizzes = await prisma.quiz.findMany({
+        where: { systemExamId },
+        include: {
+          examinee: true,
+          corrector: true,
+          curriculum: { include: { track: { select: { course: true } } } },
+        },
+      })
 
-      return exportSheet(questions, (q) => ({
-        'رقم السؤال': q.number,
-        'رقم الصفحة': q.pageNumber,
-        'رقم الجزء': q.partNumber,
-        'رقم الحديث': q.hadithNumber,
-        'نوع السؤال': enTypeToAr(q.type),
-        'طريقة السؤال': enStyleToAr(q.style),
-        'مستوى السؤال': enDifficultyToAr(q.difficulty),
-        السؤال: q.text,
-        صح: q.textForTrue,
-        خطأ: q.textForFalse,
-        خيار1: q.option1,
-        خيار2: q.option2,
-        خيار3: q.option3,
-        خيار4: q.option4,
-        الإجابة: q.answer,
-        'هل يوجد إجابة أخرى': q.anotherAnswer,
-        'داخل المظلل': q.isInsideShaded ? 'نعم' : 'لا',
-        'يستهدف السؤال': q.objective,
+      return exportSheet(quizzes, (q) => ({
+        الطالب: q.examinee!.name,
+        'إيميل الطالب': q.examinee!.email,
+        'الدرجة المتوقعة':
+          !q.correctedAt && typeof q.grade === 'number' ? q.grade : '',
+        الدرجة: q.correctedAt ? q.grade : '',
+        'النسبة المئوية المتوقعة':
+          !q.correctedAt && typeof q.grade === 'number'
+            ? `${percentage(q.grade, q.total as number)}%`
+            : '',
+        'النسبة المئوية': q.correctedAt
+          ? `${percentage(q.grade as number, q.total as number)}%`
+          : '',
+        'إجمالي الدرجات': q.total,
+        'وقت القفل': q.endsAt ? formatDate(q.endsAt) : '',
+        'وقت البدأ': q.enteredAt ? formatDate(q.enteredAt) : '',
+        'وقت التسليم': q.submittedAt ? formatDate(q.submittedAt) : '',
+        'وقت التصحيح': q.correctedAt ? formatDate(q.correctedAt) : '',
+        المصحح: q.corrector ? q.corrector.name : '',
       }))
     }),
 })

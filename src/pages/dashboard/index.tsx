@@ -84,7 +84,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   if (session?.user.role !== 'ADMIN')
     return {
       redirect: {
-        destination: '/dashboard/system-exams',
+        destination: '/dashboard/my-exams',
         permanent: false,
       },
     }

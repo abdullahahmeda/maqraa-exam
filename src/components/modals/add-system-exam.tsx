@@ -429,7 +429,7 @@ export const AddSystemExamDialog = ({
             </FormItem>
           )}
         />
-        <Button>بدأ الاختبار</Button>
+        <Button>إنشاء الإختبار</Button>
       </form>
     </Form>
   )

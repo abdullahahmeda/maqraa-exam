@@ -50,6 +50,7 @@ import {
 } from '~/components/ui/alert-dialog'
 import { DeleteQuestionDialog } from '~/components/modals/delete-question'
 import { saveAs } from 'file-saver'
+import { Input } from '~/components/ui/input'
 
 const columnHelper = createColumnHelper<
   Question & { course: { name: string } }
@@ -74,7 +75,28 @@ const columns = [
     ),
   }),
   columnHelper.accessor('number', {
-    header: 'رقم السؤال',
+    header: ({ column }) => {
+      const filterValue = column.getFilterValue() as string | undefined
+      return (
+        <div className='flex items-center'>
+          رقم السؤال
+          <Popover>
+            <PopoverTrigger className='mr-4' asChild>
+              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
+                <Filter className='h-4 w-4' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Input
+                type='text'
+                value={filterValue === undefined ? '' : filterValue}
+                onChange={(e) => column.setFilterValue(e.target.value)}
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+      )
+    },
     meta: {
       className: 'text-center',
     },
@@ -331,6 +353,13 @@ const QuestionsPage = () => {
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'course')
       return { courseId: { equals: filter.value as string } }
+    else if (
+      filter.id === 'number' &&
+      typeof filter.value === 'string' &&
+      filter.value.length > 0
+    )
+      return { number: parseInt(filter.value) }
+
     return { [filter.id]: { equals: filter.value } }
   })
 

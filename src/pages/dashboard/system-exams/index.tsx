@@ -242,7 +242,7 @@ const SystemExamsPage = () => {
     columnHelper.accessor('cycle.name', {
       id: 'cycle',
       header: ({ column }) => {
-        const { data: tracks, isLoading } = api.cycle.findMany.useQuery({})
+        const { data: cycles, isLoading } = api.cycle.findMany.useQuery({})
 
         const filterValue = column.getFilterValue() as string | undefined
 
@@ -260,7 +260,7 @@ const SystemExamsPage = () => {
               </PopoverTrigger>
               <PopoverContent>
                 <Combobox
-                  items={[{ name: 'الكل', id: '' }, ...(tracks || [])]}
+                  items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
                   loading={isLoading}
                   labelKey='name'
                   valueKey='id'

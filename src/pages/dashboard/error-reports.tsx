@@ -61,9 +61,9 @@ const DeleteErrorReportDialog = ({ id }: { id: string }) => {
   return (
     <>
       <AlertDialogHeader>
-        <AlertDialogTitle>هل تريد حقاً حذف هذا المقرر؟</AlertDialogTitle>
+        <AlertDialogTitle>هل تريد حقاً حذف هذا البلاغ؟</AlertDialogTitle>
         <AlertDialogDescription>
-          هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً
+          {/* هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً */}
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
@@ -78,7 +78,7 @@ const columnHelper = createColumnHelper<ErrorReport & { question: Question }>()
 
 const PAGE_SIZE = 25
 
-const CoursesPage = () => {
+const ErrorReportsPage = () => {
   const router = useRouter()
 
   const pageIndex = z
@@ -139,21 +139,6 @@ const CoursesPage = () => {
         header: 'الإجراءات',
         cell: ({ row }) => (
           <div className='flex justify-center gap-2'>
-            {/* <Button>عرض المناهج</Button> */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='hover:bg-orange-50'
-                >
-                  <Pencil className='h-4 w-4 text-orange-500' />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <EditCourseDialog id={row.original.id} />
-              </DialogContent>
-            </Dialog>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant='ghost' size='icon' className='hover:bg-red-50'>
@@ -214,8 +199,8 @@ const CoursesPage = () => {
   )
 }
 
-CoursesPage.getLayout = (page: any) => (
+ErrorReportsPage.getLayout = (page: any) => (
   <DashboardLayout>{page} </DashboardLayout>
 )
 
-export default CoursesPage
+export default ErrorReportsPage

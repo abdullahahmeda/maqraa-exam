@@ -1,20 +1,12 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import { QuestionDifficulty } from '../constants'
 import Head from 'next/head'
-import {
-  UseFieldArrayRemove,
-  UseFormReturn,
-  useFieldArray,
-  useForm,
-  useWatch,
-} from 'react-hook-form'
-import { api } from '../utils/api'
-import { newQuizSchema } from '../validation/newQuizSchema'
+import Image from 'next/image'
+import Link from 'next/link'
+import { useForm } from 'react-hook-form'
+import { loginSchema } from '../validation/loginSchema'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/router'
 import WebsiteLayout from '../components/layout'
-import { GetServerSideProps } from 'next'
-import { getServerAuthSession } from '../server/auth'
-import { useToast } from '~/components/ui/use-toast'
 import {
   Form,
   FormControl,
@@ -23,470 +15,140 @@ import {
   FormLabel,
   FormMessage,
 } from '~/components/ui/form'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select'
-import { Button } from '~/components/ui/button'
-import { Checkbox } from '~/components/ui/checkbox'
-import { CheckedState } from '@radix-ui/react-checkbox'
-import { QuestionStyle, QuestionType } from '@prisma/client'
 import { Input } from '~/components/ui/input'
-import { difficultyMapping, styleMapping, typeMapping } from '~/utils/questions'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '~/components/ui/accordion'
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { Trash } from 'lucide-react'
-import { z } from 'zod'
+import { Button, buttonVariants } from '~/components/ui/button'
+import { GetServerSideProps } from 'next'
+import { getServerAuthSession } from '~/server/auth'
 import { useState } from 'react'
-import { handleFormError } from '~/utils/errors'
-
-type Group = {
-  questionsNumber: number
-  gradePerQuestion: number
-  difficulty: QuestionDifficulty | string | undefined
-  styleOrType: QuestionStyle | QuestionType | string | undefined
-}
+import { cn } from '~/lib/utils'
 
 type FieldValues = {
-  courseId: any
-  trackId: string
-  curriculumId: string
-  repeatFromSameHadith: CheckedState
-  groups: Group[]
+  email: string
+  password: string
 }
 
-const QuestionGroup = ({
-  id,
-  index,
-  form,
-  remove,
-}: {
-  id: string
-  index: number
-  form: UseFormReturn<FieldValues>
-  remove: UseFieldArrayRemove
-}) => {
-  const {
-    attributes: { role, ...attributes },
-    listeners,
-    setNodeRef,
-    transform,
-  } = useSortable({ id })
-
-  const style = { transform: CSS.Transform.toString(transform) }
-
-  return (
-    <AccordionItem
-      value={id}
-      ref={setNodeRef}
-      {...attributes}
-      style={style}
-      className='transition-transform last-of-type:border-b-0'
-    >
-      <AccordionTrigger {...listeners} className='bg-gray-50 p-3'>
-        المجموعة {index + 1}
-      </AccordionTrigger>
-      <AccordionContent className='bg-gray-50/50'>
-        <div className='space-y-4 p-3'>
-          <div className='flex justify-end'>
-            <Button
-              size='icon'
-              variant='destructive'
-              onClick={() => remove(index)}
-            >
-              <Trash className='h-4 w-4' />
-            </Button>
-          </div>
-          <div className='flex gap-2'>
-            <FormField
-              control={form.control}
-              name={`groups.${index}.questionsNumber`}
-              render={({ field }) => (
-                <FormItem className='flex-grow'>
-                  <FormLabel>عدد الأسئلة</FormLabel>
-                  <FormControl>
-                    <Input type='number' min={1} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name={`groups.${index}.gradePerQuestion`}
-              render={({ field }) => (
-                <FormItem className='flex-grow'>
-                  <FormLabel>الدرجة للسؤال</FormLabel>
-                  <FormControl>
-                    <Input min={1} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <FormField
-            control={form.control}
-            name={`groups.${index}.difficulty`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>المستوى</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='اختر المستوى' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value=''>عشوائي</SelectItem>
-                    {Object.entries(difficultyMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`groups.${index}.styleOrType`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>طريقة الأسئلة</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='اختر طريقة الأسئلة' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value=''>عشوائي</SelectItem>
-                    {Object.entries(typeMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                    {Object.entries(styleMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </AccordionContent>
-    </AccordionItem>
-  )
-}
-
-const HomePage = () => {
-  const { toast } = useToast()
-
-  const [submitting, setSubmitting] = useState(false)
-
-  const form = useForm<FieldValues>({
-    resolver: zodResolver(newQuizSchema),
-    defaultValues: {
-      repeatFromSameHadith: false,
-      groups: [
-        {
-          questionsNumber: 25,
-          gradePerQuestion: 1,
-          difficulty: '',
-          styleOrType: '',
-        },
-      ],
-    },
-  })
-
-  const quizCreate = api.createQuiz.useMutation()
-
-  const courseId = useWatch({ control: form.control, name: 'courseId' })
-  const trackId = useWatch({ control: form.control, name: 'trackId' })
-
-  const {
-    fields: groups,
-    append,
-    remove,
-    swap,
-  } = useFieldArray({
-    control: form.control,
-    name: 'groups',
-  })
-
-  const { data: courses, isLoading: isCoursesLoading } =
-    api.course.findMany.useQuery({})
-
-  const {
-    data: tracks,
-    isLoading: isTracksLoading,
-    fetchStatus: tracksFetchStatus,
-  } = api.track.findMany.useQuery(
-    { where: { courseId } },
-    { enabled: !!courseId }
-  )
-
-  const {
-    isLoading: isCurriculaLoading,
-    data: curricula,
-    fetchStatus: curriculaFetchStatus,
-  } = api.curriculum.findMany.useQuery(
-    {
-      where: { track: { id: trackId, courseId: undefined } },
-      include: { parts: true },
-    },
-    {
-      enabled: !!trackId,
-      queryKey: [
-        'curriculum.findMany',
-        {
-          where: { track: { id: trackId, courseId } },
-          include: { parts: true },
-        },
-      ],
-    }
-  )
-
+export default function LoginPage() {
   const router = useRouter()
 
+  const [isLoading, setIsLoading] = useState(false)
+
+  const form = useForm<FieldValues>({
+    resolver: zodResolver(loginSchema),
+  })
+
   const onSubmit = (data: FieldValues) => {
-    setSubmitting(true)
-    quizCreate
-      .mutateAsync(data as z.infer<typeof newQuizSchema>)
-      .then((quiz) => {
-        if (quiz) router.push(`/quizzes/${quiz.id}`)
+    setIsLoading(true)
+    signIn('credentials', { ...data, redirect: false })
+      .then((response) => {
+        if (response?.error === 'CredentialsSignin') {
+          form.setError('root.serverError', {
+            message: 'هذه البيانات غير صحيحة',
+          })
+        }
+        if (response?.ok) {
+          router.push('/')
+        }
       })
-      .catch((error) => {
-        setSubmitting(false)
-        handleFormError(error, {
-          fields: (key, message) =>
-            form.setError(key as keyof FieldValues, { message }),
-          form: (message) => form.setError('root.form', { message }),
-          default: (message) => toast({ title: message }),
+      .catch(() => {
+        form.setError('root.serverError', {
+          message: 'حدث خطأ غير متوقع، تأكد من اتصال الإنترنت لديك',
         })
       })
-  }
-
-  const appendGroup = () => {
-    append({
-      questionsNumber: 25,
-      gradePerQuestion: 1,
-      difficulty: '',
-      styleOrType: '',
-    })
-  }
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 10 },
-    })
-  )
-
-  const onDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (over !== null && active.id !== over.id) {
-      const oldIndex = groups.findIndex((g) => g.id === active.id)
-      const newIndex = groups.findIndex((g) => g.id === over.id)
-      swap(oldIndex, newIndex)
-    }
+      .finally(() => {
+        setIsLoading(false)
+      })
   }
 
   return (
     <>
       <Head>
-        <title>بدأ اختبار</title>
+        <title>حفاظ الوحيين | تسجيل الدخول</title>
       </Head>
-      <div className='container mx-auto py-10'>
-        <div className='mx-auto max-w-md rounded-md bg-white p-4 shadow'>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+      <Form {...form}>
+        <form
+          className='mx-auto max-w-[360px] pt-20'
+          onSubmit={form.handleSubmit(onSubmit)}
+        >
+          <div className='mb-4 text-center'>
+            <Link href='https://mqraa.alwahyaen.com/' className='inline-block'>
+              <Image
+                src='/maqraa_app.png'
+                alt='Logo'
+                width='230'
+                height='150'
+                className='inline-block'
+              />
+            </Link>
+          </div>
+          {router.query.callbackUrl && (
+            <div className='bg-orange-500 p-2 text-neutral-50'>
+              قم بتسجيل الدخول للمتابعة
+            </div>
+          )}
+          <div className='rounded-md bg-white p-4 shadow'>
+            <h1 className='mb-4 text-center text-2xl font-bold text-neutral-800'>
+              تسجيل الدخول
+            </h1>
+            <div className='space-y-3'>
               <FormField
                 control={form.control}
-                name='courseId'
+                name='email'
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>المقرر</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger loading={isCoursesLoading}>
-                          <SelectValue placeholder='اختر المقرر' />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {courses?.map((course) => (
-                          <SelectItem key={course.id} value={course.id}>
-                            {course.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='trackId'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المسار</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger
-                          loading={
-                            tracksFetchStatus === 'fetching' && isTracksLoading
-                          }
-                        >
-                          <SelectValue placeholder='اختر المسار' />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {tracks?.map((track) => (
-                          <SelectItem key={track.id} value={track.id}>
-                            {track.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='curriculumId'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>المنهج</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger
-                          loading={
-                            curriculaFetchStatus === 'fetching' &&
-                            isCurriculaLoading
-                          }
-                        >
-                          <SelectValue placeholder='اختر المنهج' />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {curricula?.map((curriculum) => (
-                          <SelectItem key={curriculum.id} value={curriculum.id}>
-                            {curriculum.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name='repeatFromSameHadith'
-                render={({ field }) => (
-                  <FormItem className='flex flex-row items-start space-x-3 space-y-0 space-x-reverse'>
+                    <FormLabel>البريد الإلكتروني</FormLabel>
                     <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
+                      <Input type='email' {...field} />
                     </FormControl>
-                    <div className='space-y-1 leading-none'>
-                      <FormLabel>السماح بأكثر من سؤال في نفس الحديث</FormLabel>
-                    </div>
+                    <FormMessage />
                   </FormItem>
                 )}
               />
-              <p>
-                أقصى عدد للأسئلة في الإختبار: 25، مجموع الدرجات يجب أن يساوي 100
-              </p>
+              <FormField
+                control={form.control}
+                name='password'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>كلمة المرور</FormLabel>
+                    <FormControl>
+                      <Input type='password' {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormMessage>
+                {form.formState.errors.root?.serverError?.message}
+              </FormMessage>
               <div>
-                <h3>تقسيمة الأسئلة</h3>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={onDragEnd}
+                <Link
+                  href='forgot-password'
+                  className={cn(buttonVariants({ variant: 'link' }), 'px-0')}
                 >
-                  <SortableContext
-                    items={groups}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <Accordion
-                      type='single'
-                      collapsible
-                      className='overflow-hidden rounded-md shadow'
-                    >
-                      {groups.map(({ id }, index) => (
-                        <QuestionGroup
-                          id={id}
-                          index={index}
-                          form={form}
-                          remove={remove}
-                          key={id}
-                        />
-                      ))}
-                    </Accordion>
-                  </SortableContext>
-                </DndContext>
-                <FormField
-                  control={form.control}
-                  name='groups'
-                  render={() => (
-                    <FormItem>
-                      <FormMessage className='mt-2' />
-                    </FormItem>
-                  )}
-                />
-                <Button type='button' className='mt-2' onClick={appendGroup}>
-                  إضافة مجموعة أخرى
-                </Button>
+                  نسيت كلمة السر؟
+                </Link>
               </div>
-              <Button loading={submitting}>بدأ الاختبار</Button>
-            </form>
-          </Form>
-        </div>
-      </div>
+              <Button className='mt-2' loading={isLoading}>
+                تسجيل الدخول
+              </Button>
+            </div>
+          </div>
+        </form>
+      </Form>
     </>
   )
 }
 
-HomePage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>
-
-export const getServerSideProps: GetServerSideProps = async (context) => {
-  const { req, res } = context
-  const session = await getServerAuthSession({ req, res })
+export const getServerSideProps: GetServerSideProps = async (ctx) => {
+  const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
+  if (session?.user)
+    return {
+      redirect: {
+        permanent: false,
+        destination: '/dashboard',
+      },
+    }
 
   return { props: { session } }
 }
 
-export default HomePage
+LoginPage.getLayout = (page: any) => <WebsiteLayout>{page}</WebsiteLayout>

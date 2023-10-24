@@ -10,3 +10,8 @@ export const exportSheet = <T>(data: T[], mapper: (element: T) => object) => {
   })
   return Uint8Array.from(buffer)
 }
+
+export const importFromGoogleSheet = (url: string) => {
+  // TODO: implement this
+  throw new Error('Not implemented yet')
+}

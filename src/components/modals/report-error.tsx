@@ -23,7 +23,6 @@ type FieldValues = {
   questionId: string
   name: string
   email: string
-  description: string
 }
 
 export const ReportErrorDialog = ({
@@ -125,19 +124,6 @@ export const ReportErrorDialog = ({
               </FormControl>
               <FormMessage />
             </FormItem>
-            <FormField
-              control={form.control}
-              name='description'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>النص المقترح</FormLabel>
-                  <FormControl>
-                    <Textarea {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <Button>إبلاغ</Button>
           </form>
         </Form>

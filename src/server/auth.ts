@@ -44,7 +44,7 @@ declare module 'next-auth' {
  **/
 export const authOptions: NextAuthOptions = {
   pages: {
-    signIn: '/login',
+    signIn: '/',
     verifyRequest: '/verify-request',
   },
   debug: env.NODE_ENV === 'development',

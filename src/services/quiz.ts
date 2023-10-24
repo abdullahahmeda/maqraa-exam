@@ -119,6 +119,8 @@ export class QuizService {
       0
     )
 
+    // TODO: validate that `grade` is in range [0, weight]
+
     return await this.db.quiz.update({
       where: { id },
       data: {

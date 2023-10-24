@@ -76,7 +76,7 @@ model Session {
 }
 
 /// @@allow('all', auth().role == ADMIN)
-/// @@allow('read', auth().role == CORRECTOR)
+/// @@allow('read', auth().role != ADMIN)
 /// @@allow('read,update', auth() == this)
 model User {
     id String @id() @default(cuid())
@@ -204,6 +204,7 @@ model Setting {
 }
 
 /// @@allow('all', auth().role == ADMIN)
+/// @@allow('read', auth() != null && auth().role != ADMIN)
 model SystemExam {
     id String @id() @default(cuid())
     name String
@@ -225,7 +226,7 @@ model SystemExam {
 
 /// @@allow('all', auth().role == ADMIN)
 /// @@allow('create', true)
-/// @@allow('read,update', auth().role == CORRECTOR && systemExam.cycle.correctors ? [id == auth().correctorId] && curriculum.track.course.correctors ? [corrector.id == auth().correctorId])
+/// @@allow('read,update', auth().role == CORRECTOR && (correctorId == auth().id || correctorId == null) && systemExam.cycle.correctors ? [id == auth().correctorId] && curriculum.track.course.correctors ? [corrector.id == auth().correctorId])
 /// @@allow('read,update', examinee == auth())
 model Quiz {
     id String @id() @default(cuid())
@@ -386,7 +387,6 @@ model ErrorReport {
     id String @id() @default(cuid())
     name String
     email String
-    description String @db.Text()
     createdAt DateTime @default(now())
     questionId String
     question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)

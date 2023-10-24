@@ -73,20 +73,22 @@ const menuLinks = {
     {
       icon: <Construction className='ml-2 h-4 w-4' />,
       label: 'إختبارات النظام',
-      href: '/dashboard/system-exams',
+      href: '/dashboard/my-exams',
     },
   ],
   STUDENT: [
     {
       icon: <Construction className='ml-2 h-4 w-4' />,
       label: 'إختبارات النظام',
-      href: '/dashboard/system-exams',
+      href: '/dashboard/my-exams',
     },
-    {
-      icon: <Construction className='ml-2 h-4 w-4' />,
-      label: 'الإختبارات المفتوحة',
-      href: '/dashboard/quizzes',
-    },
+    // TODO: review this
+
+    // {
+    //   icon: <Construction className='ml-2 h-4 w-4' />,
+    //   label: 'الإختبارات المفتوحة',
+    //   href: '/dashboard/quizzes',
+    // },
   ],
 }
 

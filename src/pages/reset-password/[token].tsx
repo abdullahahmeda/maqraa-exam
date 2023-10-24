@@ -41,7 +41,7 @@ export const PasswordTokenPage = ({ token }: { token: string }) => {
       .mutateAsync(data)
       .then(() => {
         toast({ title: 'تم تغيير كلمة المرور، قم بتسجيل الدخول' })
-        router.replace('/login')
+        router.replace('/')
       })
       .catch((error) => {
         toast({ title: (error as any).message, variant: 'destructive' })
