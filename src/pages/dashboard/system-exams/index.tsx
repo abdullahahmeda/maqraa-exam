@@ -382,7 +382,7 @@ const SystemExamsPage = () => {
         <title>إختبارات النظام</title>
       </Head>
       <div>
-        <div className='mb-2 flex items-center gap-2'>
+        <div className='mb-4 flex items-center gap-4'>
           <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
           {session!.user.role === UserRole.ADMIN && (
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
@@ -404,7 +404,7 @@ const SystemExamsPage = () => {
             <Button
               disabled={!exams || exams.length === 0}
               variant='success'
-              className='mb-2 flex gap-2'
+              className='mb-4 flex gap-2'
             >
               <Download className='h-4 w-4' />
               تصدير

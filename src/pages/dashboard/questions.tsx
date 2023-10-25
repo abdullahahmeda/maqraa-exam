@@ -429,7 +429,7 @@ const QuestionsPage = () => {
       <Head>
         <title>الأسئلة</title>
       </Head>
-      <div className='mb-2 flex items-center'>
+      <div className='mb-4 flex items-center'>
         <h2 className='ml-2 text-2xl font-bold'>الأسئلة</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
@@ -447,7 +447,7 @@ const QuestionsPage = () => {
         <Button
           disabled={!questions || questions.length === 0}
           variant='success'
-          className='mb-2 flex gap-2'
+          className='mb-4 flex gap-2'
           onClick={handleDownload}
         >
           <Download className='h-4 w-4' />

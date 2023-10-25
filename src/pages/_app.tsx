@@ -3,7 +3,7 @@ import { type Session } from 'next-auth'
 import type { NextPage } from 'next'
 import { ReactElement, ReactNode } from 'react'
 import { SessionProvider } from 'next-auth/react'
-import { Cairo } from 'next/font/google'
+import { Rubik } from 'next/font/google'
 import { z } from 'zod'
 import { errorMap } from '../validation/errorMap'
 import { arSA } from 'date-fns/locale'
@@ -11,8 +11,8 @@ import setDefaultOptions from 'date-fns/setDefaultOptions'
 import { api } from '../utils/api'
 import { Toaster } from '~/components/ui/toaster'
 
-const cairo = Cairo({
-  subsets: ['latin', 'arabic'],
+const fontFamily = Rubik({
+  subsets: ['arabic', 'latin'],
   weight: ['400', '500', '600', '700'],
   display: 'auto',
 })
@@ -43,7 +43,7 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
               <style jsx global>
                 {`
                   * {
-                    font-family: ${cairo.style.fontFamily};
+                    font-family: ${fontFamily.style.fontFamily};
                   }
                 `}
               </style>

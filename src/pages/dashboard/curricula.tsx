@@ -274,8 +274,8 @@ const CurriculaPage = () => {
       <Head>
         <title>المناهج</title>
       </Head>
-      <div className='mb-2 flex items-center'>
-        <h2 className='ml-2 text-2xl font-bold'>المناهج</h2>
+      <div className='mb-4 flex items-center'>
+        <h2 className='ml-4 text-2xl font-bold'>المناهج</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className='flex items-center gap-2'>

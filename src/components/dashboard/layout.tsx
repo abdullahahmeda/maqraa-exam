@@ -110,7 +110,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             >
               <Menu />
             </Button>
-            <h1>لوحة التحكم</h1>
+            <h1 className='text-lg font-bold'>لوحة التحكم</h1>
           </div>
           <Button
             className='mr-auto'

@@ -134,6 +134,27 @@ const ErrorReportsPage = () => {
         },
         cell: (info) => info.getValue(),
       }),
+      columnHelper.accessor('question.partNumber', {
+        header: 'رقم الجزء',
+        meta: {
+          className: 'text-center',
+        },
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor('question.pageNumber', {
+        header: 'رقم الصفحة',
+        meta: {
+          className: 'text-center',
+        },
+        cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor('note', {
+        header: 'الملاحظة',
+        meta: {
+          className: 'text-center',
+        },
+        cell: (info) => info.getValue(),
+      }),
       columnHelper.display({
         id: 'actions',
         header: 'الإجراءات',
@@ -180,19 +201,8 @@ const ErrorReportsPage = () => {
       <Head>
         <title>تبليغات الأخطاء</title>
       </Head>
-      <div className='mb-2 flex items-center'>
-        <h2 className='ml-2 text-2xl font-bold'>تبليغات الأخطاء</h2>
-        {/*<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogTrigger asChild>
-            <Button className='flex items-center gap-2'>
-              <Plus className='h-4 w-4' />
-              إضافة مقرر
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <AddCourseDialog setDialogOpen={setDialogOpen} />
-          </DialogContent>
-        </Dialog>*/}
+      <div className='mb-4 flex items-center'>
+        <h2 className='ml-4 text-2xl font-bold'>تبليغات الأخطاء</h2>
       </div>
       <DataTable table={table} fetching={isFetchingErrorReports} />
     </>

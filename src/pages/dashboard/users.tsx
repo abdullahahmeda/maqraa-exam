@@ -6,7 +6,7 @@ import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { Cycle, StudentCycle, User, UserRole } from '@prisma/client'
+import { Cycle, StudentCycle, User } from '@prisma/client'
 import {
   createColumnHelper,
   useReactTable,
@@ -26,7 +26,6 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Pencil, Filter, Eye, Trash, UserPlus } from 'lucide-react'
-import { getServerAuthSession } from '~/server/auth'
 import { Combobox } from '~/components/ui/combobox'
 import { EditUserDialog } from '~/components/modals/edit-user'
 import {
@@ -294,8 +293,8 @@ const UsersPage = () => {
       <Head>
         <title>المستخدمون</title>
       </Head>
-      <div className='mb-2 flex items-center'>
-        <h2 className='ml-2 text-2xl font-bold'>المستخدمون</h2>
+      <div className='mb-4 flex items-center'>
+        <h2 className='ml-4 text-2xl font-bold'>المستخدمون</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className='flex items-center gap-2'>

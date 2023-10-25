@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { ReactNode, useReducer, useState } from 'react'
-import { MdMenu } from 'react-icons/md'
+import { Menu } from 'lucide-react'
 import { getFirstName } from '~/utils/users'
 
 const Navbar = () => {
@@ -10,13 +10,13 @@ const Navbar = () => {
   const { data: session, status } = useSession()
   return (
     <nav className='bg-white py-4 shadow-xl'>
-      <div className='container mx-auto max-w-5xl items-center justify-between md:flex'>
+      <div className='container items-center justify-between md:flex'>
         <div className='flex justify-between'>
           <Link href='/' className='text-xl font-bold text-neutral-800'>
             حفاظ الوحيين
           </Link>
           <button onClick={toggleMenu} className='md:hidden'>
-            <MdMenu size={20} />
+            <Menu size={20} />
           </button>
         </div>
         <div>

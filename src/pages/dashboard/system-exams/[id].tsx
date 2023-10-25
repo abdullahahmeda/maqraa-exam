@@ -377,10 +377,10 @@ const ExamsPage = ({
         <title>إختبارات النظام</title>
       </Head>
       <div>
-        <div className='mb-2 flex items-center gap-2'>
+        <div className='mb-4 flex items-center gap-2'>
           <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
         </div>
-        <div className='mb-2 rounded bg-white p-2 shadow'>
+        <div className='mb-4 rounded-md bg-white p-4 shadow'>
           <p>اسم الإختبار: {systemExam.name}</p>
           <p>نوع الإختبار: {enTypeToAr(systemExam.type)}</p>
           <p>الدورة: {systemExam.cycle.name}</p>
@@ -400,7 +400,7 @@ const ExamsPage = ({
         <Button
           disabled={!quizzes || quizzes.length === 0}
           variant='success'
-          className='mb-2 flex gap-2'
+          className='mb-4 flex gap-2'
           onClick={handleDownload}
         >
           <Download className='h-4 w-4' />

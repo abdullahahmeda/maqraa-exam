@@ -155,8 +155,8 @@ const CyclesPage = () => {
       <Head>
         <title>الدورات</title>
       </Head>
-      <div className='mb-2 flex items-center'>
-        <h2 className='ml-2 text-2xl font-bold'>الدورات</h2>
+      <div className='mb-4 flex items-center'>
+        <h2 className='ml-4 text-2xl font-bold'>الدورات</h2>
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className='flex items-center gap-2'>

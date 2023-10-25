@@ -166,7 +166,7 @@ const CorrectQuizPage = ({
                 )}
               </div>
             </div>
-            <div className='mb-3 rounded bg-white p-3 shadow'>
+            <div className='mb-3 rounded-md bg-white p-4 shadow'>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)}>
                   <h2 className='mb-4 inline-block text-center text-xl font-bold'>
@@ -185,7 +185,7 @@ const CorrectQuizPage = ({
                       ({ id, question, grade, order, answer, weight }) => (
                         <div
                           key={id}
-                          className={clsx('mb-2 rounded p-3', {
+                          className={clsx('mb-3 rounded-md px-4 py-3', {
                             'bg-green-200': grade === weight,
                             'bg-orange-200': 0 < grade && grade < weight,
                             'bg-red-200':

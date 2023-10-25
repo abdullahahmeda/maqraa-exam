@@ -9,7 +9,14 @@ import {
   TableRow,
 } from '~/components/ui/table'
 import { Button } from './button'
-import { Loader2 } from 'lucide-react'
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Loader2,
+} from 'lucide-react'
+import Pagination from '../pagination'
 
 interface DataTableProps<T> {
   table: TanstackTable<T>
@@ -26,7 +33,7 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead key={header.id} className='p-4'>
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -59,7 +66,7 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
                   data-state={row.getIsSelected() && 'selected'}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell key={cell.id} className='p-4'>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()
@@ -82,21 +89,47 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
         </Table>
       </div>
       <div className='flex items-center justify-end space-x-2 space-x-reverse py-4'>
+        <p>
+          الصفحة <strong>{table.getState().pagination.pageIndex + 1}</strong> من{' '}
+          <strong>{table.getPageCount()}</strong>
+        </p>
         <Button
           variant='outline'
-          size='sm'
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
+          size='icon'
+          onClick={() => table.setPageIndex(() => 0)}
+          disabled={table.getState().pagination.pageIndex === 0}
+          title='الصفحة الأولى'
         >
-          السابق
+          <ChevronsRight className='h-4 w-4' />
         </Button>
         <Button
           variant='outline'
-          size='sm'
+          size='icon'
+          onClick={() => table.previousPage()}
+          disabled={!table.getCanPreviousPage()}
+          title='الصفحة السابقة'
+        >
+          <ChevronRight className='h-4 w-4' />
+        </Button>
+        <Button
+          variant='outline'
+          size='icon'
           onClick={() => table.nextPage()}
           disabled={!table.getCanNextPage()}
+          title='الصفحة التالية'
         >
-          التالي
+          <ChevronLeft className='h-4 w-4' />
+        </Button>
+        <Button
+          variant='outline'
+          size='icon'
+          onClick={() => table.setPageIndex(() => table.getPageCount() - 1)}
+          disabled={
+            table.getState().pagination.pageIndex === table.getPageCount() - 1
+          }
+          title='الصفحة الأخيرة'
+        >
+          <ChevronsLeft className='h-4 w-4' />
         </Button>
       </div>
     </div>

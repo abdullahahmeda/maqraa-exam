@@ -316,7 +316,7 @@ const ExamsPage = () => {
         <title>الإختبارات المفتوحة</title>
       </Head>
       <div>
-        <div className='mb-2 flex items-center gap-2'>
+        <div className='mb-4 flex items-center gap-2'>
           <h2 className='text-2xl font-bold'>الإختبارات المفتوحة</h2>
         </div>
         <DataTable table={table} fetching={isFetching} />

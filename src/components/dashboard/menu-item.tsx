@@ -1,20 +1,10 @@
-import styled from '@emotion/styled'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { MouseEventHandler, ReactNode, useReducer, useRef } from 'react'
 import { UrlObject } from 'url'
 import clsx from 'clsx'
-import { MdOutlineExpandMore } from 'react-icons/md'
+import { ChevronDown } from 'lucide-react'
 import { useTheme } from '~/lib/theme'
-
-const DropdownContent = styled('div', {
-  shouldForwardProp: prop => prop !== 'open'
-})(({ open }: any) => ({
-  transition: 'transform 0.3s',
-  ...(open && {
-    transform: 'translateY(0%)'
-  })
-}))
 
 type MenuLinkProps = {
   text: ReactNode
@@ -39,7 +29,7 @@ const MenuLink = ({
   onClick,
   isActive,
   className,
-  closeSidebar
+  closeSidebar,
 }: MenuLinkProps) => {
   // const { closeSidebar } = useTheme()
 
@@ -52,7 +42,7 @@ const MenuLink = ({
         !isActive && 'bg-black/10',
         className
       )}
-      onClick={e => {
+      onClick={(e) => {
         if (onClick) onClick(e)
         closeSidebar()
       }}
@@ -64,7 +54,7 @@ const MenuLink = ({
   )
 }
 
-export default function MenuItem ({
+export default function MenuItem({
   text,
   startIcon,
   dropdown,
@@ -72,7 +62,7 @@ export default function MenuItem ({
   isActive: _isActive,
   endIcon,
   className = '',
-  closeSidebar
+  closeSidebar,
 }: MenuItemProps) {
   const [isDropdownOpen, toggleDropdown] = useReducer(
     (state: boolean, _action_: any) => !state,
@@ -95,10 +85,9 @@ export default function MenuItem ({
           endIcon !== undefined
             ? endIcon
             : dropdown && (
-                <MdOutlineExpandMore
-                  size={24}
+                <ChevronDown
                   className={clsx(
-                    'mr-auto ml-3 transition-transform',
+                    'ml-3 mr-auto transition-transform',
                     isDropdownOpen && 'rotate-180'
                   )}
                 />
@@ -113,20 +102,10 @@ export default function MenuItem ({
           style={{
             maxHeight: isDropdownOpen
               ? dropdownContentRef.current?.scrollHeight
-              : 0
+              : 0,
           }}
           ref={dropdownContentRef}
-        >
-          <DropdownContent open={isDropdownOpen}>
-            <ul className='mx-1 mt-1 overflow-hidden'>
-              {dropdown.map((props, index) => (
-                <li key={index}>
-                  <MenuItem {...props} />
-                </li>
-              ))}
-            </ul>
-          </DropdownContent>
-        </div>
+        ></div>
       )}
     </>
   )

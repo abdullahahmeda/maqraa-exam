@@ -416,6 +416,7 @@ model ErrorReport {
   id String @id @default(cuid())
   name String
   email String
+  note String @db.Text()
   createdAt DateTime @default(now())
   questionId String
   question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)

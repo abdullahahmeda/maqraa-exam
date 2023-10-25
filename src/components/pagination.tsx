@@ -1,4 +1,4 @@
-import { MdChevronLeft, MdChevronRight } from 'react-icons/md'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import ReactPaginate from 'react-paginate'
 
 type Props = {
@@ -7,20 +7,20 @@ type Props = {
   changePageIndex: (newPageIndex: number) => any
 }
 
-export default function Pagination ({
+export default function Pagination({
   pageIndex,
   pageCount,
-  changePageIndex
+  changePageIndex,
 }: Props) {
   return (
     <ReactPaginate
       breakClassName='hidden'
-      nextLabel={<MdChevronLeft />}
-      onPageChange={e => changePageIndex(e.selected)}
+      nextLabel={<ChevronLeft />}
+      onPageChange={(e) => changePageIndex(e.selected)}
       forcePage={pageIndex}
       pageRangeDisplayed={5}
       pageCount={Math.max(pageCount, 0)}
-      previousLabel={<MdChevronRight />}
+      previousLabel={<ChevronRight />}
       containerClassName='inline-flex -space-x-px my-2'
       pageClassName='block'
       previousClassName='block'
@@ -31,6 +31,7 @@ export default function Pagination ({
       activeLinkClassName='!bg-gray-100'
       renderOnZeroPageCount={() => null}
       marginPagesDisplayed={1}
+      disabledLinkClassName='hover:text-gray-500'
     />
   )
 }
