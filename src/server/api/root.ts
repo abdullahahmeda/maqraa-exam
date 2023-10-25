@@ -12,6 +12,7 @@ import { curriculumRouter } from './routers/custom/curriculum'
 import { userRouter } from './routers/custom/user'
 import { studentRouter } from './routers/custom/student'
 import { errorReportRouter } from './routers/custom/error-report'
+import { systemExamRouter } from './routers/custom/system-exam'
 
 /**
  * This is the primary router for your server.
@@ -31,7 +32,8 @@ export const appRouter = mergeRouters(
   quizRouter,
   sheetRouter,
   questionRouter,
-  errorReportRouter
+  errorReportRouter,
+  systemExamRouter
 )
 
 export type AppRouter = typeof appRouter

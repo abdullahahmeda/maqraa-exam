@@ -1,5 +1,4 @@
-import { QuestionStyle, QuestionType } from '@prisma/client'
-import { QuestionDifficulty } from '../constants'
+import { QuestionStyle, QuestionType, QuestionDifficulty } from '@prisma/client'
 import { z } from 'zod'
 
 export const groupSchema = z.object({

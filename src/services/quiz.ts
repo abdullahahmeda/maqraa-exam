@@ -29,9 +29,15 @@ export class QuizService {
       repeatFromSameHadith: data.repeatFromSameHadith,
     })
 
+    const total = groups.reduce(
+      (acc, g) => acc + g.gradePerQuestion * g.questionsNumber,
+      0
+    )
+
     return this.db.quiz.create({
       data: {
         ...data,
+        total,
         groups: { create: groups.map((g, i) => ({ ...g, order: i + 1 })) },
       },
     })
@@ -73,7 +79,6 @@ export class QuizService {
     )
 
     let grade = 0
-    let total = 0
     const questionsUpdates: Promise<any>[] = []
     for (const examQuestion of examQuestions) {
       const userAnswer = userAnswers[examQuestion.id] || null
@@ -81,7 +86,6 @@ export class QuizService {
         { ...examQuestion.question, weight: examQuestion.weight },
         userAnswer
       )
-      total += examQuestion.weight
       grade += questionGrade
       questionsUpdates.push(
         this.db.quizQuestion.update({
@@ -101,7 +105,6 @@ export class QuizService {
           data: {
             ...(quiz.systemExamId ? {} : { correctedAt: new Date() }),
             grade,
-            total,
             submittedAt: new Date(),
           },
         })
@@ -242,6 +245,9 @@ export class QuizService {
       curriculumId
     )
 
+    console.log('curriculum questions:', allCurriculumQuestions.length)
+    console.log('groups', groups)
+
     let usedQuestions = new Set()
     let usedHadiths = new Set()
 
@@ -264,7 +270,9 @@ export class QuizService {
 
         if (!repeatFromSameHadith)
           conditions.push(!usedHadiths.has(q.hadithNumber)) // Don't repeat from same hadith
-        return conditions.every((condition) => condition === true)
+        const a = conditions.every((condition) => condition === true)
+        console.log('questionn taken:', a)
+        return a
       })
 
       const chosenGroupQuestions = sampleSize(

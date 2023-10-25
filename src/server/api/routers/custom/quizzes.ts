@@ -6,15 +6,11 @@ import {
 } from '../../trpc'
 import { checkMutate, checkRead, db } from './helper'
 import { newQuizSchema } from '~/validation/newQuizSchema'
-import { QuestionType, UserRole } from '@prisma/client'
 import { TRPCError } from '@trpc/server'
 import { submitExamSchema } from '~/validation/submitExamSchema'
-import { correctQuestion } from '~/utils/strings'
 import { correctQuizSchema } from '~/validation/correctQuizSchema'
-import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
 import { prisma } from '~/server/db'
 import { QuizService } from '~/services/quiz'
-import { SystemExamService } from '~/services/systemExam'
 import { editQuizSchema } from '~/validation/editQuizSchema'
 import { exportSheet } from '~/services/sheet'
 import { percentage } from '~/utils/percentage'
@@ -32,19 +28,6 @@ export const quizRouter = createTRPCRouter({
         ...input,
         examineeId: ctx.session?.user.id,
       })
-    }),
-
-  createSystemExam: protectedProcedure
-    .input(newSystemExamSchema)
-    .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== UserRole.ADMIN)
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'أنت لا تملك الصلاحيات لهذه العملية',
-        })
-
-      const systemExamService = new SystemExamService(db(ctx))
-      return await systemExamService.create(input)
     }),
 
   submitExam: publicProcedure

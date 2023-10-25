@@ -43,6 +43,7 @@ import { Calendar } from '../ui/calendar'
 import { arSA } from 'date-fns/locale'
 import { format } from 'date-fns'
 import { Input } from '../ui/input'
+import { useState } from 'react'
 
 type FieldValues = {
   name: string
@@ -63,6 +64,7 @@ export const AddSystemExamDialog = ({
 }) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
+  const [submitting, setSubmitting] = useState(false)
   const form = useForm<FieldValues>({
     resolver: zodResolver(newSystemExamSchema),
     defaultValues: {
@@ -155,6 +157,7 @@ export const AddSystemExamDialog = ({
   }
 
   const onSubmit = (data: FieldValues) => {
+    setSubmitting(true)
     examCreate
       .mutateAsync(data as z.infer<typeof newSystemExamSchema>)
       .then(() => {
@@ -173,6 +176,7 @@ export const AddSystemExamDialog = ({
           })
       })
       .finally(() => {
+        setSubmitting(false)
         queryClient.invalidateQueries([['systemExam']])
       })
   }
@@ -429,7 +433,7 @@ export const AddSystemExamDialog = ({
             </FormItem>
           )}
         />
-        <Button>إنشاء الإختبار</Button>
+        <Button loading={submitting}>إنشاء الإختبار</Button>
       </form>
     </Form>
   )

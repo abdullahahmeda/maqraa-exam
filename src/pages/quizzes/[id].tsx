@@ -3,7 +3,6 @@ import { api } from '~/utils/api'
 import { useForm } from 'react-hook-form'
 import { Badge } from '~/components/ui/badge'
 import { enStyleToAr } from '~/utils/questions'
-import { QuestionStyle, QuestionType } from '~/constants'
 import { useRouter } from 'next/router'
 import { Button } from '~/components/ui/button'
 import { useState, useEffect } from 'react'
@@ -47,6 +46,7 @@ import { Dialog, DialogTrigger, DialogContent } from '~/components/ui/dialog'
 import { ReportErrorDialog } from '~/components/modals/report-error'
 import { QuizService } from '~/services/quiz'
 import { Alert, AlertTitle } from '~/components/ui/alert'
+import { QuestionStyle, QuestionType } from '@prisma/client'
 
 type FieldValues = {
   id: string
@@ -371,8 +371,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
           },
           orderBy: { order: 'asc' },
         },
-        groups: true,
-        curriculum: { include: { parts: true, track: true } },
+        groups: { orderBy: { order: 'asc' } },
       },
     })
   )
@@ -382,19 +381,20 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   if (quiz.submittedAt)
     return {
       props: {
-        exam: {
-          ...quiz,
-          curriculum: undefined,
-        },
+        exam: quiz,
       },
     }
 
   // If exam time has ended, return not found
-  if (quiz.endsAt && quiz.endsAt <= new Date())
+  if (
+    session?.user.role !== 'ADMIN' &&
+    quiz.endsAt &&
+    quiz.endsAt <= new Date()
+  )
     return { redirect: { destination: '/quizzes/expired', permanent: false } }
 
   // not submitted but questions have been made, so hide answers
-  if (quiz.enteredAt)
+  if (quiz.questionsCreated)
     return {
       props: {
         exam: {
@@ -408,23 +408,24 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
               isInsideShaded: undefined,
             },
           })),
-          curriculum: undefined,
         },
       },
     }
 
   // exam is entered for the first time, create questions
   const questions = await quizService.getQuestionsForGroups({
-    // TODO: check this type, maybe its incorrect?
     groups: quiz.groups as any,
     curriculumId: quiz.curriculumId,
     repeatFromSameHadith: quiz.repeatFromSameHadith,
   })
 
+  console.log(quiz.questionsCreated, questions)
+
   await _prisma.quiz.update({
     where: { id },
     data: {
-      enteredAt: new Date(),
+      ...(quiz.examineeId == session?.user.id ? { enteredAt: new Date() } : {}),
+      questionsCreated: true,
       questions: {
         create: questions.map((q) => ({
           questionId: q.id,
@@ -466,7 +467,6 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             },
             orderBy: { order: 'asc' },
           },
-          curriculum: { include: { parts: true } },
         },
       }))!,
     },

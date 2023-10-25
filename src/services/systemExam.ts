@@ -21,33 +21,46 @@ export class SystemExamService {
       repeatFromSameHadith: data.repeatFromSameHadith,
     })
 
-    const cycleStudents = await this.db.student.findMany({
-      where: { cycles: { some: { cycleId: data.cycleId } } },
+    const total = groups.reduce(
+      (acc, g) => acc + g.gradePerQuestion * g.questionsNumber,
+      0
+    )
+
+    const students = await this.db.student.findMany({
+      where: {
+        cycles: {
+          some: { cycleId: data.cycleId, curriculumId: data.curriculumId },
+        },
+      },
     })
 
-    return await this.db.$transaction(async (trx) => {
-      const questionGroups = await Promise.all(
-        groups.map((g, i) =>
-          trx.questionsGroup.create({ data: { ...g, order: i + 1 } })
-        )
+    const questionGroups = await Promise.all(
+      groups.map((g, i) =>
+        this.db.questionsGroup.create({ data: { ...g, order: i + 1 } })
       )
-      const groupsIds = questionGroups.map(({ id }) => ({ id }))
-      return await trx.systemExam.create({
-        data: {
-          ...data,
-          groups: { connect: groupsIds },
-          quizzes: {
-            create: cycleStudents.map(({ userId }) => ({
-              endsAt: data.endsAt,
-              curriculumId: data.curriculumId,
-              groups: { connect: groupsIds },
-              repeatFromSameHadith: data.repeatFromSameHadith,
-              type: data.type,
-              examineeId: userId,
-            })),
-          },
+    )
+    const groupsIds = questionGroups.map(({ id }) => ({ id }))
+
+    return await this.db.systemExam.create({
+      data: {
+        ...data,
+        groups: { connect: groupsIds },
+        quizzes: {
+          create: students.map(({ userId }) => ({
+            total,
+            endsAt: data.endsAt,
+            curriculumId: data.curriculumId,
+            groups:
+              // { connect: groupsIds },
+              {
+                create: groups.map((g, i) => ({ ...g, order: i + 1 })),
+              },
+            repeatFromSameHadith: data.repeatFromSameHadith,
+            type: data.type,
+            examineeId: userId,
+          })),
         },
-      })
+      },
     })
   }
 }

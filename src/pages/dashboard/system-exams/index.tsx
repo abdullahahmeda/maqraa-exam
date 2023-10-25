@@ -42,6 +42,7 @@ import {
   Plus,
   LogIn,
   EyeIcon,
+  Download,
 } from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
 import {
@@ -78,6 +79,9 @@ import {
   TooltipProvider,
 } from '~/components/ui/tooltip'
 import { DeleteSystemExamDialog } from '~/components/modals/delete-system-exam'
+import { useToast } from '~/components/ui/use-toast'
+import { saveAs } from 'file-saver'
+import { ExportSystemExamsDialog } from '~/components/modals/export-system-exams'
 
 type Row = SystemExam & {
   cycle: Cycle
@@ -91,10 +95,9 @@ const PAGE_SIZE = 50
 
 const SystemExamsPage = () => {
   const router = useRouter()
-
   const { data: session } = useSession()
-
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [exportDialogOpen, setExportDialogOpen] = useState(false)
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -111,40 +114,7 @@ const SystemExamsPage = () => {
 
   const columns = [
     columnHelper.accessor('name', {
-      header: ({ column }) => {
-        // const { data: systemExams, isLoading } =
-        //   api.systemExam.findMany.useQuery({})
-
-        // const filterValue = column.getFilterValue() as string | undefined
-
-        return (
-          <div className='flex items-center'>
-            الإختبار
-            {/* <Popover>
-              <PopoverTrigger className='mr-4' asChild>
-                <Button
-                  size='icon'
-                  variant={filterValue ? 'secondary' : 'ghost'}
-                >
-                  <Filter className='h-4 w-4' />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Combobox
-                  items={[{ name: 'الكل', id: '' }, ...(systemExams || [])]}
-                  loading={isLoading}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={column.setFilterValue}
-                  value={filterValue}
-                  triggerText='الكل'
-                  triggerClassName='w-full'
-                />
-              </PopoverContent>
-            </Popover> */}
-          </div>
-        )
-      },
+      header: 'الإختبار',
       meta: {
         className: 'text-center',
       },
@@ -354,7 +324,7 @@ const SystemExamsPage = () => {
 
   const filters = columnFilters.map((filter) => {
     if (filter.id === 'cycle')
-      return { systemExam: { cycleId: { equals: filter.value as string } } }
+      return { cycleId: { equals: filter.value as string } }
     else if (filter.id === 'curriculum')
       return { curriculumId: { equals: filter.value as string } }
     return { [filter.id]: { equals: filter.value } }
@@ -415,7 +385,7 @@ const SystemExamsPage = () => {
         <div className='mb-2 flex items-center gap-2'>
           <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
           {session!.user.role === UserRole.ADMIN && (
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className='flex items-center gap-2'>
                   <Plus className='h-4 w-4' />
@@ -424,11 +394,27 @@ const SystemExamsPage = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>إضافة إختبار نظام</DialogHeader>
-                <AddSystemExamDialog setDialogOpen={setDialogOpen} />
+                <AddSystemExamDialog setDialogOpen={setCreateDialogOpen} />
               </DialogContent>
             </Dialog>
           )}
         </div>
+        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+          <DialogTrigger asChild>
+            <Button
+              disabled={!exams || exams.length === 0}
+              variant='success'
+              className='mb-2 flex gap-2'
+            >
+              <Download className='h-4 w-4' />
+              تصدير
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <ExportSystemExamsDialog setDialogOpen={setExportDialogOpen} />
+          </DialogContent>
+        </Dialog>
+
         <DataTable table={table} fetching={isFetching} />
       </div>
     </>

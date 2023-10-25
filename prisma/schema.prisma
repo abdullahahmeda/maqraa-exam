@@ -233,6 +233,7 @@ model Quiz {
     type QuizType @default(WHOLE_CURRICULUM)
     grade Int?
     total Int?
+    questionsCreated Boolean @default(false)
     createdAt DateTime @default(now())
     enteredAt DateTime?
     submittedAt DateTime?

@@ -242,7 +242,7 @@ model Quiz {
   type QuizType @default(WHOLE_CURRICULUM)
   grade Int?
   total Int?
-  // percentage Float?
+  questionsCreated Boolean @default(false)
   createdAt DateTime @default(now())
   enteredAt DateTime?
   submittedAt DateTime?
@@ -294,6 +294,7 @@ model QuestionsGroup {
   systemExam SystemExam? @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
 
   @@index([quizId])
+  @@index([systemExamId])
   @@index([order])
 
   @@allow('create,read,update', true)
