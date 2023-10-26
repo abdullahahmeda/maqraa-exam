@@ -234,6 +234,7 @@ export const AddSystemExamDialog = ({
                   selected={field.value || undefined}
                   onSelect={field.onChange}
                   disabled={(date: Date) => date < new Date()}
+                  mode='single'
                 />
               </FormControl>
               <FormDescription>
