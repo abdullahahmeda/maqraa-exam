@@ -7,11 +7,12 @@ import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { getFields } from '~/utils/sheets'
 import { TRPCError } from '@trpc/server'
 import { GaxiosError } from 'gaxios'
-import { QuestionWhereInputObjectSchema } from '.zenstack/zod/objects'
+import { QuestionWhereInputObjectSchema } from '@zenstackhq/runtime/zod/objects'
 import { prisma } from '~/server/db'
 import XLSX from 'xlsx'
 import { enDifficultyToAr, enStyleToAr, enTypeToAr } from '~/utils/questions'
 import { exportSheet } from '~/services/sheet'
+import { Prisma } from '@prisma/client'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -135,5 +136,19 @@ export const questionRouter = createTRPCRouter({
         'داخل المظلل': q.isInsideShaded ? 'نعم' : 'لا',
         'يستهدف السؤال': q.objective,
       }))
+    }),
+
+  deleteBulkQuestions: protectedProcedure
+    .input(z.array(z.string().min(1)))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      return await prisma.$queryRaw`DELETE FROM "Question" WHERE id IN (${Prisma.join(
+        input
+      )})`
     }),
 })

@@ -85,6 +85,7 @@ import { EditQuizDialog } from '~/components/modals/edit-quiz'
 import { percentage } from '~/utils/percentage'
 import { useToast } from '~/components/ui/use-toast'
 import { saveAs } from 'file-saver'
+import { CircularProgress } from '~/components/ui/circular-progress'
 
 type Row = Quiz & {
   examinee: User
@@ -97,6 +98,10 @@ const PAGE_SIZE = 50
 
 const ExamsPage = ({
   systemExam,
+  quizCount,
+  submittedQuizCount,
+  submittedQuizPercentage,
+  avgStats,
 }: {
   systemExam: SystemExam & {
     cycle: Cycle
@@ -381,20 +386,52 @@ const ExamsPage = ({
           <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
         </div>
         <div className='mb-4 rounded-md bg-white p-4 shadow'>
-          <p>اسم الإختبار: {systemExam.name}</p>
-          <p>نوع الإختبار: {enTypeToAr(systemExam.type)}</p>
-          <p>الدورة: {systemExam.cycle.name}</p>
-          <p>المقرر: {systemExam.curriculum.track.course.name}</p>
-          <p>المنهج: {systemExam.curriculum.name}</p>
-          <p>وقت إنشاء الإختبار: {formatDate(systemExam.createdAt)}</p>
           <div>
-            <span>وقت غلق الإختبار:</span>{' '}
-            {systemExam.endsAt ? formatDate(systemExam.endsAt) : 'لا يوجد'}{' '}
-            {!systemExam.endsAt || systemExam.endsAt > new Date() ? (
-              <Badge>مفتوح</Badge>
-            ) : (
-              <Badge variant='destructive'>مغلق</Badge>
-            )}
+            <p>اسم الإختبار: {systemExam.name}</p>
+            <p>نوع الإختبار: {enTypeToAr(systemExam.type)}</p>
+            <p>الدورة: {systemExam.cycle.name}</p>
+            <p>المقرر: {systemExam.curriculum.track.course.name}</p>
+            <p>المنهج: {systemExam.curriculum.name}</p>
+            <p>وقت إنشاء الإختبار: {formatDate(systemExam.createdAt)}</p>
+            <div>
+              <span>وقت غلق الإختبار:</span>{' '}
+              {systemExam.endsAt ? formatDate(systemExam.endsAt) : 'لا يوجد'}{' '}
+              {!systemExam.endsAt || systemExam.endsAt > new Date() ? (
+                <Badge>مفتوح</Badge>
+              ) : (
+                <Badge variant='destructive'>مغلق</Badge>
+              )}
+            </div>
+          </div>
+          <div className='mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
+            <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
+              <p className='text-xl font-semibold'>{quizCount}</p>
+              <p>عدد المستحقين للإختبار</p>
+            </div>
+            <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
+              <p className='text-xl font-semibold'>{submittedQuizCount}</p>
+              <p>عدد المختبرين</p>
+            </div>
+            <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
+              <CircularProgress percent={submittedQuizPercentage} />
+              <p>نسبة المختبرين</p>
+            </div>
+            <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
+              <p className='text-xl font-semibold'>
+                {avgStats._avg.grade === null
+                  ? 'لم يتم حسابها'
+                  : avgStats._avg.grade}
+              </p>
+              <p>متوسط الدرجات</p>
+            </div>
+            <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
+              {avgStats._avg.percentage === null ? (
+                <p className='text-xl font-semibold '>لم يتم حسابها</p>
+              ) : (
+                <CircularProgress percent={avgStats._avg.percentage} />
+              )}
+              <p>متوسط الدرجات (نسبة)</p>
+            </div>
           </div>
         </div>
         <Button
@@ -436,10 +473,37 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     })
   )
 
+  if (!systemExam) return { notFound: true }
+
+  const quizCount = await checkRead(
+    prisma.quiz.count({ where: { systemExamId: id } })
+  )
+  const submittedQuizCount = await checkRead(
+    prisma.quiz.count({
+      where: { systemExamId: id, submittedAt: { not: null } },
+    })
+  )
+
+  const submittedQuizPercentage = (submittedQuizCount / quizCount) * 100
+
+  const avgStats = await checkRead(
+    prisma.quiz.aggregate({
+      _avg: {
+        grade: true,
+        percentage: true,
+      },
+      where: { systemExamId: id, correctedAt: { not: null } },
+    })
+  )
+
   return {
     props: {
       session,
       systemExam,
+      quizCount,
+      submittedQuizCount,
+      submittedQuizPercentage,
+      avgStats,
     },
   }
 }

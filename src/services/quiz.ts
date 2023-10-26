@@ -95,7 +95,7 @@ export class QuizService {
       )
     }
 
-    // const percentage = grade / total
+    const percentage = (grade / quiz.total!) * 100
 
     return this.db.$transaction(async (tx) => {
       await Promise.all(questionsUpdates)
@@ -105,6 +105,7 @@ export class QuizService {
           data: {
             ...(quiz.systemExamId ? {} : { correctedAt: new Date() }),
             grade,
+            percentage,
             submittedAt: new Date(),
           },
         })
@@ -117,12 +118,23 @@ export class QuizService {
       .extend({ correctorId: z.string().min(1) })
       .parse(input)
 
+    const quiz = await checkRead(
+      this.db.quiz.findFirstOrThrow({ where: { id } })
+    )
+
+    if (!quiz)
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'هذا الاختبار غير موجود',
+      })
+
     let grade = Object.values(questions).reduce(
       (acc, questionGrade) => acc + questionGrade,
       0
     )
 
     // TODO: validate that `grade` is in range [0, weight]
+    const percentage = (grade / quiz.total!) * 100
 
     return await this.db.quiz.update({
       where: { id },
@@ -130,6 +142,7 @@ export class QuizService {
         correctedAt: new Date(),
         correctorId,
         grade,
+        percentage,
         questions: {
           update: Object.entries(questions).map(([id, grade]) => ({
             where: { id },

@@ -14,6 +14,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+
+generator kysely {
+    provider = "prisma-kysely"
+    output = "../src/kysely"
+    fileName = "types.ts"
+    enumFileName = "enums.ts"
+}
+
 plugin trpc {
   provider = '@zenstackhq/trpc'
   output = 'src/server/api/routers/generated'
@@ -241,6 +249,7 @@ model Quiz {
   id String @id @default(cuid())
   type QuizType @default(WHOLE_CURRICULUM)
   grade Int?
+  percentage Float?
   total Int?
   questionsCreated Boolean @default(false)
   createdAt DateTime @default(now())

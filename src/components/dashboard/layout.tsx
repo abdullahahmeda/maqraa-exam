@@ -4,7 +4,14 @@ import { getFirstName } from '~/utils/users'
 import { Sidebar } from '~/components/ui/sidebar'
 import { cn } from '~/lib/utils'
 import { Button } from '../ui/button'
-import { Menu, Construction, Home, Settings, Users } from 'lucide-react'
+import {
+  Menu,
+  Construction,
+  Home,
+  Settings,
+  Users,
+  HelpCircle,
+} from 'lucide-react'
 
 const menuLinks = {
   ADMIN: [
@@ -14,12 +21,12 @@ const menuLinks = {
       href: '/dashboard',
     },
     {
-      icon: <Construction className='ml-2 h-4 w-4' />,
+      icon: <Users className='ml-2 h-4 w-4' />,
       label: 'المستخدمون',
       href: '/dashboard/users',
     },
     {
-      icon: <Construction className='ml-2 h-4 w-4' />,
+      icon: <HelpCircle className='ml-2 h-4 w-4' />,
       label: 'الأسئلة',
       href: '/dashboard/questions',
     },
@@ -30,7 +37,7 @@ const menuLinks = {
     },
     {
       icon: <Construction className='ml-2 h-4 w-4' />,
-      label: 'الإختبارات المفتوحة',
+      label: 'الإختبارات التجريبية',
       href: '/dashboard/quizzes',
     },
     {
@@ -62,11 +69,6 @@ const menuLinks = {
       icon: <Home className='ml-2 h-4 w-4' />,
       label: 'التقارير',
       href: '/dashboard/reports',
-    },
-    {
-      icon: <Settings className='ml-2 h-4 w-4' />,
-      label: 'الإعدادات',
-      href: '/dashboard/settings',
     },
   ],
   CORRECTOR: [

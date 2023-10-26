@@ -34,27 +34,18 @@ export class SystemExamService {
       },
     })
 
-    const questionGroups = await Promise.all(
-      groups.map((g, i) =>
-        this.db.questionsGroup.create({ data: { ...g, order: i + 1 } })
-      )
-    )
-    const groupsIds = questionGroups.map(({ id }) => ({ id }))
-
-    return await this.db.systemExam.create({
+    const result = await this.db.systemExam.create({
       data: {
         ...data,
-        groups: { connect: groupsIds },
+        groups: { create: groups.map((g, i) => ({ ...g, order: i + 1 })) },
         quizzes: {
           create: students.map(({ userId }) => ({
             total,
             endsAt: data.endsAt,
             curriculumId: data.curriculumId,
-            groups:
-              // { connect: groupsIds },
-              {
-                create: groups.map((g, i) => ({ ...g, order: i + 1 })),
-              },
+            groups: {
+              create: groups.map((g, i) => ({ ...g, order: i + 1 })),
+            },
             repeatFromSameHadith: data.repeatFromSameHadith,
             type: data.type,
             examineeId: userId,
@@ -62,5 +53,6 @@ export class SystemExamService {
         },
       },
     })
+    return result
   }
 }

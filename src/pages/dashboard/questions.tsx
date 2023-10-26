@@ -51,6 +51,7 @@ import {
 import { DeleteQuestionDialog } from '~/components/modals/delete-question'
 import { saveAs } from 'file-saver'
 import { Input } from '~/components/ui/input'
+import { useQueryClient } from '@tanstack/react-query'
 
 const columnHelper = createColumnHelper<
   Question & { course: { name: string } }
@@ -61,7 +62,13 @@ const columns = [
     id: 'select',
     header: ({ table }) => (
       <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
+        checked={
+          table.getIsAllPageRowsSelected()
+            ? table.getIsAllPageRowsSelected()
+            : table.getIsSomePageRowsSelected()
+            ? 'indeterminate'
+            : false
+        }
         onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
         aria-label='تحديد الكل'
       />
@@ -331,9 +338,9 @@ const PAGE_SIZE = 25
 
 const QuestionsPage = () => {
   const router = useRouter()
-
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
-
+  const [rowSelection, setRowSelection] = useState({})
   const { toast } = useToast()
 
   const pageIndex = z
@@ -362,6 +369,8 @@ const QuestionsPage = () => {
 
     return { [filter.id]: { equals: filter.value } }
   })
+
+  const bulkQuestionsDelete = api.deleteBulkQuestions.useMutation()
 
   const { data: questions, isFetching: isFetchingQuestions } =
     api.question.findMany.useQuery(
@@ -392,9 +401,10 @@ const QuestionsPage = () => {
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    state: { pagination, columnFilters },
+    state: { pagination, columnFilters, rowSelection },
     pageCount,
     manualPagination: true,
+    enableRowSelection: true,
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -402,9 +412,14 @@ const QuestionsPage = () => {
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
+    onRowSelectionChange: setRowSelection,
     manualFiltering: true,
     onColumnFiltersChange: setColumnFilters,
   })
+
+  const selectedRows = table
+    .getSelectedRowModel()
+    .flatRows.map((item) => item.original)
 
   const handleDownload = async () => {
     const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
@@ -416,11 +431,28 @@ const QuestionsPage = () => {
         toast({ title: 'تم بدأ تحميل الملف' })
       })
       .catch((e) => {
-        console.log(e)
         toast({ title: 'حدث خطأ أثناء تحميل الملف' })
       })
       .finally(() => {
         t.dismiss()
+      })
+  }
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) return
+    const t = toast({ title: 'جاري حذف الأسئلة المختارة...' })
+    bulkQuestionsDelete
+      .mutateAsync(selectedRows.map(({ id }) => id))
+      .then(() => {
+        toast({ title: 'تم الحذف بنجاح' })
+        setRowSelection({})
+      })
+      .catch((e) => {
+        toast({ title: 'حدث خطأ أثناء الحذف' })
+      })
+      .finally(() => {
+        t.dismiss()
+        queryClient.invalidateQueries([['question']])
       })
   }
 
@@ -451,8 +483,20 @@ const QuestionsPage = () => {
           onClick={handleDownload}
         >
           <Download className='h-4 w-4' />
-          تصدير
+          تصدير الكل
         </Button>
+        <div className='mb-4'>
+          <Button
+            variant='destructive'
+            className='flex items-center gap-2'
+            onClick={handleBulkDelete}
+            disabled={selectedRows.length === 0}
+          >
+            <Trash size={16} />
+            حذف{' '}
+            {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
+          </Button>
+        </div>
         <DataTable table={table} fetching={isFetchingQuestions} />
       </div>
     </>

@@ -7,7 +7,8 @@
     "dev": "next dev",
     "postinstall": "zenstack generate",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "calc-quiz-percentage": "node prisma/calc-quiz-percentage.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.0.8",
@@ -50,6 +51,7 @@
     "fuzzysort": "^2.0.4",
     "generate-password": "^1.7.0",
     "googleapis": "^111.0.0",
+    "kysely": "^0.26.3",
     "lodash.difference": "^4.5.0",
     "lodash.invert": "^4.3.0",
     "lodash.mapvalues": "^4.6.0",
@@ -61,6 +63,8 @@
     "next-connect": "^0.13.0",
     "next-superjson-plugin": "^0.5.9",
     "nodemailer": "^6.9.4",
+    "pg": "^8.11.3",
+    "prisma-kysely": "^1.7.1",
     "randomatic": "^3.1.1",
     "react": "18.2.0",
     "react-day-picker": "^8.8.1",

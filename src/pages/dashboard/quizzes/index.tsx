@@ -278,11 +278,10 @@ const ExamsPage = () => {
     { networkMode: 'always' }
   )
 
-  const { data: count, isLoading: isCountLoading } =
-    api.systemExam.count.useQuery(
-      { where: { AND: filters } },
-      { networkMode: 'always' }
-    )
+  const { data: count, isLoading: isCountLoading } = api.quiz.count.useQuery(
+    { where: { AND: filters } },
+    { networkMode: 'always' }
+  )
 
   const pageCount =
     exams !== undefined && typeof count === 'number'
@@ -313,11 +312,11 @@ const ExamsPage = () => {
   return (
     <>
       <Head>
-        <title>الإختبارات المفتوحة</title>
+        <title>الإختبارات التجريبية</title>
       </Head>
       <div>
         <div className='mb-4 flex items-center gap-2'>
-          <h2 className='text-2xl font-bold'>الإختبارات المفتوحة</h2>
+          <h2 className='text-2xl font-bold'>الإختبارات التجريبية</h2>
         </div>
         <DataTable table={table} fetching={isFetching} />
       </div>
