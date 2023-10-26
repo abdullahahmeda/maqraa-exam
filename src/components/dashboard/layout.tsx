@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               onClick={toggleSidebar}
               size='icon'
               variant={isSidebarOpen ? 'secondary' : 'ghost'}
-              className='ml-4 md:hidden'
+              className='ml-4'
             >
               <Menu />
             </Button>
@@ -127,7 +127,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Sidebar
           setIsSidebarOpen={setIsSidebarOpen}
           className={cn(
-            'fixed top-16 z-10 hidden h-[calc(100vh-4rem)] w-full border-l bg-background md:block md:w-72',
+            'fixed top-16 z-10 hidden h-[calc(100vh-4rem)] w-full border-l bg-background md:w-72',
             isSidebarOpen && 'block'
           )}
           links={
@@ -136,7 +136,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               : []
           }
         />
-        <main className='min-h-screen flex-1 border-r bg-[#f8f9fa] pb-4 pl-4 pr-4 pt-20 md:pr-[19rem]'>
+        <main
+          className={cn(
+            'min-h-screen flex-1 border-r bg-[#f8f9fa] pb-4 pl-4 pr-4 pt-20 ',
+            isSidebarOpen && 'md:pr-[19rem]'
+          )}
+        >
           {children}
         </main>
       </div>
