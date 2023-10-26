@@ -391,6 +391,7 @@ const ExamsPage = ({
         </div>
         <div className='mb-4 rounded-md bg-white p-4 shadow'>
           <div>
+            <h3 className='mb-2 text-xl font-bold'>نظرة عامة</h3>
             <p>اسم الإختبار: {systemExam.name}</p>
             <p>نوع الإختبار: {enTypeToAr(systemExam.type)}</p>
             <p>الدورة: {systemExam.cycle.name}</p>
@@ -407,6 +408,20 @@ const ExamsPage = ({
               )}
             </div>
           </div>
+          <div className='mt-4 flex items-center justify-around'>
+            <div className='flex flex-col items-center justify-center'>
+              <CircularProgress percent={submittedQuizPercentage} />
+              <p>نسبة المختبرين</p>
+            </div>
+            {avgStats._avg.percentage === null ? (
+              <p>لم يتم حساب متوسط الدرجات</p>
+            ) : (
+              <div className='flex flex-col items-center justify-center'>
+                <CircularProgress percent={avgStats._avg.percentage} />
+                <p>متوسط الدرجات (نسبة)</p>
+              </div>
+            )}
+          </div>
           <div className='mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
             <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
               <p className='text-xl font-semibold'>{quizCount}</p>
@@ -417,24 +432,12 @@ const ExamsPage = ({
               <p>عدد المختبرين</p>
             </div>
             <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
-              <CircularProgress percent={submittedQuizPercentage} />
-              <p>نسبة المختبرين</p>
-            </div>
-            <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
               <p className='text-xl font-semibold'>
                 {avgStats._avg.grade === null
                   ? 'لم يتم حسابها'
                   : avgStats._avg.grade}
               </p>
               <p>متوسط الدرجات</p>
-            </div>
-            <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
-              {avgStats._avg.percentage === null ? (
-                <p className='text-xl font-semibold '>لم يتم حسابها</p>
-              ) : (
-                <CircularProgress percent={avgStats._avg.percentage} />
-              )}
-              <p>متوسط الدرجات (نسبة)</p>
             </div>
           </div>
         </div>

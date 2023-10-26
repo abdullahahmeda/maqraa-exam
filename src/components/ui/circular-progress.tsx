@@ -1,7 +1,7 @@
 type Props = {
   percent: number
 }
-const radius = 30
+const radius = 40
 
 export const CircularProgress = ({ percent }: Props) => {
   const circumference = Math.PI * 2 * radius
@@ -9,10 +9,10 @@ export const CircularProgress = ({ percent }: Props) => {
 
   return (
     <div className='inline-flex items-center justify-center'>
-      <svg className='h-20 w-20 -rotate-90 transform'>
+      <svg className='h-24 w-24 -rotate-90 transform'>
         <circle
           className='text-gray-300'
-          strokeWidth={5}
+          strokeWidth={10}
           stroke='currentColor'
           fill='transparent'
           r={radius}
@@ -21,7 +21,7 @@ export const CircularProgress = ({ percent }: Props) => {
         />
         <circle
           className='text-primary'
-          strokeWidth={5}
+          strokeWidth={10}
           strokeDasharray={circumference}
           strokeDashoffset={circumference - (percent / 100) * circumference}
           strokeLinecap='round'
@@ -32,7 +32,9 @@ export const CircularProgress = ({ percent }: Props) => {
           cy={c}
         />
       </svg>
-      <span className='absolute text-lg text-primary'>{percent}%</span>
+      <span className='absolute text-lg text-primary'>
+        {percent.toFixed(1)}%
+      </span>
     </div>
   )
 }
