@@ -146,11 +146,11 @@ export const userRouter = createTRPCRouter({
           )
           const password = generatePassword()
 
-          await sendMail({
-            subject: 'تم إضافة حسابك في المقرأة!',
-            to: [{ email: student.email }],
-            textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}`,
-          })
+          // await sendMail({
+          //   subject: 'تم إضافة حسابك في المقرأة!',
+          //   to: [{ email: student.email }],
+          //   textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}`,
+          // })
           if (!s)
             s = (await checkMutate(
               db(ctx).student.create({

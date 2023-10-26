@@ -32,12 +32,18 @@ import {
 import difference from 'lodash.difference'
 import { Eye, EyeOff, RefreshCcw } from 'lucide-react'
 import { useState } from 'react'
+import {
+  TooltipProvider,
+  TooltipContent,
+  TooltipTrigger,
+  Tooltip,
+} from '../ui/tooltip'
 
 export type AddUserFieldValues = {
   name: string
   email: string
   password: string
-  phone: string | null 
+  phone: string | null
   role: UserRole
   corrector:
     | {
@@ -292,18 +298,27 @@ export const UserForm = ({
                       type={showPassword ? 'text' : 'password'}
                       {...field}
                     />
-                    <Button
-                      variant='ghost'
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className='absolute left-1 top-1 h-8 px-2'
-                      type='button'
-                    >
-                      {showPassword ? (
-                        <EyeOff className='h-4 w-4' />
-                      ) : (
-                        <Eye className='h-4 w-4' />
-                      )}
-                    </Button>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant='ghost'
+                            onClick={() => setShowPassword((prev) => !prev)}
+                            className='absolute left-1 top-1 h-8 px-2'
+                            type='button'
+                          >
+                            {showPassword ? (
+                              <EyeOff className='h-4 w-4' />
+                            ) : (
+                              <Eye className='h-4 w-4' />
+                            )}
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>{showPassword ? 'إخفاء' : 'إظهار'}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                   <Button
                     variant='secondary'
@@ -453,16 +468,16 @@ export const UserForm = ({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>المقرر</FormLabel>
-                    <FormControl>
-                      <MultiSelect
-                        placeholder='اختر المقررات'
-                        items={(courses as any) || []}
-                        labelKey='name'
-                        valueKey='id'
-                        onSelect={field.onChange}
-                        value={field.value}
-                      />
-                    </FormControl>
+                  <FormControl>
+                    <MultiSelect
+                      placeholder='اختر المقررات'
+                      items={(courses as any) || []}
+                      labelKey='name'
+                      valueKey='id'
+                      onSelect={field.onChange}
+                      value={field.value}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

@@ -38,12 +38,10 @@ import { CheckedState } from '@radix-ui/react-checkbox'
 import { QuestionGroup, Group } from '../questions-group'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { cn } from '~/lib/utils'
-import { CalendarIcon } from 'lucide-react'
-import { Calendar } from '../ui/calendar'
-import { arSA } from 'date-fns/locale'
 import { format } from 'date-fns'
 import { Input } from '../ui/input'
 import { useState } from 'react'
+import { DatePicker } from '~/components/ui/date-picker'
 
 type FieldValues = {
   name: string
@@ -231,36 +229,13 @@ export const AddSystemExamDialog = ({
           render={({ field }) => (
             <FormItem className='flex flex-col'>
               <FormLabel>تاريخ قفل الإختبار</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant='outline'
-                      className={cn(
-                        'pl-3 text-right font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, 'dd MMMM yyyy hh:mm a')
-                      ) : (
-                        <span>اختر التاريخ</span>
-                      )}
-                      <CalendarIcon className='mr-auto h-4 w-4 opacity-50' />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className='w-auto p-0' align='start'>
-                  <Calendar
-                    mode='single'
-                    selected={field.value || undefined}
-                    locale={arSA}
-                    onSelect={field.onChange}
-                    disabled={(date: Date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <DatePicker
+                  selected={field.value || undefined}
+                  onSelect={field.onChange}
+                  disabled={(date: Date) => date < new Date()}
+                />
+              </FormControl>
               <FormDescription>
                 اتركه فارعاً إن كان الإختبار مفتوح. قم باختيار نفس التاريخ
                 لإزالة الاختيار

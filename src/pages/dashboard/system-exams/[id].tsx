@@ -210,97 +210,100 @@ const ExamsPage = ({
     columnHelper.display({
       id: 'actions',
       header: 'الإجراءات',
-      cell: ({ row }) => (
-        <div className='flex justify-center gap-2'>
-          {session?.user.role !== 'STUDENT' ? (
-            <>
-              {!!row.original.submittedAt && (
-                <Link
-                  className={cn(
-                    buttonVariants({ variant: 'ghost', size: 'icon' })
-                  )}
-                  href={`/dashboard/quizzes/${row.original.id}`}
-                >
-                  <FileCheck2 className='h-4 w-4 text-success' />
-                </Link>
-              )}
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger>
-                    <Button
-                      size='icon'
-                      variant='ghost'
-                      onClick={() => {
-                        navigator.clipboard.writeText(
-                          `${location.origin}/quizzes/${row.original.id}`
-                        )
-                      }}
-                    >
-                      <LinkIcon className='h-4 w-4' />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>نسخ رابط الإختبار</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='hover:bg-orange-50'
+      cell: function Cell({ row }) {
+        const [dialogOpen, setDialogOpen] = useState(false)
+        return (
+          <div className='flex justify-center gap-2'>
+            {session?.user.role !== 'STUDENT' ? (
+              <>
+                {!!row.original.submittedAt && (
+                  <Link
+                    className={cn(
+                      buttonVariants({ variant: 'ghost', size: 'icon' })
+                    )}
+                    href={`/dashboard/quizzes/${row.original.id}`}
                   >
-                    <Pencil className='h-4 w-4 text-orange-500' />
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <EditQuizDialog
-                    id={row.original.id}
-                    setDialogOpen={setDialogOpen}
-                  />
-                </DialogContent>
-              </Dialog>
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon'
-                    className='hover:bg-red-50'
-                  >
-                    <Trash className='h-4 w-4 text-red-600' />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <DeleteQuizDialog id={row.original.id} />
-                </AlertDialogContent>
-              </AlertDialog>
-            </>
-          ) : (
-            <>
-              {(!row.original.endsAt ||
-                (row.original.endsAt && row.original.endsAt > new Date())) &&
-                !row.original.submittedAt && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          className={cn(
-                            buttonVariants({ variant: 'ghost', size: 'icon' })
-                          )}
-                          href={`/quizzes/${row.original.id}`}
-                        >
-                          <LogIn className='h-4 w-4' />
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>دخول الإختبار</TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
+                    <FileCheck2 className='h-4 w-4 text-success' />
+                  </Link>
                 )}
-            </>
-          )}
-        </div>
-      ),
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Button
+                        size='icon'
+                        variant='ghost'
+                        onClick={() => {
+                          navigator.clipboard.writeText(
+                            `${location.origin}/quizzes/${row.original.id}`
+                          )
+                        }}
+                      >
+                        <LinkIcon className='h-4 w-4' />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>نسخ رابط الإختبار</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='hover:bg-orange-50'
+                    >
+                      <Pencil className='h-4 w-4 text-orange-500' />
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <EditQuizDialog
+                      id={row.original.id}
+                      setDialogOpen={setDialogOpen}
+                    />
+                  </DialogContent>
+                </Dialog>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant='ghost'
+                      size='icon'
+                      className='hover:bg-red-50'
+                    >
+                      <Trash className='h-4 w-4 text-red-600' />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <DeleteQuizDialog id={row.original.id} />
+                  </AlertDialogContent>
+                </AlertDialog>
+              </>
+            ) : (
+              <>
+                {(!row.original.endsAt ||
+                  (row.original.endsAt && row.original.endsAt > new Date())) &&
+                  !row.original.submittedAt && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            className={cn(
+                              buttonVariants({ variant: 'ghost', size: 'icon' })
+                            )}
+                            href={`/quizzes/${row.original.id}`}
+                          >
+                            <LogIn className='h-4 w-4' />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent>دخول الإختبار</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+              </>
+            )}
+          </div>
+        )
+      },
       meta: {
         className: 'text-center',
       },
@@ -408,7 +411,8 @@ const ExamsPage = ({
               )}
             </div>
           </div>
-          <div className='mt-4 flex items-center justify-around'>
+          <h3 className='mb-2 mt-4 text-xl font-bold'>إحصائيات</h3>
+          <div className='flex items-center justify-around'>
             <div className='flex flex-col items-center justify-center'>
               <CircularProgress percent={submittedQuizPercentage} />
               <p>نسبة المختبرين</p>

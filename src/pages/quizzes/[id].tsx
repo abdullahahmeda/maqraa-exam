@@ -167,7 +167,8 @@ const ExamPage = ({
                     <div
                       key={id}
                       className={cn(
-                        'mb-4 rounded-md px-4 py-2',
+                        'mb-4 rounded-md py-2',
+                        exam.submittedAt && 'px-4',
                         exam.grade !== null &&
                           grade === weight &&
                           'bg-success/20',

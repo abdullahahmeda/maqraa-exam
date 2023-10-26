@@ -47,6 +47,12 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogDescription,
+  AlertDialogCancel,
 } from '~/components/ui/alert-dialog'
 import { DeleteQuestionDialog } from '~/components/modals/delete-question'
 import { saveAs } from 'file-saver'
@@ -315,10 +321,6 @@ const columns = [
     id: 'actions',
     cell: ({ row }) => (
       <div className='flex justify-center'>
-        {/* <Button>عرض</Button> */}
-        <Button size='icon' variant='ghost'>
-          <Eye className='h-4 w-4' />
-        </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button size='icon' variant='ghost' className='hover:bg-red-50'>
@@ -486,16 +488,37 @@ const QuestionsPage = () => {
           تصدير الكل
         </Button>
         <div className='mb-4'>
-          <Button
-            variant='destructive'
-            className='flex items-center gap-2'
-            onClick={handleBulkDelete}
-            disabled={selectedRows.length === 0}
-          >
-            <Trash size={16} />
-            حذف{' '}
-            {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant='destructive'
+                className='flex items-center gap-2'
+                // onClick={handleBulkDelete}
+                disabled={selectedRows.length === 0}
+              >
+                <Trash size={16} />
+                حذف{' '}
+                {selectedRows.length > 0 &&
+                  `(${selectedRows.length} من العناصر)`}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  هل تريد حقاً حذف الأسئلة المختارة؟
+                </AlertDialogTitle>
+              </AlertDialogHeader>
+              <AlertDialogDescription>
+                سيتم حذف {selectedRows.length} من الأسئلة
+              </AlertDialogDescription>
+              <AlertDialogFooter>
+                <AlertDialogAction onClick={handleBulkDelete}>
+                  تأكيد
+                </AlertDialogAction>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         </div>
         <DataTable table={table} fetching={isFetchingQuestions} />
       </div>

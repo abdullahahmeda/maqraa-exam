@@ -127,8 +127,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <Sidebar
           setIsSidebarOpen={setIsSidebarOpen}
           className={cn(
-            'fixed top-16 z-10 hidden h-[calc(100vh-4rem)] w-full border-l bg-background md:w-72',
-            isSidebarOpen && 'block'
+            'fixed top-16 z-10 h-[calc(100vh-4rem)] w-full translate-x-full border-l bg-background transition-transform md:w-72',
+            isSidebarOpen && 'translate-x-0'
           )}
           links={
             session?.user.role
@@ -138,7 +138,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         />
         <main
           className={cn(
-            'min-h-screen flex-1 border-r bg-[#f8f9fa] pb-4 pl-4 pr-4 pt-20 ',
+            'min-h-screen flex-1 border-r bg-[#f8f9fa] pb-4 pl-4 pr-4 pt-20 transition-[padding]',
             isSidebarOpen && 'md:pr-[19rem]'
           )}
         >

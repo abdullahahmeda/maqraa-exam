@@ -12,21 +12,19 @@ import {
 } from '../ui/form'
 import { useToast } from '../ui/use-toast'
 import { useQueryClient } from '@tanstack/react-query'
-
 import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
 import { z } from 'zod'
-
 import { Checkbox } from '../ui/checkbox'
 import { Button } from '../ui/button'
 import { CheckedState } from '@radix-ui/react-checkbox'
 import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
 import { cn } from '~/lib/utils'
-import { CalendarIcon, Loader2 } from 'lucide-react'
-import { Calendar } from '../ui/calendar'
+import { Loader2 } from 'lucide-react'
 import { arSA } from 'date-fns/locale'
 import { format } from 'date-fns'
 import { useEffect } from 'react'
 import { editQuizSchema } from '~/validation/editQuizSchema'
+import { DatePicker } from '~/components/ui/date-picker'
 
 type FieldValues = {
   id: string
@@ -109,36 +107,13 @@ export const EditQuizDialog = ({
           render={({ field }) => (
             <FormItem className='flex flex-col'>
               <FormLabel>تاريخ قفل الإختبار</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant='outline'
-                      className={cn(
-                        'pl-3 text-right font-normal',
-                        !field.value && 'text-muted-foreground'
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, 'dd MMMM yyyy hh:mm a')
-                      ) : (
-                        <span>اختر التاريخ</span>
-                      )}
-                      <CalendarIcon className='mr-auto h-4 w-4 opacity-50' />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className='w-auto p-0' align='start'>
-                  <Calendar
-                    mode='single'
-                    selected={field.value || undefined}
-                    locale={arSA}
-                    onSelect={field.onChange}
-                    disabled={(date: Date) => date < new Date()}
-                    initialFocus
-                  />
-                </PopoverContent>
-              </Popover>
+              <FormControl>
+                <DatePicker
+                  selected={field.value || undefined}
+                  onSelect={field.onChange}
+                  disabled={(date: Date) => date < new Date()}
+                />
+              </FormControl>
               <FormDescription>
                 اتركه فارعاً إن كان الإختبار مفتوح. قم باختيار نفس التاريخ
                 لإزالة الاختيار

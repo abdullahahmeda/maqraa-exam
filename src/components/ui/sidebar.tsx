@@ -31,12 +31,11 @@ export function Sidebar({ className, links, setIsSidebarOpen }: SidebarProps) {
               href={link.href}
               className={cn(
                 buttonVariants({
-                  variant:
-                    router.pathname === link.href ? 'secondary' : 'ghost',
+                  variant: router.pathname === link.href ? 'default' : 'ghost',
                 }),
                 'w-full justify-start'
               )}
-              onClick={() => setIsSidebarOpen(false)}
+              // onClick={() => setIsSidebarOpen(false)}
             >
               {link.icon}
               {link.label}
