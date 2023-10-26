@@ -107,6 +107,10 @@ const ExamsPage = ({
     cycle: Cycle
     curriculum: Curriculum & { track: { course: Course } }
   }
+  quizCount: number
+  submittedQuizCount: number
+  submittedQuizPercentage: number
+  avgStats: { _avg: { grade: number | null; percentage: number | null } }
 }) => {
   const router = useRouter()
   const { data: session } = useSession()
