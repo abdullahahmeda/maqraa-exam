@@ -35,7 +35,9 @@ export function Sidebar({ className, links, setIsSidebarOpen }: SidebarProps) {
                 }),
                 'w-full justify-start'
               )}
-              // onClick={() => setIsSidebarOpen(false)}
+              onClick={() => {
+                if (document.body.clientWidth < 768) setIsSidebarOpen(false)
+              }}
             >
               {link.icon}
               {link.label}

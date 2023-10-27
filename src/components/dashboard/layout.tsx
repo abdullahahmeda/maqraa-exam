@@ -123,7 +123,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </Button>
         </div>
       </nav>
-      <div className='md:flex'>
+      <div>
         <Sidebar
           setIsSidebarOpen={setIsSidebarOpen}
           className={cn(
