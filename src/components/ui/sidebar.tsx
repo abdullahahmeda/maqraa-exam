@@ -36,7 +36,6 @@ export function Sidebar({ className, links, setIsSidebarOpen }: SidebarProps) {
                 'w-full justify-start'
               )}
               onClick={() => {
-                console.log(window.innerWidth)
                 if (window.innerWidth < 768) setIsSidebarOpen(false)
               }}
             >
