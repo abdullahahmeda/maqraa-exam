@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
 }
 
 datasource db {
@@ -16,10 +17,10 @@ datasource db {
 
 
 generator kysely {
-    provider = "prisma-kysely"
-    output = "../src/kysely"
-    fileName = "types.ts"
-    enumFileName = "enums.ts"
+  provider = "prisma-kysely"
+  output = "../src/kysely"
+  fileName = "types.ts"
+  enumFileName = "enums.ts"
 }
 
 plugin trpc {
