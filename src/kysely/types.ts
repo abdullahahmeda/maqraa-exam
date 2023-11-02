@@ -10,6 +10,7 @@ import type {
   QuestionStyle,
   QuestionDifficulty,
   QuizType,
+  QuestionGroupType,
 } from './enums'
 
 export type Account = {
@@ -93,15 +94,18 @@ export type Question = {
   objective: string
   courseId: string
 }
+export type QuestionsDescriptor = {
+  id: string
+}
 export type QuestionsGroup = {
   id: string
-  questionsNumber: number
-  gradePerQuestion: number
+  type: Generated<QuestionGroupType>
   order: number
+  questionsNumber: number | null
+  gradePerQuestion: number | null
   difficulty: QuestionDifficulty | null
   styleOrType: string | null
-  quizId: string | null
-  systemExamId: string | null
+  descriptorId: string
 }
 export type Quiz = {
   id: string
@@ -120,6 +124,7 @@ export type Quiz = {
   examineeId: string | null
   correctorId: string | null
   systemExamId: string | null
+  descriptorId: string
 }
 export type QuizQuestion = {
   id: string
@@ -164,6 +169,14 @@ export type SystemExam = {
   repeatFromSameHadith: Generated<boolean>
   curriculumId: string
   cycleId: string
+  descriptorId: string
+}
+export type SystemExamQuestion = {
+  id: string
+  systemExamId: string
+  questionId: string
+  weight: number
+  order: number
 }
 export type Track = {
   id: string
@@ -200,6 +213,7 @@ export type DB = {
   CycleCourse: CycleCourse
   ErrorReport: ErrorReport
   Question: Question
+  QuestionsDescriptor: QuestionsDescriptor
   QuestionsGroup: QuestionsGroup
   Quiz: Quiz
   QuizQuestion: QuizQuestion
@@ -209,6 +223,7 @@ export type DB = {
   Student: Student
   StudentCycle: StudentCycle
   SystemExam: SystemExam
+  SystemExamQuestion: SystemExamQuestion
   Track: Track
   User: User
   VerificationToken: VerificationToken

@@ -258,11 +258,11 @@ export class QuizService {
       curriculumId
     )
 
-    console.log('curriculum questions:', allCurriculumQuestions.length)
-    console.log('groups', groups)
+    // console.log('curriculum questions:', allCurriculumQuestions.length)
+    // console.log('groups', groups)
 
     let usedQuestions = new Set()
-    let usedHadiths = new Set()
+    const usedHadiths: { [partNumber: number]: Set<number> } = {}
 
     let questions: { id: string; weight: number; order: number }[] = []
     let iota = 1
@@ -282,9 +282,12 @@ export class QuizService {
         else if (styleOrType) conditions.push(q.style === styleOrType)
 
         if (!repeatFromSameHadith)
-          conditions.push(!usedHadiths.has(q.hadithNumber)) // Don't repeat from same hadith
+          conditions.push(
+            usedHadiths[q.partNumber] !== undefined &&
+              !usedHadiths[q.partNumber]!.has(q.hadithNumber)
+          ) // Don't repeat from same hadith
         const a = conditions.every((condition) => condition === true)
-        console.log('questionn taken:', a)
+        // console.log('questionn taken:', a)
         return a
       })
 
@@ -293,7 +296,11 @@ export class QuizService {
         questionsNumber
       ).map((q) => ({ ...q, order: iota++, weight: gradePerQuestion }))
       for (const question of chosenGroupQuestions) {
-        usedHadiths.add(question.hadithNumber)
+        if (!repeatFromSameHadith) {
+          if (usedHadiths[question.partNumber] === undefined)
+            usedHadiths[question.partNumber] = new Set([question.hadithNumber])
+          else usedHadiths[question.partNumber]!.add(question.hadithNumber)
+        }
         usedQuestions.add(question.id)
       }
       questions = questions.concat(chosenGroupQuestions)

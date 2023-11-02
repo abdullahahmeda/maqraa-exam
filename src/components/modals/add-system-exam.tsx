@@ -21,7 +21,6 @@ import {
   useSensors,
 } from '@dnd-kit/core'
 import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
-import { z } from 'zod'
 import {
   Select,
   SelectItem,
@@ -29,16 +28,14 @@ import {
   SelectContent,
   SelectValue,
 } from '../ui/select'
-import { QuizType } from '@prisma/client'
+import { QuizType, QuestionGroupType } from '@prisma/client'
+import { z } from 'zod'
 import { Checkbox } from '../ui/checkbox'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Accordion } from '../ui/accordion'
 import { Button } from '../ui/button'
 import { CheckedState } from '@radix-ui/react-checkbox'
 import { QuestionGroup, Group } from '../questions-group'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { cn } from '~/lib/utils'
-import { format } from 'date-fns'
 import { Input } from '../ui/input'
 import { useState } from 'react'
 import { DatePicker } from '~/components/ui/date-picker'
@@ -69,10 +66,12 @@ export const AddSystemExamDialog = ({
       repeatFromSameHadith: false,
       groups: [
         {
+          type: QuestionGroupType.AUTOMATIC,
           questionsNumber: 25,
           gradePerQuestion: 1,
           difficulty: '',
           styleOrType: '',
+          // questions: {},
         },
       ],
     },
@@ -131,10 +130,13 @@ export const AddSystemExamDialog = ({
 
   const appendGroup = () => {
     append({
+      type: 'automatic',
       questionsNumber: 25,
       gradePerQuestion: 1,
       difficulty: '',
       styleOrType: '',
+      questions: [],
+      // questions: {},
     })
   }
 
@@ -155,6 +157,7 @@ export const AddSystemExamDialog = ({
   }
 
   const onSubmit = (data: FieldValues) => {
+    // console.log(data)
     setSubmitting(true)
     examCreate
       .mutateAsync(data as z.infer<typeof newSystemExamSchema>)
@@ -272,58 +275,81 @@ export const AddSystemExamDialog = ({
         <FormField
           control={form.control}
           name='trackId'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>المسار</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger
-                    loading={
-                      tracksFetchStatus === 'fetching' && isTracksLoading
-                    }
-                  >
-                    <SelectValue placeholder='اختر المسار' />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {tracks?.map((track) => (
-                    <SelectItem key={track.id} value={track.id}>
-                      {track.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const disabled = !courseId
+            return (
+              <FormItem>
+                <FormLabel>المسار</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={disabled}
+                >
+                  <FormControl>
+                    <SelectTrigger
+                      loading={
+                        tracksFetchStatus === 'fetching' && isTracksLoading
+                      }
+                    >
+                      <SelectValue placeholder='اختر المسار' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {tracks?.map((track) => (
+                      <SelectItem key={track.id} value={track.id}>
+                        {track.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {disabled && (
+                  <FormDescription>يجب اختيار المقرر أولاً</FormDescription>
+                )}
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
         <FormField
           control={form.control}
           name='curriculumId'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>المنهج</FormLabel>
-              <Select onValueChange={field.onChange} value={field.value}>
-                <FormControl>
-                  <SelectTrigger
-                    loading={
-                      curriculaFetchStatus === 'fetching' && isCurriculaLoading
-                    }
-                  >
-                    <SelectValue placeholder='اختر المنهج' />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {curricula?.map((curriculum) => (
-                    <SelectItem key={curriculum.id} value={curriculum.id}>
-                      {curriculum.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={({ field }) => {
+            const disabled = !courseId || !trackId
+            return (
+              <FormItem>
+                <FormLabel>المنهج</FormLabel>
+                <Select
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  disabled={disabled}
+                >
+                  <FormControl>
+                    <SelectTrigger
+                      loading={
+                        curriculaFetchStatus === 'fetching' &&
+                        isCurriculaLoading
+                      }
+                    >
+                      <SelectValue placeholder='اختر المنهج' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {curricula?.map((curriculum) => (
+                      <SelectItem key={curriculum.id} value={curriculum.id}>
+                        {curriculum.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {disabled && (
+                  <FormDescription>
+                    يجب اختيار المقرر والمسار أولاً
+                  </FormDescription>
+                )}
+                <FormMessage />
+              </FormItem>
+            )
+          }}
         />
         <FormField
           control={form.control}
@@ -377,7 +403,7 @@ export const AddSystemExamDialog = ({
             name='groups'
             render={() => (
               <FormItem>
-                <FormMessage className='mt-2' />
+                <FormMessage className='mt-2'>يوجد خطأ</FormMessage>
               </FormItem>
             )}
           />

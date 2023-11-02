@@ -23,7 +23,6 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
-import { Checkbox } from '~/components/ui/checkbox'
 import { Combobox } from '~/components/ui/combobox'
 import { DataTable } from '~/components/ui/data-table'
 import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
@@ -39,23 +38,6 @@ import { Plus } from 'lucide-react'
 const columnHelper = createColumnHelper<Track & { course: { name: string } }>()
 
 const columns = [
-  columnHelper.display({
-    id: 'select',
-    header: ({ table }) => (
-      <Checkbox
-        checked={table.getIsAllPageRowsSelected()}
-        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
-        aria-label='تحديد الكل'
-      />
-    ),
-    cell: ({ row }) => (
-      <Checkbox
-        checked={row.getIsSelected()}
-        onCheckedChange={(value) => row.toggleSelected(!!value)}
-        aria-label='تحديد الصف'
-      />
-    ),
-  }),
   columnHelper.accessor('name', { header: 'المسار' }),
   columnHelper.accessor('course.name', {
     id: 'course',

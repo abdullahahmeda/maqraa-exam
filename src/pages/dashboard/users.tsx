@@ -43,6 +43,7 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import { DeleteUserDialog } from '~/components/modals/delete-user'
+import { Input } from '~/components/ui/input'
 
 type Row = User & {
   student: { cycles: (StudentCycle & { cycle: Cycle })[] }
@@ -79,6 +80,8 @@ const UsersPage = () => {
       return {
         student: { cycles: { some: { cycleId: filter.value as string } } },
       }
+    if (filter.id === 'email')
+      return { email: { startsWith: filter.value as string } }
     return { [filter.id]: { equals: filter.value } }
   })
 
@@ -89,8 +92,8 @@ const UsersPage = () => {
         take: pageSize,
         where: { AND: filters },
         include: {
-          student: { include: { cycles: { include: { cycle: true } } } },
-          corrector: { include: { cycle: true } },
+          student: { select: { cycles: { select: { cycle: true } } } },
+          corrector: { select: { cycle: true } },
         },
       },
       { networkMode: 'always' }
@@ -109,7 +112,30 @@ const UsersPage = () => {
   const columns = useMemo(
     () => [
       columnHelper.accessor('email', {
-        header: 'البريد الإلكتروني',
+        header: ({ column }) => {
+          const filterValue = column.getFilterValue() as string | undefined
+          return (
+            <div className='flex items-center'>
+              البريد الإلكتروني
+              <Popover>
+                <PopoverTrigger className='mr-4' asChild>
+                  <Button
+                    size='icon'
+                    variant={filterValue ? 'secondary' : 'ghost'}
+                  >
+                    <Filter className='h-4 w-4' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Input
+                    value={filterValue}
+                    onChange={(e) => column.setFilterValue(e.target.value)}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )
+        },
         meta: {
           className: 'text-center',
         },

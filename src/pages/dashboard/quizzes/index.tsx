@@ -33,14 +33,7 @@ import {
   AlertDialogContent,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import {
-  FileCheck2,
-  Filter,
-  Trash,
-  Link as LinkIcon,
-  Plus,
-  LogIn,
-} from 'lucide-react'
+import { Filter, Trash, Link as LinkIcon, Plus, LogIn } from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
 import {
   Popover,

@@ -179,6 +179,7 @@ model Question {
   courseId String
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   quizzes QuizQuestion[]
+  systemExams SystemExamQuestion[]
   errorReports ErrorReport[]
 
   @@index([partNumber])
@@ -223,6 +224,22 @@ model Setting {
   @@allow('read', true)
 }
 
+model SystemExamQuestion {
+  id String @id @default(cuid())
+  systemExamId String
+  questionId String
+  weight Int
+  order Int
+  systemExam SystemExam @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
+  question Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  @@index([systemExamId])
+  @@index([questionId])
+
+  @@allow('create,update,delete', auth() != null)
+  @@allow('read', true)
+}
+
 model SystemExam {
   id String @id @default(cuid())
   name String
@@ -232,14 +249,18 @@ model SystemExam {
   repeatFromSameHadith Boolean @default(false)
   curriculumId String
   cycleId String
+  descriptorId String
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   cycle Cycle @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+  descriptor QuestionsDescriptor @relation(fields: [descriptorId], references: [id], onDelete: Cascade)
   quizzes Quiz[]
-  groups QuestionsGroup[]
+  questions SystemExamQuestion[]
+  // groups QuestionsGroup[]
 
   @@index([type])
   @@index([curriculumId])
   @@index([cycleId])
+  @@index([descriptorId])
 
   @@allow('all', auth().role == ADMIN)
   @@allow('read', auth() != null && auth().role != ADMIN)
@@ -263,12 +284,14 @@ model Quiz {
   examineeId String?
   correctorId String?
   systemExamId String?
+  descriptorId String
   corrector User? @relation("Quiz_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
   examinee User? @relation("Quiz_examinee", fields: [examineeId], references: [id], onDelete: Cascade)
   curriculum Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   systemExam SystemExam? @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
+  descriptor QuestionsDescriptor @relation(fields: [descriptorId], references: [id], onDelete: Cascade)
   questions QuizQuestion[]
-  groups QuestionsGroup[]
+  // groups QuestionsGroup[]
 
   @@index([grade])
   @@index([type])
@@ -276,6 +299,7 @@ model Quiz {
   @@index([correctorId])
   @@index([curriculumId])
   @@index([systemExamId])
+  @@index([descriptorId])
 
   // TODO: maybe update read rules
   @@allow('all', auth().role == ADMIN) // for admins
@@ -291,23 +315,34 @@ enum QuizType {
 }
 
 /// @@Gen.model(hide: true)
+model QuestionsDescriptor {
+  id String @id @default(cuid())
+  groups QuestionsGroup[]
+  quizzes Quiz[]
+  systemExams SystemExam[]
+}
+
+/// @@Gen.model(hide: true)
 model QuestionsGroup {
   id String @id @default(cuid())
-  questionsNumber Int
-  gradePerQuestion Int
+  type QuestionGroupType @default(AUTOMATIC)
   order Int
+  questionsNumber Int?
+  gradePerQuestion Int?
   difficulty QuestionDifficulty?
   styleOrType String?
-  quizId String?
-  systemExamId String?
-  quiz Quiz? @relation(fields: [quizId], references: [id], onDelete: Cascade)
-  systemExam SystemExam? @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
+  descriptorId String
+  descriptor QuestionsDescriptor @relation(fields: [descriptorId], references: [id], onDelete: Cascade)
 
-  @@index([quizId])
-  @@index([systemExamId])
+  @@index([descriptorId])
   @@index([order])
 
   @@allow('create,read,update', true)
+}
+
+enum QuestionGroupType {
+  MANUAL
+  AUTOMATIC
 }
 
 /// @@Gen.model(hide: true)
@@ -405,7 +440,6 @@ model Curriculum {
   @@allow('read', true)
 }
 
-/// @@Gen.model(hide: true)
 model CurriculumPart {
   id Int @id @default(autoincrement())
   name String

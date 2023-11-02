@@ -217,14 +217,23 @@ const ExamsPage = ({
             {session?.user.role !== 'STUDENT' ? (
               <>
                 {!!row.original.submittedAt && (
-                  <Link
-                    className={cn(
-                      buttonVariants({ variant: 'ghost', size: 'icon' })
-                    )}
-                    href={`/dashboard/quizzes/${row.original.id}`}
-                  >
-                    <FileCheck2 className='h-4 w-4 text-success' />
-                  </Link>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Link
+                          className={cn(
+                            buttonVariants({ variant: 'ghost', size: 'icon' })
+                          )}
+                          href={`/dashboard/quizzes/${row.original.id}`}
+                        >
+                          <FileCheck2 className='h-4 w-4 text-success' />
+                        </Link>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>تصحيح الإختبار</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 )}
                 <TooltipProvider>
                   <Tooltip>

@@ -14,6 +14,7 @@ import type z from 'zod';
 import createUserRouter from './User.router';
 import createQuestionRouter from './Question.router';
 import createSettingRouter from './Setting.router';
+import createSystemExamQuestionRouter from './SystemExamQuestion.router';
 import createSystemExamRouter from './SystemExam.router';
 import createQuizRouter from './Quiz.router';
 import createCycleRouter from './Cycle.router';
@@ -21,10 +22,12 @@ import createCourseRouter from './Course.router';
 import createCourseCorrectorRouter from './CourseCorrector.router';
 import createTrackRouter from './Track.router';
 import createCurriculumRouter from './Curriculum.router';
+import createCurriculumPartRouter from './CurriculumPart.router';
 import createErrorReportRouter from './ErrorReport.router';
 import { ClientType as UserClientType } from './User.router';
 import { ClientType as QuestionClientType } from './Question.router';
 import { ClientType as SettingClientType } from './Setting.router';
+import { ClientType as SystemExamQuestionClientType } from './SystemExamQuestion.router';
 import { ClientType as SystemExamClientType } from './SystemExam.router';
 import { ClientType as QuizClientType } from './Quiz.router';
 import { ClientType as CycleClientType } from './Cycle.router';
@@ -32,6 +35,7 @@ import { ClientType as CourseClientType } from './Course.router';
 import { ClientType as CourseCorrectorClientType } from './CourseCorrector.router';
 import { ClientType as TrackClientType } from './Track.router';
 import { ClientType as CurriculumClientType } from './Curriculum.router';
+import { ClientType as CurriculumPartClientType } from './CurriculumPart.router';
 import { ClientType as ErrorReportClientType } from './ErrorReport.router';
 
 export { PrismaClient } from '@prisma/client';
@@ -93,6 +97,7 @@ export function createRouter<Router extends RouterFactory<BaseConfig>, Proc exte
         user: createUserRouter<Router, Proc>(router, procedure),
         question: createQuestionRouter<Router, Proc>(router, procedure),
         setting: createSettingRouter<Router, Proc>(router, procedure),
+        systemExamQuestion: createSystemExamQuestionRouter<Router, Proc>(router, procedure),
         systemExam: createSystemExamRouter<Router, Proc>(router, procedure),
         quiz: createQuizRouter<Router, Proc>(router, procedure),
         cycle: createCycleRouter<Router, Proc>(router, procedure),
@@ -100,6 +105,7 @@ export function createRouter<Router extends RouterFactory<BaseConfig>, Proc exte
         courseCorrector: createCourseCorrectorRouter<Router, Proc>(router, procedure),
         track: createTrackRouter<Router, Proc>(router, procedure),
         curriculum: createCurriculumRouter<Router, Proc>(router, procedure),
+        curriculumPart: createCurriculumPartRouter<Router, Proc>(router, procedure),
         errorReport: createErrorReportRouter<Router, Proc>(router, procedure),
     });
 }
@@ -108,6 +114,7 @@ export interface ClientType<AppRouter extends AnyRouter> {
     user: UserClientType<AppRouter>;
     question: QuestionClientType<AppRouter>;
     setting: SettingClientType<AppRouter>;
+    systemExamQuestion: SystemExamQuestionClientType<AppRouter>;
     systemExam: SystemExamClientType<AppRouter>;
     quiz: QuizClientType<AppRouter>;
     cycle: CycleClientType<AppRouter>;
@@ -115,5 +122,6 @@ export interface ClientType<AppRouter extends AnyRouter> {
     courseCorrector: CourseCorrectorClientType<AppRouter>;
     track: TrackClientType<AppRouter>;
     curriculum: CurriculumClientType<AppRouter>;
+    curriculumPart: CurriculumPartClientType<AppRouter>;
     errorReport: ErrorReportClientType<AppRouter>;
 }

@@ -3,14 +3,22 @@ import { Button } from './button'
 import { Calendar } from './calendar'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '~/lib/utils'
-import { DayPickerSingleProps } from 'react-day-picker'
+import { ActiveModifiers, DayPickerSingleProps } from 'react-day-picker'
 import { format } from 'date-fns'
+import { useState } from 'react'
 
 type Props = DayPickerSingleProps & { placeholder?: string }
 
-export const DatePicker = ({ selected, placeholder, ...props }: Props) => {
+export const DatePicker = ({
+  selected,
+  placeholder,
+  onSelect,
+  ...props
+}: Props) => {
+  const [open, setOpen] = useState(false)
+
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={(open) => setOpen(open)}>
       <PopoverTrigger asChild>
         <Button
           variant='outline'
@@ -28,7 +36,22 @@ export const DatePicker = ({ selected, placeholder, ...props }: Props) => {
         </Button>
       </PopoverTrigger>
       <PopoverContent className='w-auto p-0' align='start'>
-        <Calendar initialFocus selected={selected} {...props} />
+        <Calendar
+          initialFocus
+          selected={selected}
+          onSelect={(
+            day: Date | undefined,
+            selectedDay: Date,
+            activeModifiers: ActiveModifiers,
+            e: any
+          ) => {
+            if (onSelect) {
+              onSelect(day, selectedDay, activeModifiers, e)
+              setOpen(false)
+            }
+          }}
+          {...props}
+        />
       </PopoverContent>
     </Popover>
   )

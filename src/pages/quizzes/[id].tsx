@@ -372,7 +372,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
           },
           orderBy: { order: 'asc' },
         },
-        groups: { orderBy: { order: 'asc' } },
+        systemExam: { select: { questions: true } },
+        // descriptor: { include: { groups: { orderBy: { order: 'asc' } } } },
       },
     })
   )
@@ -414,13 +415,13 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     }
 
   // exam is entered for the first time, create questions
-  const questions = await quizService.getQuestionsForGroups({
-    groups: quiz.groups as any,
-    curriculumId: quiz.curriculumId,
-    repeatFromSameHadith: quiz.repeatFromSameHadith,
-  })
+  // const questions = await quizService.getQuestionsForGroups({
+  //   groups: quiz.descriptor!.groups as any,
+  //   curriculumId: quiz.curriculumId,
+  //   repeatFromSameHadith: quiz.repeatFromSameHadith,
+  // })
 
-  console.log(quiz.questionsCreated, questions)
+  console.log('systemExamQuestions', quiz.systemExam?.questions)
 
   await _prisma.quiz.update({
     where: { id },
@@ -428,8 +429,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       ...(quiz.examineeId == session?.user.id ? { enteredAt: new Date() } : {}),
       questionsCreated: true,
       questions: {
-        create: questions.map((q) => ({
-          questionId: q.id,
+        create: quiz.systemExam!.questions.map((q) => ({
+          questionId: q.questionId,
           weight: q.weight,
           order: q.order,
         })),

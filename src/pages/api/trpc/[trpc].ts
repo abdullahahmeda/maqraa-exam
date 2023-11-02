@@ -20,3 +20,7 @@ export default createNextApiHandler({
           if (error.code === 'INTERNAL_SERVER_ERROR') logErrorToLogtail(error)
         },
 })
+
+// export const config = {
+//   responseLimit: '1mb',
+// }

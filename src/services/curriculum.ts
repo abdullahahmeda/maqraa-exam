@@ -40,6 +40,11 @@ export class CurriculumService {
     })
     const questions = await this.db.question.findMany({
       where: {
+        course: {
+          tracks: {
+            some: { curricula: { some: { id } } },
+          },
+        },
         OR: parts.map((part) => ({
           partNumber: part.number,
           hadithNumber: {
