@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { UserRole } from '@prisma/client'
+import { UserRole } from '~/kysely/enums'
 import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
@@ -35,7 +35,7 @@ const AddSingleUserTab = ({ setDialogOpen }: Props) => {
     resolver: zodResolver(newUserSchema),
   })
 
-  const userCreate = api.createUser.useMutation()
+  const userCreate = api.user.create.useMutation()
 
   const onSubmit = (data: AddUserFieldValues) => {
     const t = toast({ title: 'جاري إضافة المستخدم' })
@@ -72,7 +72,7 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
   })
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const studentsImport = api.importStudents.useMutation()
+  const studentsImport = api.user.import.useMutation()
   const onSubmit = (data: ImportStudentsFieldValues) => {
     const t = toast({ title: 'جاري إضافة الطلبة' })
     studentsImport

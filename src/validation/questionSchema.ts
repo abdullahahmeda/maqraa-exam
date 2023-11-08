@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { QuestionStyle, QuestionType } from '../constants'
+import { QuestionStyle, QuestionType } from '~/kysely/enums'
 import {
   arDifficultyToEn,
   arStyleToEn,

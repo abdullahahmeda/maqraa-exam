@@ -18,9 +18,7 @@ export const DeleteUserDialog = ({ id }: { id: string }) => {
   const deleteUser = () => {
     const t = toast({ title: 'جاري حذف المستخدم' })
     userDelete
-      .mutateAsync({
-        where: { id },
-      })
+      .mutateAsync(id)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المستخدم بنجاح' })

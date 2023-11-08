@@ -1,4 +1,4 @@
-import { QuizType as EnType } from '@prisma/client'
+import { QuizType as EnType } from '~/kysely/enums'
 import invert from 'lodash.invert'
 
 export const typeMapping = {

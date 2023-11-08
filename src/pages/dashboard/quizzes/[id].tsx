@@ -6,13 +6,13 @@ import { useForm } from 'react-hook-form'
 import { compareTwoStrings } from 'string-similarity'
 import { Button } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
-import { QuestionType } from '~/constants'
 import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
 import { enStyleToAr } from '~/utils/questions'
 import { correctQuestion, normalizeText } from '~/utils/strings'
 import { Badge } from '~/components/ui/badge'
-import { User, UserRole } from '@prisma/client'
+import { QuestionType, UserRole } from '~/kysely/enums'
+import { User } from '~/kysely/types'
 import {
   Form,
   FormControl,
@@ -22,8 +22,7 @@ import {
   FormMessage,
 } from '~/components/ui/form'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
-import { prisma as _prisma } from '~/server/db'
-import { enhance } from '@zenstackhq/runtime'
+import { db } from '~/server/db'
 import { getServerAuthSession } from '~/server/auth'
 import { formatDate } from '~/utils/formatDate'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -32,10 +31,11 @@ import { useToast } from '~/components/ui/use-toast'
 import { Input } from '~/components/ui/input'
 import { Separator } from '~/components/ui/separator'
 import { Checkbox } from '~/components/ui/checkbox'
+import { jsonArrayFrom } from 'kysely/helpers/postgres'
 
 type FieldValues = {
   id: string
-  questions: Record<string, number>
+  answers: Record<string, number>
   examinee: User | null
 }
 
@@ -90,17 +90,17 @@ const CorrectQuizPage = ({
   })
   const router = useRouter()
 
-  const examCorrect = api.correctExam.useMutation()
+  const examCorrect = api.quiz.correct.useMutation()
   // const gradeEmailSend = api.emails.sendGradeEmail.useMutation()
 
   useEffect(() => {
     if (quiz) {
       form.reset({
         id: quiz.id,
-        questions: quiz.questions.reduce(
+        answers: quiz.answers.reduce(
           (questionAcc, question) => ({
             ...questionAcc,
-            [question.id]: question.grade,
+            [question.id as string]: question.grade,
           }),
           {}
         ),
@@ -114,7 +114,7 @@ const CorrectQuizPage = ({
     examCorrect
       .mutateAsync({
         id: quiz.id,
-        questions: form.getValues('questions') as any,
+        answers: form.getValues('answers') as any,
       })
       .then(() => {
         const isEmailSent = false
@@ -156,10 +156,10 @@ const CorrectQuizPage = ({
               </div>
               <div>
                 <h3 className='text-lg font-semibold'>المستخدم</h3>
-                {quiz.examinee ? (
+                {quiz.examineeName ? (
                   <div>
-                    <p>اسم الطالب: {quiz.examinee.name}</p>
-                    <p>البريد الإلكتروني للطالب: {quiz.examinee.email}</p>
+                    <p>اسم الطالب: {quiz.examineeName}</p>
+                    <p>البريد الإلكتروني للطالب: {quiz.examineeEmail}</p>
                   </div>
                 ) : (
                   <p className='text-slate-500'>هذا الإختبار من زائر </p>
@@ -181,8 +181,15 @@ const CorrectQuizPage = ({
                     {percentage(quiz.grade as number, quiz.total as number)}%)
                   </Badge>
                   <div>
-                    {quiz.questions.map(
-                      ({ id, question, grade, order, answer, weight }) => (
+                    {quiz.answers.map(
+                      ({
+                        id,
+                        grade,
+                        order,
+                        correctAnswer,
+                        weight,
+                        ...question
+                      }) => (
                         <div
                           key={id}
                           className={clsx('mb-3 rounded-md px-4 py-3', {
@@ -207,22 +214,24 @@ const CorrectQuizPage = ({
                           </div>
                           <p
                             className={clsx(
-                              answer === question.answer && 'text-green-600',
+                              correctAnswer === question.examineeAnswer &&
+                                'text-green-600',
                               question.type === QuestionType.MCQ &&
-                                answer !== question.answer &&
+                                correctAnswer !== question.examineeAnswer &&
                                 'text-red-500'
                             )}
                           >
-                            إجابة الطالب: {answer || '(لا يوجد إجابة)'}
+                            إجابة الطالب:{' '}
+                            {question.examineeAnswer || '(لا يوجد إجابة)'}
                           </p>
-                          <p>الإجابة الصحيحة: {question.answer}</p>
+                          <p>الإجابة الصحيحة: {correctAnswer}</p>
                           {question.type === QuestionType.WRITTEN && (
                             <p>
                               نسبة التطابق مع الإجابة الصحيحة:{' '}
                               {(
                                 compareTwoStrings(
-                                  normalizeText(question.answer),
-                                  normalizeText('' + answer)
+                                  normalizeText(question.examineeAnswer),
+                                  normalizeText('' + correctAnswer)
                                 ) * 100
                               ).toFixed(2)}
                               %
@@ -230,7 +239,7 @@ const CorrectQuizPage = ({
                           )}
                           <FormField
                             control={form.control}
-                            name={`questions.${id}`}
+                            name={`answers.${id}`}
                             render={({ field }) =>
                               question.type === 'MCQ' ? (
                                 <MCQQuestionCorrector
@@ -273,7 +282,6 @@ const CorrectQuizPage = ({
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   // TODO: auth check
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-  const prisma = enhance(_prisma, { user: session?.user })
 
   if (
     session?.user.role !== UserRole.ADMIN &&
@@ -281,13 +289,46 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   )
     return { notFound: true }
 
-  const quiz = await prisma.quiz.findFirst({
-    where: { id: ctx.params!.id as string },
-    include: {
-      questions: { include: { question: true }, orderBy: { order: 'asc' } },
-      examinee: true,
-    },
-  })
+  const quiz = await db
+    .selectFrom('Quiz')
+    .leftJoin('User', 'Quiz.examineeId', 'User.id')
+    .selectAll('Quiz')
+    .select((eb) => [
+      'User.name as examineeName',
+      'User.email as examineeEmail',
+      jsonArrayFrom(
+        eb
+          .selectFrom('Answer')
+          .leftJoin(
+            'ModelQuestion',
+            'Answer.modelQuestionId',
+            'ModelQuestion.id'
+          )
+          .leftJoin('Question', 'ModelQuestion.questionId', 'Question.id')
+          .whereRef('Answer.quizId', '=', 'Quiz.id')
+          .whereRef('ModelQuestion.modelId', '=', 'Quiz.modelId')
+          .select([
+            'Answer.id',
+            'Answer.answer as examineeAnswer',
+            'Answer.grade',
+            'ModelQuestion.order',
+            'ModelQuestion.weight',
+            'Question.text',
+            'Question.option1',
+            'Question.option2',
+            'Question.option3',
+            'Question.option4',
+            'Question.textForFalse',
+            'Question.textForTrue',
+            'Question.style',
+            'Question.type',
+            'Question.answer as correctAnswer',
+          ])
+          .orderBy('ModelQuestion.order asc')
+      ).as('answers'),
+    ])
+    .where('Quiz.id', '=', ctx.params!.id as string)
+    .executeTakeFirst()
 
   if (!quiz)
     return {

@@ -25,6 +25,9 @@ const server = z.object({
   SMTP_PORT: z.preprocess((v) => Number(v), z.number().int()),
   SMTP_EMAIL: z.string().email(),
   SMTP_PASSWORD: z.string(),
+  QSTASH_CURRENT_SIGNING_KEY: z.string(),
+  QSTASH_NEXT_SIGNING_KEY: z.string(),
+  QSTASH_TOKEN: z.string(),
 })
 
 /**
@@ -52,6 +55,9 @@ const processEnv = {
   SMTP_PORT: process.env.SMTP_PORT,
   SMTP_EMAIL: process.env.SMTP_EMAIL,
   SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+  QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
+  QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
+  QSTASH_TOKEN: process.env.QSTASH_TOKEN,
   // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
 }
 

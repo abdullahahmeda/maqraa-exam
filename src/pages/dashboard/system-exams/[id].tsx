@@ -3,12 +3,9 @@ import {
   Curriculum,
   Cycle,
   Quiz,
-  QuizType,
-  Prisma,
   SystemExam,
   User,
-  UserRole,
-} from '@prisma/client'
+} from '~/kysely/types'
 import {
   ColumnFiltersState,
   createColumnHelper,
@@ -78,14 +75,13 @@ import {
   TooltipContent,
   TooltipProvider,
 } from '~/components/ui/tooltip'
-import { checkRead } from '~/server/api/routers/custom/helper'
-import { enhance } from '@zenstackhq/runtime'
-import { prisma as _prisma } from '~/server/db'
+import { db } from '~/server/db'
 import { EditQuizDialog } from '~/components/modals/edit-quiz'
 import { percentage } from '~/utils/percentage'
 import { useToast } from '~/components/ui/use-toast'
 import { saveAs } from 'file-saver'
 import { CircularProgress } from '~/components/ui/circular-progress'
+import { getColumnFilters } from '~/utils/getColumnFilters'
 
 type Row = Quiz & {
   examinee: User
@@ -131,14 +127,14 @@ const ExamsPage = ({
   }
 
   const columns = [
-    columnHelper.accessor('examinee.name', {
+    columnHelper.accessor('examineeName', {
       header: 'الطالب',
       cell: (info) => info.getValue() || '-',
       meta: {
         className: 'text-center',
       },
     }),
-    columnHelper.accessor('examinee.email', {
+    columnHelper.accessor('examineeEmail', {
       header: 'الإيميل',
       cell: (info) => info.getValue() || '-',
       meta: {
@@ -200,7 +196,7 @@ const ExamsPage = ({
         className: 'text-center',
       },
     }),
-    columnHelper.accessor('corrector.name', {
+    columnHelper.accessor('correctorName', {
       header: 'المصحح',
       cell: (info) => info.getValue() || '-',
       meta: {
@@ -318,36 +314,21 @@ const ExamsPage = ({
       },
     }),
   ]
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
-    {
-      id: 'systemExamId',
-      value: router.query.id as string,
-    },
-  ])
 
-  const filters = columnFilters.map((filter) => {
-    return { [filter.id]: { equals: filter.value } }
-  })
+  const filters = { systemExamId: systemExam.id }
+  const include = { examinee: true, corrector: true }
 
-  const { data: quizzes, isFetching } = api.quiz.findMany.useQuery(
-    {
-      skip: pageIndex * pageSize,
-      take: pageSize,
-      include: {
-        examinee: true,
-        corrector: true,
-      },
-      where: { AND: filters },
-    },
+  const { data: quizzes, isFetching } = api.quiz.list.useQuery(
+    { pagination, filters, include },
     { networkMode: 'always' }
   )
 
   const { data: count, isLoading: isCountLoading } = api.quiz.count.useQuery(
-    { where: { AND: filters } },
+    { filters },
     { networkMode: 'always' }
   )
 
-  const quizzesExport = api.exportQuizzes.useMutation()
+  const quizzesExport = api.quiz.export.useMutation()
 
   const pageCount =
     quizzes !== undefined && typeof count === 'number'
@@ -361,10 +342,7 @@ const ExamsPage = ({
     pageCount,
     manualPagination: true,
     manualFiltering: true,
-    state: {
-      pagination,
-      columnFilters,
-    },
+    state: { pagination },
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -372,7 +350,6 @@ const ExamsPage = ({
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
-    onColumnFiltersChange: setColumnFilters,
   })
 
   const handleDownload = async () => {
@@ -406,9 +383,9 @@ const ExamsPage = ({
             <h3 className='mb-2 text-xl font-bold'>نظرة عامة</h3>
             <p>اسم الإختبار: {systemExam.name}</p>
             <p>نوع الإختبار: {enTypeToAr(systemExam.type)}</p>
-            <p>الدورة: {systemExam.cycle.name}</p>
-            <p>المقرر: {systemExam.curriculum.track.course.name}</p>
-            <p>المنهج: {systemExam.curriculum.name}</p>
+            <p>الدورة: {systemExam.cycleName}</p>
+            <p>المقرر: {systemExam.courseName}</p>
+            <p>المنهج: {systemExam.curriculumName}</p>
             <p>وقت إنشاء الإختبار: {formatDate(systemExam.createdAt)}</p>
             <div>
               <span>وقت غلق الإختبار:</span>{' '}
@@ -426,11 +403,11 @@ const ExamsPage = ({
               <CircularProgress percent={submittedQuizPercentage} />
               <p>نسبة المختبرين</p>
             </div>
-            {avgStats._avg.percentage === null ? (
+            {avgStats.percentageAvg === null ? (
               <p>لم يتم حساب متوسط الدرجات</p>
             ) : (
               <div className='flex flex-col items-center justify-center'>
-                <CircularProgress percent={avgStats._avg.percentage} />
+                <CircularProgress percent={Number(avgStats.percentageAvg)} />
                 <p>متوسط الدرجات (نسبة)</p>
               </div>
             )}
@@ -446,9 +423,11 @@ const ExamsPage = ({
             </div>
             <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 shadow'>
               <p className='text-xl font-semibold'>
-                {avgStats._avg.grade === null
+                {avgStats.gradeAvg === null
                   ? 'لم يتم حسابها'
-                  : avgStats._avg.grade}
+                  : `${Number(avgStats.gradeAvg).toFixed(2)}/${
+                      quizzes[0].total
+                    }`}
               </p>
               <p>متوسط الدرجات</p>
             </div>
@@ -481,40 +460,53 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
   const id = ctx.params!.id as string
 
-  const prisma = enhance(_prisma, { user: session.user })
-
-  const systemExam = await checkRead(
-    prisma.systemExam.findFirst({
-      where: { id },
-      include: {
-        cycle: true,
-        curriculum: { include: { track: { select: { course: true } } } },
-      },
-    })
-  )
+  const systemExam = await db
+    .selectFrom('SystemExam')
+    .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
+    .leftJoin('Curriculum', 'SystemExam.curriculumId', 'Curriculum.id')
+    .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
+    .leftJoin('Course', 'Track.courseId', 'Course.id')
+    .selectAll('SystemExam')
+    .select([
+      'Course.name as courseName',
+      'Curriculum.name as curriculumName',
+      'Cycle.name as cycleName',
+    ])
+    .executeTakeFirst()
 
   if (!systemExam) return { notFound: true }
 
-  const quizCount = await checkRead(
-    prisma.quiz.count({ where: { systemExamId: id } })
+  const quizCount = Number(
+    (
+      await db
+        .selectFrom('Quiz')
+        .select(({ fn }) => [fn.count('id').as('total')])
+        .executeTakeFirst()
+    )?.total
   )
-  const submittedQuizCount = await checkRead(
-    prisma.quiz.count({
-      where: { systemExamId: id, submittedAt: { not: null } },
-    })
+
+  const submittedQuizCount = Number(
+    (
+      await db
+        .selectFrom('Quiz')
+        .select(({ fn }) => [fn.count('id').as('total')])
+        .where('systemExamId', '=', id)
+        .where('submittedAt', 'is not', null)
+        .executeTakeFirst()
+    )?.total
   )
 
   const submittedQuizPercentage = (submittedQuizCount / quizCount) * 100
 
-  const avgStats = await checkRead(
-    prisma.quiz.aggregate({
-      _avg: {
-        grade: true,
-        percentage: true,
-      },
-      where: { systemExamId: id, correctedAt: { not: null } },
-    })
-  )
+  const avgStats = await db
+    .selectFrom('Quiz')
+    .select(({ fn }) => [
+      fn.avg('grade').as('gradeAvg'),
+      fn.avg('percentage').as('percentageAvg'),
+    ])
+    .where('systemExamId', '=', id)
+    .where('correctedAt', 'is not', null)
+    .executeTakeFirst()
 
   return {
     props: {

@@ -21,7 +21,7 @@ import { api } from '~/utils/api'
 
 export type ImportStudentsFieldValues = {
   url: string
-  sheet: string
+  sheetName: string
   cycleId: string
 }
 
@@ -36,17 +36,16 @@ export const ImportStudentsForm = ({
   onSubmit,
   isLoading,
 }: FormProps) => {
-  const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycle.findMany.useQuery({})
+  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery(
+    {}
+  )
 
   const {
     isFetching: isFetchingSheets,
     data: sheets,
     refetch: refetchSheets,
-  } = api.listSheets.useQuery(
-    {
-      url: form.getValues('url'),
-    },
+  } = api.sheet.listNames.useQuery(
+    { url: form.getValues('url') },
     {
       enabled: false,
       refetchOnMount: false,

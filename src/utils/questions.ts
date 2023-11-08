@@ -2,7 +2,7 @@ import {
   QuestionDifficulty as EnDifficulty,
   QuestionType as EnType,
   QuestionStyle,
-} from '@prisma/client'
+} from '~/kysely/enums'
 import invert from 'lodash.invert'
 
 export const typeMapping = {
@@ -30,31 +30,32 @@ export const styleMapping = {
 
 type ArType = keyof typeof typeMapping
 
-export const arTypeToEn = (arType: string): EnType | string =>
-  typeMapping[arType as ArType] ?? arType
-export const enTypeToAr = (enType: string): ArType | string => {
+export const arTypeToEn = (arType: string): EnType =>
+  typeMapping[arType as ArType]
+export const enTypeToAr = (enType: string): ArType => {
   const inverted = invert(typeMapping)
-  return inverted[enType as keyof typeof inverted] ?? enType
+  // @ts-ignore
+  return inverted[enType as keyof typeof inverted]
 }
 
 type ArDifficulty = keyof typeof difficultyMapping
 
-export const arDifficultyToEn = (arDifficulty: string): EnDifficulty | string =>
-  difficultyMapping[arDifficulty as ArDifficulty] ?? arDifficulty
-export const enDifficultyToAr = (
-  enDifficulty: string
-): ArDifficulty | string => {
+export const arDifficultyToEn = (arDifficulty: string): EnDifficulty =>
+  difficultyMapping[arDifficulty as ArDifficulty]
+export const enDifficultyToAr = (enDifficulty: string): ArDifficulty => {
   const inverted = invert(difficultyMapping)
-  return inverted[enDifficulty as keyof typeof inverted] ?? enDifficulty
+  // @ts-ignore
+  return inverted[enDifficulty as keyof typeof inverted]
 }
 
 type ArStyle = keyof typeof styleMapping
 
-export const arStyleToEn = (arStyle: string): QuestionStyle | string =>
+export const arStyleToEn = (arStyle: string): QuestionStyle =>
   styleMapping[arStyle as ArStyle] ?? arStyle
-export const enStyleToAr = (enStyle: string): ArStyle | string => {
+export const enStyleToAr = (enStyle: string): ArStyle => {
   const inverted = invert(styleMapping)
-  return inverted[enStyle as keyof typeof inverted] ?? enStyle
+  // @ts-ignore
+  return inverted[enStyle as keyof typeof inverted]
 }
 
 export const getDifficultyVariant = (difficulty: EnDifficulty) => {

@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { Course, UserRole } from '@prisma/client'
+import { Course } from '~/kysely/types'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   PaginationState,
@@ -42,9 +42,7 @@ const DeleteCourseDialog = ({ id }: { id: string }) => {
   const deleteCourse = () => {
     const t = toast({ title: 'جاري حذف المقرر' })
     courseDelete
-      .mutateAsync({
-        where: { id },
-      })
+      .mutateAsync(id)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المقرر بنجاح' })
@@ -100,16 +98,10 @@ const CoursesPage = () => {
     data: courses,
     isFetching: isFetchingCourses,
     refetch,
-  } = api.course.findMany.useQuery(
-    {
-      take: pageSize,
-      skip: pageIndex * pageSize,
-    },
-    { networkMode: 'always' }
-  )
+  } = api.course.list.useQuery({ pagination }, { networkMode: 'always' })
 
   const { data: count, isLoading: isCountLoading } = api.course.count.useQuery(
-    {},
+    undefined,
     { networkMode: 'always' }
   )
 

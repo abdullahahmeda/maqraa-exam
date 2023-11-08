@@ -6,7 +6,6 @@ import { api } from '~/utils/api'
 import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { Cycle, StudentCycle, User } from '@prisma/client'
 import {
   createColumnHelper,
   useReactTable,
@@ -44,6 +43,9 @@ import {
 } from '~/components/ui/alert-dialog'
 import { DeleteUserDialog } from '~/components/modals/delete-user'
 import { Input } from '~/components/ui/input'
+import { getColumnFilters } from '~/utils/getColumnFilters'
+import { UserRole } from '~/kysely/enums'
+import { Cycle, StudentCycle, User } from '~/kysely/types'
 
 type Row = User & {
   student: { cycles: (StudentCycle & { cycle: Cycle })[] }
@@ -52,9 +54,14 @@ type Row = User & {
   }
 }
 
+const columnFiltersValidators = {
+  email: z.string(),
+  role: z.nativeEnum(UserRole),
+}
+
 const columnHelper = createColumnHelper<Row>()
 
-const PAGE_SIZE = 50
+const PAGE_SIZE = 25
 
 const UsersPage = () => {
   const router = useRouter()
@@ -74,33 +81,26 @@ const UsersPage = () => {
     pageSize,
   }
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const filters = columnFilters.map((filter) => {
-    if (filter.id === 'cycles')
-      return {
-        student: { cycles: { some: { cycleId: filter.value as string } } },
-      }
-    if (filter.id === 'email')
-      return { email: { startsWith: filter.value as string } }
-    return { [filter.id]: { equals: filter.value } }
-  })
+  const columnFilters: ColumnFiltersState = getColumnFilters(
+    router.query,
+    columnFiltersValidators
+  )
 
-  const { data: users, isFetching: isFetchingUsers } =
-    api.user.findMany.useQuery(
-      {
-        skip: pageIndex * pageSize,
-        take: pageSize,
-        where: { AND: filters },
-        include: {
-          student: { select: { cycles: { select: { cycle: true } } } },
-          corrector: { select: { cycle: true } },
-        },
-      },
-      { networkMode: 'always' }
-    )
+  const filters = columnFilters.reduce(
+    (obj, f) => ({ ...obj, [f.id]: f.value }),
+    {}
+  )
+
+  const { data: users, isFetching: isFetchingUsers } = api.user.list.useQuery(
+    {
+      pagination,
+      filters,
+    },
+    { networkMode: 'always' }
+  )
 
   const { data: count, isLoading: isCountLoading } = api.user.count.useQuery(
-    { where: { AND: filters } },
+    { filters },
     { networkMode: 'always' }
   )
 
@@ -128,7 +128,7 @@ const UsersPage = () => {
                 </PopoverTrigger>
                 <PopoverContent>
                   <Input
-                    value={filterValue}
+                    value={filterValue === undefined ? '' : filterValue}
                     onChange={(e) => column.setFilterValue(e.target.value)}
                   />
                 </PopoverContent>
@@ -311,7 +311,19 @@ const UsersPage = () => {
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
-    onColumnFiltersChange: setColumnFilters,
+    // onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      const newColumnFilters: ColumnFiltersState = (
+        updater as CallableFunction
+      )(columnFilters)
+      Object.keys(columnFiltersValidators).forEach((filterId) => {
+        delete router.query[filterId]
+      })
+      newColumnFilters.forEach((filter) => {
+        ;(router.query as any)[filter.id] = filter.value
+      })
+      router.push(router)
+    },
   })
 
   return (

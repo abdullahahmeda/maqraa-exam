@@ -30,10 +30,11 @@ export const ExportSystemExamsDialog = ({
     resolver: zodResolver(exportSystemExamsSchema),
   })
 
-  const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycle.findMany.useQuery({})
+  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery(
+    {}
+  )
 
-  const systemExamsExport = api.exportSystemExams.useMutation()
+  const systemExamsExport = api.systemExam.export.useMutation()
 
   const onSubmit = async (data: FieldValues) => {
     setDialogOpen(false)

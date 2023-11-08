@@ -28,7 +28,7 @@ import {
   SelectContent,
   SelectValue,
 } from '../ui/select'
-import { QuizType, QuestionGroupType } from '@prisma/client'
+import { QuizType, QuestionsGroupType } from '~/kysely/enums'
 import { z } from 'zod'
 import { Checkbox } from '../ui/checkbox'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
@@ -66,7 +66,7 @@ export const AddSystemExamDialog = ({
       repeatFromSameHadith: false,
       groups: [
         {
-          type: QuestionGroupType.AUTOMATIC,
+          type: QuestionsGroupType.AUTOMATIC,
           questionsNumber: 25,
           gradePerQuestion: 1,
           difficulty: '',
@@ -77,20 +77,20 @@ export const AddSystemExamDialog = ({
     },
   })
 
-  const examCreate = api.createSystemExam.useMutation()
+  const examCreate = api.systemExam.create.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.findMany.useQuery({})
+    api.course.list.useQuery({})
 
   const {
     data: tracks,
     isLoading: isTracksLoading,
     fetchStatus: tracksFetchStatus,
-  } = api.track.findMany.useQuery(
-    { where: { courseId } },
+  } = api.track.list.useQuery(
+    { filters: { courseId } },
     { enabled: !!courseId }
   )
 
@@ -98,22 +98,10 @@ export const AddSystemExamDialog = ({
     isLoading: isCurriculaLoading,
     data: curricula,
     fetchStatus: curriculaFetchStatus,
-  } = api.curriculum.findMany.useQuery(
-    {
-      where: { track: { id: trackId, courseId: undefined } },
-      include: { parts: true },
-    },
-    {
-      enabled: !!trackId,
-      queryKey: [
-        'curriculum.findMany',
-        {
-          where: { track: { id: trackId, courseId } },
-          include: { parts: true },
-        },
-      ],
-    }
-  )
+  } = api.curriculum.list.useQuery({
+    filters: { trackId },
+    include: { parts: true },
+  })
 
   const {
     fields: groups,
@@ -125,18 +113,18 @@ export const AddSystemExamDialog = ({
     name: 'groups',
   })
 
-  const { data: cycles, isLoading: isCyclesLoading } =
-    api.cycle.findMany.useQuery({})
+  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery(
+    {}
+  )
 
   const appendGroup = () => {
     append({
-      type: 'automatic',
+      type: 'AUTOMATIC',
       questionsNumber: 25,
       gradePerQuestion: 1,
       difficulty: '',
       styleOrType: '',
       questions: [],
-      // questions: {},
     })
   }
 

@@ -34,9 +34,9 @@ export const QuizType = {
   SECOND_MEHWARY: 'SECOND_MEHWARY',
 } as const
 export type QuizType = (typeof QuizType)[keyof typeof QuizType]
-export const QuestionGroupType = {
+export const QuestionsGroupType = {
   MANUAL: 'MANUAL',
   AUTOMATIC: 'AUTOMATIC',
 } as const
-export type QuestionGroupType =
-  (typeof QuestionGroupType)[keyof typeof QuestionGroupType]
+export type QuestionsGroupType =
+  (typeof QuestionsGroupType)[keyof typeof QuestionsGroupType]

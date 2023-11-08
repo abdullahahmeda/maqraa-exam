@@ -1,16 +1,34 @@
 import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure } from '../../trpc'
-import { prisma } from '~/server/db'
+import { db } from '~/server/db'
 import { exportSheet } from '~/services/sheet'
 import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
 import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
 import { SystemExamService } from '~/services/systemExam'
-import { db } from './helper'
+import { z } from 'zod'
+import { SystemExamWhereInputObjectSchema } from '@zenstackhq/runtime/zod/objects'
+import { QuizType } from '~/kysely/enums'
+import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
+import { SelectQueryBuilder } from 'kysely'
+import { DB } from '~/kysely/types'
+
+const systemExamFilterSchema = z.object({
+  type: z.nativeEnum(QuizType).optional(),
+  cycleId: z.string().optional(),
+  curriculumId: z.string().optional(),
+})
+
+function applySystemExamFilters<O>(
+  query: SelectQueryBuilder<DB, 'SystemExam', O>,
+  filters: z.infer<typeof systemExamFilterSchema>
+) {
+  return applyFilters(query, filters)
+}
 
 export const systemExamRouter = createTRPCRouter({
-  createSystemExam: protectedProcedure
+  create: protectedProcedure
     .input(newSystemExamSchema)
     .mutation(async ({ ctx, input }) => {
       if (ctx.session.user.role !== 'ADMIN')
@@ -19,11 +37,145 @@ export const systemExamRouter = createTRPCRouter({
           message: 'أنت لا تملك الصلاحيات لهذه العملية',
         })
 
-      const systemExamService = new SystemExamService(prisma)
-      return await systemExamService.create(input)
+      const { groups, trackId, courseId, ...data } = input
+
+      let total = 0
+      let questions: { questionId: string; weight: number }[] = []
+      let usedQuestions = new Set()
+      for (const group of groups) {
+        for (const question of Object.values(group.questions)) {
+          total += question.weight
+          if (usedQuestions.has(question.id))
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'هناك أسئلة مكررة',
+            })
+          questions.push({ questionId: question.id, weight: question.weight })
+          usedQuestions.add(question.id)
+        }
+      }
+
+      const students = await ctx.db
+        .selectFrom('StudentCycle')
+        .leftJoin('Student', 'StudentCycle.studentId', 'Student.id')
+        .select(['StudentCycle.studentId', 'Student.userId'])
+        .where('cycleId', '=', data.cycleId)
+        .where('curriculumId', '=', data.curriculumId)
+        .execute()
+
+      await ctx.db.transaction().execute(async (trx) => {
+        const systemExam = await trx
+          .insertInto('SystemExam')
+          .values(data)
+          .returning('id')
+          .executeTakeFirstOrThrow()
+
+        const model = await trx
+          .insertInto('Model')
+          .values({ systemExamId: systemExam!.id })
+          .returning('id')
+          .executeTakeFirstOrThrow()
+
+        await trx
+          .insertInto('ModelQuestion')
+          .values(
+            questions.map((question, index) => ({
+              ...question,
+              modelId: model!.id,
+              order: index + 1,
+            }))
+          )
+          .execute()
+
+        await trx
+          .insertInto('Quiz')
+          .values(
+            students.map(({ userId }) => ({
+              curriculumId: data.curriculumId,
+              modelId: model!.id,
+              endsAt: data.endsAt,
+              total,
+              type: data.type,
+              examineeId: userId,
+              systemExamId: systemExam.id,
+            }))
+          )
+          .execute()
+      })
+
+      return true
     }),
 
-  exportSystemExams: protectedProcedure
+  list: protectedProcedure
+    .input(
+      z.object({
+        filters: systemExamFilterSchema.optional(),
+        include: z
+          .record(
+            z.union([
+              z.literal('cycle'),
+              z.literal('curriculum'),
+              z.literal('quizzesCount'),
+            ]),
+            z.boolean().optional()
+          )
+          .optional(),
+        pagination: paginationSchema.optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const query = applyPagination(
+        applySystemExamFilters(
+          ctx.db
+            .selectFrom('SystemExam')
+            .selectAll('SystemExam')
+            .$if(!!input.include?.curriculum, (qb) =>
+              qb
+                .leftJoin(
+                  'Curriculum',
+                  'SystemExam.curriculumId',
+                  'Curriculum.id'
+                )
+                .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
+                .leftJoin('Course', 'Track.courseId', 'Course.id')
+                .select([
+                  'Course.name as courseName',
+                  'Curriculum.name as curriculumName',
+                ])
+            )
+            .$if(!!input.include?.cycle, (qb) =>
+              qb
+                .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
+                .select('Cycle.name as cycleName')
+            )
+            .$if(!!input.include?.quizzesCount, (qb) =>
+              qb.select(({ selectFrom }) => [
+                selectFrom('Quiz')
+                  .whereRef('SystemExam.id', '=', 'Quiz.systemExamId')
+                  .select(({ fn }) => [fn.count('Quiz.id').as('quizzesCount')])
+                  .as('quizzesCount'),
+              ])
+            ),
+          input.filters || {}
+        ),
+        input.pagination
+      )
+      return await query.execute()
+    }),
+  count: protectedProcedure
+    .input(z.object({ filters: systemExamFilterSchema.optional().default({}) }))
+    .query(async ({ ctx, input }) => {
+      const query = applySystemExamFilters(
+        ctx.db
+          .selectFrom('SystemExam')
+          .select(({ fn }) => fn.count('id').as('total')),
+        input.filters
+      )
+      const total = Number((await query.executeTakeFirst())?.total)
+      return total
+    }),
+
+  export: protectedProcedure
     .input(exportSystemExamsSchema)
     .mutation(async ({ input, ctx }) => {
       if (ctx.session.user.role !== 'ADMIN')
@@ -34,20 +186,26 @@ export const systemExamRouter = createTRPCRouter({
 
       const { cycleId } = input
 
-      const quizzes = await prisma.quiz.findMany({
-        where: { systemExamId: { not: null }, systemExam: { cycleId } },
-        include: {
-          examinee: true,
-          corrector: true,
-          curriculum: { include: { track: { select: { course: true } } } },
-          systemExam: true,
-        },
-      })
+      const quizzes = await ctx.db
+        .selectFrom('Quiz')
+        .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
+        .leftJoin('User as examinee', 'Quiz.examineeId', 'examinee.id')
+        .leftJoin('User as corrector', 'Quiz.correctorId', 'corrector.id')
+        .selectAll('Quiz')
+        .select([
+          'SystemExam.name as systemExamName',
+          'examinee.name as examineeName',
+          'examinee.email as examineeEmail',
+          'corrector.name as correctorName',
+        ])
+        .where('Quiz.systemExamId', 'is not', null)
+        .where('SystemExam.cycleId', '=', cycleId)
+        .execute()
 
       return exportSheet(quizzes, (q) => ({
-        الإختبار: q.systemExam!.name,
-        الطالب: q.examinee!.name,
-        'إيميل الطالب': q.examinee!.email,
+        الإختبار: q.systemExamName,
+        الطالب: q.examineeName,
+        'إيميل الطالب': q.examineeEmail,
         'الدرجة المتوقعة':
           !q.correctedAt && typeof q.grade === 'number' ? q.grade : '',
         الدرجة: q.correctedAt ? q.grade : '',
@@ -63,7 +221,14 @@ export const systemExamRouter = createTRPCRouter({
         'وقت البدأ': q.enteredAt ? formatDate(q.enteredAt) : '',
         'وقت التسليم': q.submittedAt ? formatDate(q.submittedAt) : '',
         'وقت التصحيح': q.correctedAt ? formatDate(q.correctedAt) : '',
-        المصحح: q.corrector ? q.corrector.name : '',
+        المصحح: q.correctorName,
       }))
+    }),
+
+  delete: protectedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.deleteFrom('SystemExam').where('id', '=', input).execute()
+      return true
     }),
 })

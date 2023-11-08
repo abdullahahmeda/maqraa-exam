@@ -1,4 +1,4 @@
-import { UserRole } from '@prisma/client'
+import { UserRole } from '~/kysely/enums'
 import { z } from 'zod'
 
 const baseSchema = z.object({

@@ -116,9 +116,9 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <FormMessage>
+              <p className='text-sm font-medium text-destructive'>
                 {form.formState.errors.root?.serverError?.message}
-              </FormMessage>
+              </p>
               <div>
                 <Link
                   href='forgot-password'

@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { Curriculum, CurriculumPart, Track, UserRole } from '@prisma/client'
+import { Curriculum, CurriculumPart, Track } from '~/kysely/types'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ColumnFiltersState,
@@ -40,6 +40,7 @@ import {
 import { useToast } from '~/components/ui/use-toast'
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
+import { getColumnFilters } from '~/utils/getColumnFilters'
 
 const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   const curriculumDelete = api.curriculum.delete.useMutation()
@@ -51,7 +52,7 @@ const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   const deleteCurriculum = () => {
     const t = toast({ title: 'جاري حذف المنهج' })
     curriculumDelete
-      .mutateAsync({ where: { id } })
+      .mutateAsync(id)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المنهج بنجاح' })
@@ -86,6 +87,10 @@ type RowType = Curriculum & {
   parts: CurriculumPart[]
 }
 
+const columnFiltersValidators = {
+  trackId: z.string(),
+}
+
 const columnHelper = createColumnHelper<RowType>()
 
 const columns = [
@@ -95,69 +100,63 @@ const columns = [
       className: 'text-center',
     },
   }),
-  columnHelper.accessor(
-    (row) => `${row.track.course.name}: ${row.track.name}`,
-    {
-      id: 'track',
-      header: ({ column }) => {
-        const { data: tracks, isLoading } = api.track.findMany.useQuery({
-          include: { course: true },
-        })
+  columnHelper.accessor((row) => `${row.courseName}: ${row.trackName}`, {
+    id: 'trackId',
+    header: ({ column }) => {
+      const { data: tracks, isLoading } = api.track.list.useQuery({
+        include: { course: true },
+      })
 
-        const filterValue = column.getFilterValue() as string | undefined
+      const filterValue = column.getFilterValue() as string | undefined
 
-        return (
-          <div className='flex items-center'>
-            المسار
-            <Popover>
-              <PopoverTrigger className='mr-4' asChild>
-                <Button
-                  size='icon'
-                  variant={filterValue ? 'secondary' : 'ghost'}
-                >
-                  <Filter className='h-4 w-4' />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Combobox
-                  items={[
-                    { name: 'الكل', id: '' },
-                    ...(tracks?.map((t) => ({
-                      ...t,
-                      name: `${t.course.name}: ${t.name}`,
-                    })) || []),
-                  ]}
-                  loading={isLoading}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={column.setFilterValue}
-                  value={filterValue}
-                  triggerText='الكل'
-                  triggerClassName='w-full'
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )
-      },
-      meta: {
-        className: 'text-center',
-      },
-    }
-  ),
-  columnHelper.accessor('parts', {
-    header: 'المقدار',
-    cell: ({ row }) =>
-      row.original.parts.map((part) => (
-        <div key={part.id}>
-          {part.name}: من الحديث {part.from} إلى {part.to} ({part.from}-
-          {part.mid}، {Math.min(part.mid + 1, part.to)}-{part.to})
+      return (
+        <div className='flex items-center'>
+          المسار
+          <Popover>
+            <PopoverTrigger className='mr-4' asChild>
+              <Button size='icon' variant={filterValue ? 'secondary' : 'ghost'}>
+                <Filter className='h-4 w-4' />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent>
+              <Combobox
+                items={[
+                  { name: 'الكل', id: '' },
+                  ...(tracks?.map((t) => ({
+                    ...t,
+                    name: `${t.courseName}: ${t.name}`,
+                  })) || []),
+                ]}
+                loading={isLoading}
+                labelKey='name'
+                valueKey='id'
+                onSelect={column.setFilterValue}
+                value={filterValue}
+                triggerText='الكل'
+                triggerClassName='w-full'
+              />
+            </PopoverContent>
+          </Popover>
         </div>
-      )),
+      )
+    },
     meta: {
       className: 'text-center',
     },
   }),
+  // columnHelper.accessor('parts', {
+  //   header: 'المقدار',
+  //   cell: ({ row }) =>
+  //     row.original.parts.map((part) => (
+  //       <div key={part.id}>
+  //         {part.name}: من الحديث {part.from} إلى {part.to} ({part.from}-
+  //         {part.mid}، {Math.min(part.mid + 1, part.to)}-{part.to})
+  //       </div>
+  //     )),
+  //   meta: {
+  //     className: 'text-center',
+  //   },
+  // }),
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
@@ -222,29 +221,24 @@ const CurriculaPage = () => {
     pageSize,
   }
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const filters = columnFilters.map((filter) => {
-    if (filter.id === 'track')
-      return { trackId: { equals: filter.value as string } }
-    return { [filter.id]: { equals: filter.value } }
-  })
+  const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
+  const filters = columnFilters.reduce(
+    (obj, f) => ({ ...obj, [f.id]: f.value }),
+    {}
+  )
 
   const { data: curricula, isFetching: isFetchingCurricula } =
-    api.curriculum.findMany.useQuery(
+    api.curriculum.list.useQuery(
       {
-        skip: pageIndex * pageSize,
-        take: pageSize,
-        include: { track: { include: { course: true } }, parts: true },
-        where: { AND: filters },
+        pagination,
+        include: { track: true },
+        filters,
       },
       { networkMode: 'always' }
     )
 
   const { data: count, isLoading: isCountLoading } =
-    api.curriculum.count.useQuery(
-      { where: { AND: filters } },
-      { networkMode: 'always' }
-    )
+    api.curriculum.count.useQuery({ filters }, { networkMode: 'always' })
 
   const pageCount =
     curricula !== undefined && typeof count === 'number'
@@ -266,7 +260,18 @@ const CurriculaPage = () => {
       router.push(router)
     },
     manualFiltering: true,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      const newColumnFilters: ColumnFiltersState = (
+        updater as CallableFunction
+      )(columnFilters)
+      Object.keys(columnFiltersValidators).forEach((filterId) => {
+        delete router.query[filterId]
+      })
+      newColumnFilters.forEach((filter) => {
+        ;(router.query as any)[filter.id] = filter.value
+      })
+      router.push(router)
+    },
   })
 
   return (

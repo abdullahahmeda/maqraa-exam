@@ -1,7 +1,6 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { Question } from '@prisma/client'
 import {
   ColumnFiltersState,
   PaginationState,
@@ -58,10 +57,22 @@ import { DeleteQuestionDialog } from '~/components/modals/delete-question'
 import { saveAs } from 'file-saver'
 import { Input } from '~/components/ui/input'
 import { useQueryClient } from '@tanstack/react-query'
+import { QuestionDifficulty, QuestionStyle, QuestionType } from '~/kysely/enums'
+import { getColumnFilters } from '~/utils/getColumnFilters'
+import { Question } from '~/kysely/types'
 
-const columnHelper = createColumnHelper<
-  Question & { course: { name: string } }
->()
+const columnHelper = createColumnHelper<Question & { courseName: string }>()
+
+const columnFiltersValidators = {
+  number: z.preprocess(
+    (v) => Number(v),
+    z.number().min(0).int().safe().finite()
+  ),
+  courseId: z.string(),
+  type: z.nativeEnum(QuestionType),
+  style: z.nativeEnum(QuestionStyle),
+  difficulty: z.nativeEnum(QuestionDifficulty),
+}
 
 const columns = [
   columnHelper.display({
@@ -89,7 +100,7 @@ const columns = [
   }),
   columnHelper.accessor('number', {
     header: ({ column }) => {
-      const filterValue = column.getFilterValue() as string | undefined
+      const filterValue = column.getFilterValue() as number | undefined
       return (
         <div className='flex items-center'>
           رقم السؤال
@@ -101,9 +112,12 @@ const columns = [
             </PopoverTrigger>
             <PopoverContent>
               <Input
-                type='text'
+                type='number'
                 value={filterValue === undefined ? '' : filterValue}
-                onChange={(e) => column.setFilterValue(e.target.value)}
+                min={0}
+                onChange={(e) => {
+                  column.setFilterValue(e.target.value)
+                }}
               />
             </PopoverContent>
           </Popover>
@@ -135,10 +149,10 @@ const columns = [
   columnHelper.accessor('text', {
     header: 'السؤال',
   }),
-  columnHelper.accessor('course.name', {
-    id: 'course',
+  columnHelper.accessor('courseName', {
+    id: 'courseId',
     header: ({ column }) => {
-      const { data: courses, isLoading } = api.course.findMany.useQuery({})
+      const { data: courses, isLoading } = api.course.list.useQuery({})
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -358,40 +372,28 @@ const QuestionsPage = () => {
     pageSize,
   }
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const filters = columnFilters.map((filter) => {
-    if (filter.id === 'course')
-      return { courseId: { equals: filter.value as string } }
-    else if (
-      filter.id === 'number' &&
-      typeof filter.value === 'string' &&
-      filter.value.length > 0
-    )
-      return { number: parseInt(filter.value) }
+  const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
+  const filters = columnFilters.reduce(
+    (obj, f) => ({ ...obj, [f.id]: f.value }),
+    {}
+  )
 
-    return { [filter.id]: { equals: filter.value } }
-  })
-
-  const bulkQuestionsDelete = api.deleteBulkQuestions.useMutation()
+  const bulkQuestionsDelete = api.question.bulkDelete.useMutation()
 
   const { data: questions, isFetching: isFetchingQuestions } =
-    api.question.findMany.useQuery(
+    api.question.list.useQuery(
       {
-        skip: pageIndex * pageSize,
-        take: pageSize,
+        pagination,
         include: { course: true },
-        where: { AND: filters },
+        filters,
       },
       { networkMode: 'always' }
     )
 
   const { data: count, isLoading: isCountLoading } =
-    api.question.count.useQuery(
-      { where: { AND: filters } },
-      { networkMode: 'always' }
-    )
+    api.question.count.useQuery({ filters }, { networkMode: 'always' })
 
-  const questionsExport = api.exportQuestions.useMutation()
+  const questionsExport = api.question.export.useMutation()
 
   const pageCount =
     questions !== undefined && typeof count === 'number'
@@ -416,7 +418,18 @@ const QuestionsPage = () => {
     },
     onRowSelectionChange: setRowSelection,
     manualFiltering: true,
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      const newColumnFilters: ColumnFiltersState = (
+        updater as CallableFunction
+      )(columnFilters)
+      Object.keys(columnFiltersValidators).forEach((filterId) => {
+        delete router.query[filterId]
+      })
+      newColumnFilters.forEach((filter) => {
+        ;(router.query as any)[filter.id] = filter.value
+      })
+      router.push(router)
+    },
   })
 
   const selectedRows = table

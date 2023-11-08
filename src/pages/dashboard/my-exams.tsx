@@ -1,14 +1,4 @@
-import {
-  Course,
-  Curriculum,
-  Cycle,
-  Quiz,
-  QuizType,
-  Prisma,
-  SystemExam,
-  User,
-  UserRole,
-} from '@prisma/client'
+import { Course, Curriculum, Cycle, Quiz, User } from '~/kysely/types'
 import {
   ColumnFiltersState,
   createColumnHelper,
@@ -20,7 +10,7 @@ import { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { ReactNode, useState } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
 import { z } from 'zod'
 import { Button, buttonVariants } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
@@ -78,9 +68,7 @@ import {
   TooltipContent,
   TooltipProvider,
 } from '~/components/ui/tooltip'
-import { checkRead } from '~/server/api/routers/custom/helper'
-import { enhance } from '@zenstackhq/runtime'
-import { prisma as _prisma } from '~/server/db'
+import { db } from '~/server/db'
 import { EditQuizDialog } from '~/components/modals/edit-quiz'
 import { percentage } from '~/utils/percentage'
 import { useToast } from '~/components/ui/use-toast'
@@ -115,109 +103,30 @@ const MyExamsPage = () => {
     pageSize,
   }
 
-  const columns = [
-    ...(session?.user.role === 'CORRECTOR'
-      ? [
-          columnHelper.accessor('examinee.name', {
-            header: 'الطالب',
-          }),
-          columnHelper.accessor('examinee.email', {
-            header: 'إيميل الطالب',
-          }),
-        ]
-      : []),
-    columnHelper.accessor('systemExam.name', {
-      id: 'systemExamId',
-      header: ({ column }) => {
-        const { data: systemExams, isLoading } =
-          api.systemExam.findMany.useQuery({})
+  const columns = useMemo(
+    () => [
+      ...(session?.user.role === 'CORRECTOR'
+        ? [
+            columnHelper.accessor('examinee.name', {
+              header: 'الطالب',
+            }),
+            columnHelper.accessor('examinee.email', {
+              header: 'إيميل الطالب',
+            }),
+          ]
+        : []),
+      columnHelper.accessor('systemExamName', {
+        id: 'systemExamId',
+        header: ({ column }) => {
+          const { data: systemExams, isLoading } = api.systemExam.list.useQuery(
+            {}
+          )
 
-        const filterValue = column.getFilterValue() as string | undefined
-
-        return (
-          <div className='flex items-center'>
-            الإختبار
-            <Popover>
-              <PopoverTrigger className='mr-4' asChild>
-                <Button
-                  size='icon'
-                  variant={filterValue ? 'secondary' : 'ghost'}
-                >
-                  <Filter className='h-4 w-4' />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Combobox
-                  items={[
-                    { name: 'الكل', id: 'not_null' },
-                    ...(systemExams || []),
-                  ]}
-                  loading={isLoading}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={column.setFilterValue}
-                  value={filterValue}
-                  triggerText='الكل'
-                  triggerClassName='w-full'
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )
-      },
-    }),
-    columnHelper.accessor('systemExam.cycle.name', {
-      id: 'cycle',
-      header: ({ column }) => {
-        const { data: cycles, isLoading } = api.cycle.findMany.useQuery({})
-
-        const filterValue = column.getFilterValue() as string | undefined
-
-        return (
-          <div className='flex items-center'>
-            الدورة
-            <Popover>
-              <PopoverTrigger className='mr-4' asChild>
-                <Button
-                  size='icon'
-                  variant={filterValue ? 'secondary' : 'ghost'}
-                >
-                  <Filter className='h-4 w-4' />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Combobox
-                  items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
-                  loading={isLoading}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={column.setFilterValue}
-                  value={filterValue}
-                  triggerText='الكل'
-                  triggerClassName='w-full'
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )
-      },
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor(
-      (row) => `${row.curriculum.track.course.name} :${row.curriculum.name}`,
-      {
-        id: 'curriculum',
-        header: ({ column, table }) => {
-          const { data: curricula, isLoading } =
-            api.curriculum.findMany.useQuery({
-              include: { track: { select: { course: true } } },
-            })
           const filterValue = column.getFilterValue() as string | undefined
+
           return (
             <div className='flex items-center'>
-              المنهج
+              الإختبار
               <Popover>
                 <PopoverTrigger className='mr-4' asChild>
                   <Button
@@ -230,12 +139,45 @@ const MyExamsPage = () => {
                 <PopoverContent>
                   <Combobox
                     items={[
-                      { name: 'الكل', id: '' },
-                      ...(curricula?.map((c) => ({
-                        ...c,
-                        name: `${c.track.course.name}: ${c.name}`,
-                      })) || []),
+                      { name: 'الكل', id: 'not_null' },
+                      ...(systemExams || []),
                     ]}
+                    loading={isLoading}
+                    labelKey='name'
+                    valueKey='id'
+                    onSelect={column.setFilterValue}
+                    value={filterValue}
+                    triggerText='الكل'
+                    triggerClassName='w-full'
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )
+        },
+      }),
+      columnHelper.accessor('cycleName', {
+        id: 'cycle',
+        header: ({ column }) => {
+          const { data: cycles, isLoading } = api.cycle.list.useQuery({})
+
+          const filterValue = column.getFilterValue() as string | undefined
+
+          return (
+            <div className='flex items-center'>
+              الدورة
+              <Popover>
+                <PopoverTrigger className='mr-4' asChild>
+                  <Button
+                    size='icon'
+                    variant={filterValue ? 'secondary' : 'ghost'}
+                  >
+                    <Filter className='h-4 w-4' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Combobox
+                    items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
                     loading={isLoading}
                     labelKey='name'
                     valueKey='id'
@@ -252,106 +194,131 @@ const MyExamsPage = () => {
         meta: {
           className: 'text-center',
         },
-      }
-    ),
-    columnHelper.accessor('grade', {
-      header: 'الدرجة',
-      cell: ({ getValue, row }) =>
-        typeof getValue() === 'number'
-          ? `${
-              !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-            }${getValue()} من ${row.original.total} (${percentage(
-              getValue() as number,
-              row.original.total as number
-            )}%)`
-          : '-',
-    }),
-    columnHelper.accessor('endsAt', {
-      header: 'وقت القفل',
-      cell: (info) =>
-        info.getValue() ? (
-          <div>
-            {formatDate(info.getValue() as Date)}{' '}
-            {(info.getValue() as Date) > new Date() ? (
-              <Badge>مفتوح</Badge>
-            ) : (
-              <Badge variant='destructive'>مغلق</Badge>
-            )}
-          </div>
-        ) : (
-          '-'
-        ),
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('enteredAt', {
-      header: 'وقت البدأ',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('submittedAt', {
-      header: 'وقت التسليم',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('correctedAt', {
-      header: 'وقت التصحيح',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    ...(session?.user.role === 'STUDENT'
-      ? [
-          columnHelper.accessor('corrector.name', {
-            header: 'المصحح',
-            cell: (info) => info.getValue() || '-',
-            meta: {
-              className: 'text-center',
-            },
-          }),
-        ]
-      : []),
-    columnHelper.display({
-      id: 'actions',
-      header: 'الإجراءات',
-      cell: ({ row }) => (
-        <div className='flex justify-center gap-2'>
-          {session?.user.role === 'CORRECTOR' ? (
-            <>
-              {!!row.original.submittedAt && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link
-                        className={cn(
-                          buttonVariants({ variant: 'ghost', size: 'icon' })
-                        )}
-                        href={`/dashboard/quizzes/${row.original.id}`}
-                      >
-                        <FileCheck2 className='h-4 w-4 text-success' />
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>تصحيح الإختبار</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+      }),
+      columnHelper.accessor(
+        (row) => `${row.courseName} :${row.curriculumName}`,
+        {
+          id: 'curriculum',
+          header: ({ column, table }) => {
+            const { data: curricula, isLoading } = api.curriculum.list.useQuery(
+              {
+                include: { track: true },
+              }
+            )
+            const filterValue = column.getFilterValue() as string | undefined
+            return (
+              <div className='flex items-center'>
+                المنهج
+                <Popover>
+                  <PopoverTrigger className='mr-4' asChild>
+                    <Button
+                      size='icon'
+                      variant={filterValue ? 'secondary' : 'ghost'}
+                    >
+                      <Filter className='h-4 w-4' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Combobox
+                      items={[
+                        { name: 'الكل', id: '' },
+                        ...(curricula?.map((c) => ({
+                          ...c,
+                          name: `${c.courseName}: ${c.name}`,
+                        })) || []),
+                      ]}
+                      loading={isLoading}
+                      labelKey='name'
+                      valueKey='id'
+                      onSelect={column.setFilterValue}
+                      value={filterValue}
+                      triggerText='الكل'
+                      triggerClassName='w-full'
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )
+          },
+          meta: {
+            className: 'text-center',
+          },
+        }
+      ),
+      columnHelper.accessor('grade', {
+        header: 'الدرجة',
+        cell: ({ getValue, row }) =>
+          typeof getValue() === 'number'
+            ? `${
+                !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
+              }${getValue()} من ${row.original.total} (${percentage(
+                getValue() as number,
+                row.original.total as number
+              )}%)`
+            : '-',
+      }),
+      columnHelper.accessor('endsAt', {
+        header: 'وقت القفل',
+        cell: (info) =>
+          info.getValue() ? (
+            <div>
+              {formatDate(info.getValue() as Date)}{' '}
+              {(info.getValue() as Date) > new Date() ? (
+                <Badge>مفتوح</Badge>
+              ) : (
+                <Badge variant='destructive'>مغلق</Badge>
               )}
-            </>
+            </div>
           ) : (
-            <>
-              {(!row.original.endsAt ||
-                (row.original.endsAt && row.original.endsAt > new Date())) &&
-                !row.original.submittedAt && (
+            '-'
+          ),
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('enteredAt', {
+        header: 'وقت البدأ',
+        cell: (info) =>
+          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('submittedAt', {
+        header: 'وقت التسليم',
+        cell: (info) =>
+          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('correctedAt', {
+        header: 'وقت التصحيح',
+        cell: (info) =>
+          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      ...(session?.user.role === 'STUDENT'
+        ? [
+            columnHelper.accessor('corrector.name', {
+              header: 'المصحح',
+              cell: (info) => info.getValue() || '-',
+              meta: {
+                className: 'text-center',
+              },
+            }),
+          ]
+        : []),
+      columnHelper.display({
+        id: 'actions',
+        header: 'الإجراءات',
+        cell: ({ row }) => (
+          <div className='flex justify-center gap-2'>
+            {session?.user.role === 'CORRECTOR' ? (
+              <>
+                {!!row.original.submittedAt && (
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
@@ -359,24 +326,51 @@ const MyExamsPage = () => {
                           className={cn(
                             buttonVariants({ variant: 'ghost', size: 'icon' })
                           )}
-                          href={`/quizzes/${row.original.id}`}
+                          href={`/dashboard/quizzes/${row.original.id}`}
                         >
-                          <LogIn className='h-4 w-4' />
+                          <FileCheck2 className='h-4 w-4 text-success' />
                         </Link>
                       </TooltipTrigger>
-                      <TooltipContent>دخول الإختبار</TooltipContent>
+                      <TooltipContent>
+                        <p>تصحيح الإختبار</p>
+                      </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
                 )}
-            </>
-          )}
-        </div>
-      ),
-      meta: {
-        className: 'text-center',
-      },
-    }),
-  ]
+              </>
+            ) : (
+              <>
+                {(!row.original.endsAt ||
+                  (row.original.endsAt && row.original.endsAt > new Date())) &&
+                  !row.original.submittedAt && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            className={cn(
+                              buttonVariants({ variant: 'ghost', size: 'icon' })
+                            )}
+                            href={`/quizzes/${row.original.id}`}
+                          >
+                            <LogIn className='h-4 w-4' />
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent>دخول الإختبار</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+              </>
+            )}
+          </div>
+        ),
+        meta: {
+          className: 'text-center',
+        },
+      }),
+    ],
+    []
+  )
+
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
     {
       id: 'systemExamId',
@@ -384,34 +378,30 @@ const MyExamsPage = () => {
     },
   ])
 
-  const filters = columnFilters.map((filter) => {
-    if (filter.id === 'cycle')
-      return { systemExam: { cycleId: { equals: filter.value as string } } }
-    else if (filter.id === 'curriculum')
-      return { curriculumId: { equals: filter.value as string } }
-    else if (filter.id === 'systemExamId' && filter.value === 'not_null')
-      return { systemExamId: { not: null } }
-    return { [filter.id]: { equals: filter.value } }
-  })
+  const filters = columnFilters.reduce(
+    (obj, f) => ({ ...obj, [f.id]: f.value }),
+    {}
+  )
 
-  const { data: quizzes, isFetching } = api.quiz.findMany.useQuery(
+  const { data: quizzes, isFetching } = api.quiz.list.useQuery(
     {
-      skip: pageIndex * pageSize,
-      take: pageSize,
+      pagination,
       include: {
-        examinee: true,
+        // examinee: true,
         ...(session?.user.role === 'CORRECTOR' ? { examinee: true } : {}),
         ...(session?.user.role === 'STUDENT' ? { corrector: true } : {}),
-        systemExam: { select: { name: true, cycle: true } },
-        curriculum: { include: { track: { select: { course: true } } } },
+        curriculum: true,
+        systemExam: true,
+        // systemExam: { select: { name: true, cycle: true } },
+        // curriculum: { include: { track: { select: { course: true } } } },
       },
-      where: { AND: filters },
+      filters,
     },
     { networkMode: 'always' }
   )
 
   const { data: count, isLoading: isCountLoading } = api.quiz.count.useQuery(
-    { where: { AND: filters } },
+    { filters },
     { networkMode: 'always' }
   )
 

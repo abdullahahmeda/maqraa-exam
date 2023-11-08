@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { Cycle, UserRole } from '@prisma/client'
+import { Cycle } from '~/kysely/types'
 import {
   ColumnFiltersState,
   PaginationState,
@@ -87,24 +87,11 @@ const CyclesPage = () => {
     pageSize,
   }
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-
-  const filters = columnFilters.map((filter) => {
-    return { [filter.id]: { equals: filter.value } }
-  })
-
   const { data: cycles, isFetching: isFetchingCycles } =
-    api.cycle.findMany.useQuery(
-      {
-        skip: pageIndex * pageSize,
-        take: pageSize,
-        where: { AND: filters },
-      },
-      { networkMode: 'always' }
-    )
+    api.cycle.list.useQuery({ pagination }, { networkMode: 'always' })
 
   const { data: count, isLoading: isCountLoading } = api.cycle.count.useQuery(
-    { where: { AND: filters } },
+    undefined,
     { networkMode: 'always' }
   )
 
@@ -120,8 +107,7 @@ const CyclesPage = () => {
     getFilteredRowModel: getFilteredRowModel(),
     pageCount,
     manualPagination: true,
-    state: { pagination, columnFilters },
-    manualFiltering: true,
+    state: { pagination },
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -129,7 +115,6 @@ const CyclesPage = () => {
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
-    onColumnFiltersChange: setColumnFilters,
   })
 
   return (

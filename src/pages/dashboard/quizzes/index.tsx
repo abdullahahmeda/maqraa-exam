@@ -1,14 +1,4 @@
-import {
-  Course,
-  Curriculum,
-  Cycle,
-  Quiz,
-  QuizType,
-  Prisma,
-  SystemExam,
-  User,
-  UserRole,
-} from '@prisma/client'
+import { Curriculum, Quiz, User } from '~/kysely/types'
 import {
   ColumnFiltersState,
   createColumnHelper,
@@ -52,10 +42,15 @@ import {
   TooltipProvider,
 } from '~/components/ui/tooltip'
 import { percentage } from '~/utils/percentage'
+import { getColumnFilters } from '~/utils/getColumnFilters'
 
 type Row = Quiz & {
   examinee: User
   curriculum: Curriculum
+}
+
+const columnFiltersValidators = {
+  // type: z.nativeEnum(QuizType),
 }
 
 const columnHelper = createColumnHelper<Row>()
@@ -83,21 +78,21 @@ const ExamsPage = () => {
   }
 
   const columns = [
-    columnHelper.accessor('examinee.name', {
+    columnHelper.accessor('examineeName', {
       header: 'الطالب',
       cell: (info) => info.getValue() || '-',
       meta: {
         className: 'text-center',
       },
     }),
-    columnHelper.accessor('examinee.email', {
+    columnHelper.accessor('examineeEmail', {
       header: 'الإيميل',
       cell: (info) => info.getValue() || '-',
       meta: {
         className: 'text-center',
       },
     }),
-    columnHelper.accessor('curriculum.name', {
+    columnHelper.accessor('curriculumName', {
       id: 'curriculum',
       header: ({ column, table }) => {
         const { data: curricula, isLoading } = api.curriculum.findMany.useQuery(
@@ -241,38 +236,23 @@ const ExamsPage = () => {
       },
     }),
   ]
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([
-    {
-      id: 'systemExamId',
-      value: null,
-    },
-  ])
+  const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
+  const filters = {
+    ...columnFilters.reduce((obj, f) => ({ ...obj, [f.id]: f.value }), {}),
+    systemExamId: null,
+  }
 
-  const filters = columnFilters.map((filter) => {
-    if (filter.id === 'cycle')
-      return { systemExam: { cycleId: { equals: filter.value as string } } }
-    else if (filter.id === 'course')
-      return { courseId: { equals: filter.value as string } }
-    else if (filter.id === 'curriculum')
-      return { curriculumId: { equals: filter.value as string } }
-    return { [filter.id]: { equals: filter.value } }
-  })
-
-  const { data: exams, isFetching } = api.quiz.findMany.useQuery(
+  const { data: exams, isFetching } = api.quiz.list.useQuery(
     {
-      skip: pageIndex * pageSize,
-      take: pageSize,
-      include: {
-        examinee: true,
-        curriculum: { include: { track: { select: { course: true } } } },
-      },
-      where: { AND: filters },
+      pagination,
+      include: { curriculum: true, examinee: true },
+      filters,
     },
     { networkMode: 'always' }
   )
 
   const { data: count, isLoading: isCountLoading } = api.quiz.count.useQuery(
-    { where: { AND: filters } },
+    { filters },
     { networkMode: 'always' }
   )
 
@@ -299,7 +279,18 @@ const ExamsPage = () => {
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      const newColumnFilters: ColumnFiltersState = (
+        updater as CallableFunction
+      )(columnFilters)
+      Object.keys(columnFiltersValidators).forEach((filterId) => {
+        delete router.query[filterId]
+      })
+      newColumnFilters.forEach((filter) => {
+        ;(router.query as any)[filter.id] = filter.value
+      })
+      router.push(router)
+    },
   })
 
   return (

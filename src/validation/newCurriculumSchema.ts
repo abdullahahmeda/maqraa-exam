@@ -22,7 +22,7 @@ export const newCurriculumSchema = z.object({
           ),
           mid: z.preprocess(
             (v) => Number(v),
-            z.number().positive().int().finite()
+            z.number().nonnegative().int().finite()
           ),
         })
         .superRefine(({ from, to, mid }, ctx) => {

@@ -1,4 +1,4 @@
-import { UserRole as EnUserRole } from '@prisma/client'
+import { UserRole as EnUserRole } from '~/kysely/enums'
 import invert from 'lodash.invert'
 import randomize from 'randomatic'
 

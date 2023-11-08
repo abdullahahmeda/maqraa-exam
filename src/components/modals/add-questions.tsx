@@ -23,7 +23,7 @@ export const AddQuestionsDialog = ({
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const questionsImport = api.importQuestions.useMutation()
+  const questionsImport = api.question.import.useMutation()
 
   const onSubmit = (data: ImportQuestionsFieldValues) => {
     const t = toast({ title: 'جاري إضافة الأسئلة' })

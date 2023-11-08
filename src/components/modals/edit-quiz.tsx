@@ -46,15 +46,9 @@ export const EditQuizDialog = ({
     defaultValues: { repeatFromSameHadith: false },
   })
 
-  const quizUpdate = api.updateQuiz.useMutation()
+  const quizUpdate = api.quiz.update.useMutation()
 
-  const {
-    data: quiz,
-    isLoading,
-    error,
-  } = api.quiz.findFirst.useQuery({
-    where: { id },
-  })
+  const { data: quiz, isLoading, error } = api.quiz.get.useQuery(id)
 
   useEffect(() => {
     if (quiz) form.reset(quiz)
@@ -123,24 +117,6 @@ export const EditQuizDialog = ({
             </FormItem>
           )}
         />
-        <FormField
-          control={form.control}
-          name='repeatFromSameHadith'
-          render={({ field }) => (
-            <FormItem className='flex flex-row items-start space-x-3 space-y-0 space-x-reverse'>
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className='space-y-1 leading-none'>
-                <FormLabel>السماح بأكثر من سؤال في نفس الحديث</FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
-        <p>أقصى عدد للأسئلة في الإختبار: 25، مجموع الدرجات يجب أن يساوي 100</p>
         <Button>تعديل</Button>
       </form>
     </Form>

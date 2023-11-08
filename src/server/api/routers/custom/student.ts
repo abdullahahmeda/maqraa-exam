@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../../trpc'
-import { checkRead, db } from './helper'
 
 export const studentRouter = createTRPCRouter({
   getStudentOverallPerformance: protectedProcedure

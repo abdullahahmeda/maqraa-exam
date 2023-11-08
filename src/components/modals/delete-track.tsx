@@ -18,7 +18,7 @@ export const DeleteTrackDialog = ({ id }: { id: string }) => {
   const deleteCourse = () => {
     const t = toast({ title: 'جاري حذف المسار...' })
     trackDelete
-      .mutateAsync({ where: { id } })
+      .mutateAsync(id)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف المسار بنجاح' })

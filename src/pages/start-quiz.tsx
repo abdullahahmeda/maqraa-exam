@@ -1,5 +1,4 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { QuestionDifficulty } from '../constants'
 import Head from 'next/head'
 import {
   UseFieldArrayRemove,
@@ -33,7 +32,7 @@ import {
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { CheckedState } from '@radix-ui/react-checkbox'
-import { QuestionStyle, QuestionType } from '@prisma/client'
+import { QuestionStyle, QuestionType, QuestionDifficulty } from '~/kysely/enums'
 import { Input } from '~/components/ui/input'
 import { difficultyMapping, styleMapping, typeMapping } from '~/utils/questions'
 import {
@@ -227,7 +226,7 @@ const HomePage = () => {
     },
   })
 
-  const quizCreate = api.createQuiz.useMutation()
+  const quizCreate = api.quiz.create.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
@@ -243,14 +242,14 @@ const HomePage = () => {
   })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.findMany.useQuery({})
+    api.course.list.useQuery({})
 
   const {
     data: tracks,
     isLoading: isTracksLoading,
     fetchStatus: tracksFetchStatus,
-  } = api.track.findMany.useQuery(
-    { where: { courseId } },
+  } = api.track.list.useQuery(
+    { filters: { courseId } },
     { enabled: !!courseId }
   )
 
@@ -258,20 +257,13 @@ const HomePage = () => {
     isLoading: isCurriculaLoading,
     data: curricula,
     fetchStatus: curriculaFetchStatus,
-  } = api.curriculum.findMany.useQuery(
+  } = api.curriculum.list.useQuery(
     {
-      where: { track: { id: trackId, courseId: undefined } },
+      filters: { trackId },
       include: { parts: true },
     },
     {
       enabled: !!trackId,
-      queryKey: [
-        'curriculum.findMany',
-        {
-          where: { track: { id: trackId, courseId } },
-          include: { parts: true },
-        },
-      ],
     }
   )
 

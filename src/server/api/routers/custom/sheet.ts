@@ -1,11 +1,11 @@
 import { TRPCError } from '@trpc/server'
 import { z, ZodError } from 'zod'
-import { getSheets } from '~/utils/sheets'
+import { getGoogleSheetsNames } from '~/services/sheet'
 import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { spreadsheetUrlSchema } from '~/validation/importQuestionsSchema'
 import { GaxiosError } from 'gaxios'
 
-import { createTRPCRouter, adminOnlyProcedure } from '../../trpc'
+import { createTRPCRouter, protectedProcedure } from '../../trpc'
 
 const googleSheetErrorHandler = (error: any) => {
   if (error instanceof GaxiosError) {
@@ -30,91 +30,23 @@ const googleSheetErrorHandler = (error: any) => {
 }
 
 export const sheetRouter = createTRPCRouter({
-  listSheets: adminOnlyProcedure
-    .input(
-      z.object({
-        url: spreadsheetUrlSchema,
-      })
-    )
-    .query(async ({ input }) => {
+  listNames: protectedProcedure
+    .input(z.object({ url: spreadsheetUrlSchema }))
+    .query(async ({ input, ctx }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'ليس لديك الصلاحيات لهذه العملية',
+        })
       const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
 
       let sheets
       try {
-        sheets = await getSheets(spreadsheetId)
+        sheets = await getGoogleSheetsNames(spreadsheetId)
       } catch (error) {
         throw googleSheetErrorHandler(error)
       }
 
       return sheets
     }),
-
-  // importQuestions: adminOnlyProcedure
-  //   .input(importQuestionsSchema)
-  //   .mutation(async ({ input }) => {
-  //     const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
-
-  //     let rows
-  //     try {
-  //       rows = await getFields(spreadsheetId, input.sheet)
-  //     } catch (error) {
-  //       throw googleSheetErrorHandler(error)
-  //     }
-
-  //     try {
-  //       await importQuestions(rows, input.course)
-  //     } catch (error: any) {
-  //       if (error instanceof ZodError) {
-  //         const issue = error.issues[0]!
-
-  //         const [rowNumber, field] = issue.path
-
-  //         throw new TRPCError({
-  //           code: 'BAD_REQUEST',
-  //           message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
-  //           cause: issue,
-  //         })
-  //       }
-
-  //       throw new TRPCError({
-  //         code: 'INTERNAL_SERVER_ERROR',
-  //         message: 'حدث خطأ غير متوقع',
-  //       })
-  //     }
-  //     return true
-  //   }),
-  // importUsers: adminOnlyProcedure
-  //   .input(importUsersSchema)
-  //   .mutation(async ({ input }) => {
-  //     const spreadsheetId = getSpreadsheetIdFromURL(input.url) as string
-
-  //     let rows
-  //     try {
-  //       rows = await getFields(spreadsheetId, input.sheet)
-  //     } catch (error) {
-  //       throw googleSheetErrorHandler(error)
-  //     }
-
-  //     try {
-  //       await importUsers(rows)
-  //     } catch (error: any) {
-  //       if (error instanceof ZodError) {
-  //         const issue = error.issues[0]!
-
-  //         const [rowNumber, field] = issue.path
-
-  //         throw new TRPCError({
-  //           code: 'BAD_REQUEST',
-  //           message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
-  //           cause: issue,
-  //         })
-  //       }
-
-  //       throw new TRPCError({
-  //         code: 'INTERNAL_SERVER_ERROR',
-  //         message: 'حدث خطأ غير متوقع',
-  //       })
-  //     }
-  //     return true
-  //   }),
 })

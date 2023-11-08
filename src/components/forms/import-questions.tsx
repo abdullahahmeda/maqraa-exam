@@ -21,9 +21,8 @@ import {
 
 export type ImportQuestionsFieldValues = {
   url: string
-  sheet: string
-  course: undefined | string
-  removeOldQuestions: boolean
+  sheetName: string
+  courseId: string
 }
 
 type FormProps = {
@@ -41,25 +40,21 @@ export const ImportQuestionsForm = ({
     isFetching: isFetchingSheets,
     data: sheets,
     refetch: refetchSheets,
-  } = api.listSheets.useQuery(
-    {
-      url: form.getValues('url'),
-    },
+  } = api.sheet.listNames.useQuery(
+    { url: form.getValues('url') },
     {
       enabled: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
 
       onError: (error) => {
-        form.setError('url', {
-          message: error.message,
-        })
+        form.setError('url', { message: error.message })
       },
     }
   )
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.findMany.useQuery({})
+    api.course.list.useQuery({})
 
   const updateSpreadsheet = async () => {
     const isValidUrl = await form.trigger('url')
@@ -96,7 +91,7 @@ export const ImportQuestionsForm = ({
         />
         <FormField
           control={form.control}
-          name='sheet'
+          name='sheetName'
           render={({ field }) => (
             <FormItem>
               <FormLabel>الورقة</FormLabel>
@@ -124,7 +119,7 @@ export const ImportQuestionsForm = ({
         />
         <FormField
           control={form.control}
-          name='course'
+          name='courseId'
           render={({ field }) => (
             <FormItem>
               <FormLabel>المقرر</FormLabel>

@@ -19,8 +19,7 @@ import { type CreateNextContextOptions } from '@trpc/server/adapters/next'
 import { type Session } from 'next-auth'
 
 import { getServerAuthSession } from '../auth'
-import { prisma } from '../db'
-import { enhance } from '@zenstackhq/runtime'
+import { db } from '../db'
 
 type CreateContextOptions = {
   session:
@@ -28,7 +27,7 @@ type CreateContextOptions = {
         user: { role?: string }
       })
     | null
-  prisma: PrismaClient
+  db: Kysely<DB>
 }
 
 /**
@@ -44,7 +43,7 @@ type CreateContextOptions = {
 const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   return {
     session: opts.session,
-    prisma: enhance(prisma, { user: opts.session?.user }),
+    db,
   }
 }
 
@@ -62,8 +61,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 
   return createInnerTRPCContext({
     session,
-    // @ts-ignore
-    prisma: enhance(prisma, { user: session?.user }),
+    db,
   })
 }
 
@@ -77,8 +75,9 @@ import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 import { UserRole } from '../../constants'
 import { ZodError } from 'zod'
-import { PrismaClient } from '@prisma/client'
 import { env } from '~/env.mjs'
+import { Kysely } from 'kysely'
+import { DB } from '~/kysely/types'
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,

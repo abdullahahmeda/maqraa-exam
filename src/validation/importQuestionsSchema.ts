@@ -8,7 +8,6 @@ export const spreadsheetUrlSchema = z
 
 export const importQuestionsSchema = z.object({
   url: spreadsheetUrlSchema,
-  sheet: z.string().min(1),
-  course: z.string().min(1),
-  // removeOldQuestions: z.boolean()
+  sheetName: z.string().min(1),
+  courseId: z.string().min(1),
 })

@@ -1,5 +1,4 @@
 import { PrismaClient } from '@prisma/client'
-import { checkMutate } from '~/server/api/routers/custom/helper'
 import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
 
 export class CurriculumService {

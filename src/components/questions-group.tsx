@@ -35,13 +35,14 @@ import {
   typeMapping,
 } from '~/utils/questions'
 import { CSS } from '@dnd-kit/utilities'
+import { Question } from '~/kysely/types'
 import {
-  Question,
   QuestionDifficulty,
   QuestionStyle,
   QuestionType,
-  QuestionGroupType,
-} from '@prisma/client'
+  QuestionsGroupType,
+  QuizType,
+} from '~/kysely/enums'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import { api } from '~/utils/api'
 import { FixedSizeList } from 'react-window'
@@ -54,12 +55,12 @@ import { Badge } from './ui/badge'
 import sampleSize from 'lodash.samplesize'
 
 type ManualGroup = {
-  type: typeof QuestionGroupType.MANUAL
+  type: typeof QuestionsGroupType.MANUAL
   questions: { [index: string]: { id: string; weight: number } }
 }
 
 type AutomaticGroup = {
-  type: typeof QuestionGroupType.AUTOMATIC
+  type: typeof QuestionsGroupType.AUTOMATIC
   questionsNumber: number
   gradePerQuestion: number
   difficulty: QuestionDifficulty | string | undefined
@@ -188,42 +189,19 @@ export const QuestionGroup = ({
     name: `groups.${groupIndex}.questions`,
   })
 
-  const { data: parts, isLoading: isPartsLoading } =
-    api.curriculumPart.findMany.useQuery(
-      {
-        where: { curriculumId },
-        select: { from: true, to: true, number: true, mid: true },
-      },
-      { staleTime: Infinity }
-    )
-
   const {
     data: questions,
     isLoading: isManualQuestionsLoading,
     fetchStatus: manualQuestionsFetchStatus,
-  } = api.question.findMany.useQuery(
+  } = api.question.list.useQuery(
     {
-      where: {
+      filters: {
         courseId: courseId as string,
-        OR: parts?.map((part) => {
-          // WHOLE_CURRICULUM
-          let range = {
-            gte: part.from,
-            lte: part.to,
-          }
-          if (examType === 'FIRST_MEHWARY')
-            range = { gte: part.from, lte: part.mid }
-          else if (examType === 'SECOND_MEHWARY')
-            range = { gte: Math.max(part.from, part.mid), lte: part.to }
-          return {
-            partNumber: part.number,
-            hadithNumber: range,
-          }
-        }),
+        curriculum: { id: curriculumId, type: examType as QuizType },
       },
     },
     {
-      enabled: !!parts && !!curriculumId && !!courseId,
+      enabled: !!curriculumId && !!courseId && !!examType,
       staleTime: Infinity,
     }
   )
@@ -311,9 +289,9 @@ export const QuestionGroup = ({
             onValueChange={(value: string) => {
               form.setValue(
                 `groups.${groupIndex}.type`,
-                value as QuestionGroupType
+                value as QuestionsGroupType
               )
-              if (value === QuestionGroupType.MANUAL)
+              if (value === QuestionsGroupType.MANUAL)
                 form.setValue(`groups.${groupIndex}.questions`, {})
               else {
                 setAutomaticFilteredQuestions([])
@@ -323,13 +301,15 @@ export const QuestionGroup = ({
           >
             <div className='mx-4'>
               <TabsList className='mb-4 grid grid-cols-2'>
-                <TabsTrigger value={QuestionGroupType.AUTOMATIC}>
+                <TabsTrigger value={QuestionsGroupType.AUTOMATIC}>
                   تلقائي
                 </TabsTrigger>
-                <TabsTrigger value={QuestionGroupType.MANUAL}>يدوي</TabsTrigger>
+                <TabsTrigger value={QuestionsGroupType.MANUAL}>
+                  يدوي
+                </TabsTrigger>
               </TabsList>
             </div>
-            <TabsContent value={QuestionGroupType.AUTOMATIC}>
+            <TabsContent value={QuestionsGroupType.AUTOMATIC}>
               <div className='grid grid-cols-2 gap-4'>
                 <FormField
                   control={form.control}
@@ -478,7 +458,7 @@ export const QuestionGroup = ({
                 }
               </p>
             </TabsContent>
-            <TabsContent value={QuestionGroupType.MANUAL}>
+            <TabsContent value={QuestionsGroupType.MANUAL}>
               <h4 className='mb-2 text-lg font-semibold'>
                 اختر الأسئلة المراد إضافتها
               </h4>

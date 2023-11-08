@@ -1,4 +1,3 @@
-import { Course, Track } from '@prisma/client'
 import { UseFormReturn, useFieldArray } from 'react-hook-form'
 import { api } from '~/utils/api'
 import {
@@ -45,10 +44,9 @@ export const CurriculumForm = ({
   isLoading = false,
   submitText,
 }: FormProps) => {
-  const { data: tracks, isLoading: isTracksLoading } =
-    api.track.findMany.useQuery({
-      include: { course: true },
-    })
+  const { data: tracks, isLoading: isTracksLoading } = api.track.list.useQuery({
+    include: { course: true },
+  })
   const {
     fields: parts,
     append,
@@ -80,7 +78,7 @@ export const CurriculumForm = ({
                   items={
                     tracks?.map((t) => ({
                       ...t,
-                      name: `${t.course.name}: ${t.name}`,
+                      name: `${t.courseName}: ${t.name}`,
                     })) || []
                   }
                   loading={isTracksLoading}
@@ -174,7 +172,7 @@ export const CurriculumForm = ({
                   <FormItem>
                     <FormLabel>نصف المنهج حتى الحديث (المحور الأول)</FormLabel>
                     <FormControl>
-                      <Input type='number' min={1} {...field} />
+                      <Input type='number' min={0} {...field} />
                     </FormControl>
                     <FormDescription>
                       قم بوضعها 0 إذا كان هذا الجزء بالكامل خاص بالمحور الثاني

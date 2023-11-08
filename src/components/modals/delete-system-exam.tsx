@@ -18,7 +18,7 @@ export const DeleteSystemExamDialog = ({ id }: { id: string }) => {
   const deleteSystemExam = () => {
     const t = toast({ title: 'جاري حذف الإمتحان' })
     systemExamDelete
-      .mutateAsync({ where: { id } })
+      .mutateAsync(id)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف الإمتحان بنجاح' })

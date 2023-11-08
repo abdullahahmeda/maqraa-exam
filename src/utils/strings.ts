@@ -1,5 +1,5 @@
 import { compareTwoStrings } from 'string-similarity'
-import { QuestionType } from '@prisma/client'
+import { QuestionType } from '~/kysely/enums'
 
 export const normalizeText = function (text: string) {
   //remove special characters

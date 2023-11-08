@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { ErrorReport, UserRole, Question } from '@prisma/client'
+import { ErrorReport, Question } from '~/kysely/types'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   PaginationState,
@@ -95,17 +95,13 @@ const ErrorReportsPage = () => {
   }
 
   const { data: errorReports, isFetching: isFetchingErrorReports } =
-    api.errorReport.findMany.useQuery(
-      {
-        take: pageSize,
-        skip: pageIndex * pageSize,
-        include: { question: true },
-      },
+    api.errorReport.list.useQuery(
+      { pagination, include: { question: true } },
       { networkMode: 'always' }
     )
 
   const { data: count, isLoading: isCountLoading } =
-    api.errorReport.count.useQuery({}, { networkMode: 'always' })
+    api.errorReport.count.useQuery(undefined, { networkMode: 'always' })
 
   const pageCount =
     errorReports !== undefined && typeof count === 'number'
@@ -127,21 +123,21 @@ const ErrorReportsPage = () => {
         },
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor('question.number', {
+      columnHelper.accessor('questionNumber', {
         header: 'رقم السؤال',
         meta: {
           className: 'text-center',
         },
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor('question.partNumber', {
+      columnHelper.accessor('questionPartNumber', {
         header: 'رقم الجزء',
         meta: {
           className: 'text-center',
         },
         cell: (info) => info.getValue(),
       }),
-      columnHelper.accessor('question.pageNumber', {
+      columnHelper.accessor('questionPageNumber', {
         header: 'رقم الصفحة',
         meta: {
           className: 'text-center',

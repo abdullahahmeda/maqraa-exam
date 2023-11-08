@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
 // import { NextPageWithLayout } from '~/pages/_app'
-import { Track, UserRole } from '@prisma/client'
+import { Track } from '~/kysely/types'
 import {
   ColumnFiltersState,
   PaginationState,
@@ -34,15 +34,19 @@ import {
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
 import { Plus } from 'lucide-react'
+import { getColumnFilters } from '~/utils/getColumnFilters'
 
-const columnHelper = createColumnHelper<Track & { course: { name: string } }>()
+const columnFiltersValidators = {
+  courseId: z.string(),
+}
+const columnHelper = createColumnHelper<Track & { courseName: string }>()
 
 const columns = [
   columnHelper.accessor('name', { header: 'المسار' }),
-  columnHelper.accessor('course.name', {
-    id: 'course',
+  columnHelper.accessor('courseName', {
+    id: 'courseId',
     header: ({ column }) => {
-      const { data: courses, isLoading } = api.course.findMany.useQuery({})
+      const { data: courses, isLoading } = api.course.list.useQuery({})
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -114,26 +118,24 @@ const TracksPage = () => {
     pageSize,
   }
 
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const filters = columnFilters.map((filter) => {
-    if (filter.id === 'course')
-      return { courseId: { equals: filter.value as string } }
-    return { [filter.id]: { equals: filter.value } }
-  })
+  const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
+  const filters = columnFilters.reduce(
+    (obj, f) => ({ ...obj, [f.id]: f.value }),
+    {}
+  )
 
   const { data: tracks, isFetching: isFetchingTracks } =
-    api.track.findMany.useQuery(
+    api.track.list.useQuery(
       {
-        skip: pageIndex * pageSize,
-        take: pageSize,
-        where: { AND: filters },
+        pagination,
         include: { course: true },
+        filters,
       },
       { networkMode: 'always' }
     )
 
   const { data: count, isLoading: isCountLoading } = api.track.count.useQuery(
-    { where: { AND: filters } },
+    { filters },
     { networkMode: 'always' }
   )
 
@@ -158,7 +160,18 @@ const TracksPage = () => {
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      const newColumnFilters: ColumnFiltersState = (
+        updater as CallableFunction
+      )(columnFilters)
+      Object.keys(columnFiltersValidators).forEach((filterId) => {
+        delete router.query[filterId]
+      })
+      newColumnFilters.forEach((filter) => {
+        ;(router.query as any)[filter.id] = filter.value
+      })
+      router.push(router)
+    },
   })
 
   return (

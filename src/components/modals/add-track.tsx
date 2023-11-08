@@ -20,7 +20,7 @@ export const AddTrackDialog = ({
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const trackCreate = api.createTrack.useMutation()
+  const trackCreate = api.track.create.useMutation()
 
   const onSubmit = (data: AddTrackFieldValues) => {
     const t = toast({ title: 'جاري إضافة المسار' })

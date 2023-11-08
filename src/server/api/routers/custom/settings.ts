@@ -7,7 +7,6 @@
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../../trpc'
 import { SettingInputSchema } from '@zenstackhq/runtime/zod/input'
-import { checkMutate, db, checkRead } from './helper'
 
 // export const settingsRouter = createTRPCRouter({
 //   fetchAll: adminOnlyProcedure.query(async () => {

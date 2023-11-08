@@ -1,4 +1,4 @@
-import { QuestionStyle, QuestionType, QuestionDifficulty } from '@prisma/client'
+import { QuestionStyle, QuestionType, QuestionDifficulty } from '~/kysely/enums'
 import { z } from 'zod'
 
 export const groupSchema = z.object({

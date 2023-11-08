@@ -18,9 +18,7 @@ export const DeleteCycleDialog = ({ id }: { id: string }) => {
   const deleteCycle = () => {
     const t = toast({ title: 'جاري حذف الدورة' })
     cycleDelete
-      .mutateAsync({
-        where: { id }
-      })
+      .mutateAsync(id)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف الدورة بنجاح' })

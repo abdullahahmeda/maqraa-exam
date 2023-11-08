@@ -1,15 +1,5 @@
-import {
-  Course,
-  Curriculum,
-  Cycle,
-  Quiz,
-  QuizType,
-  Prisma,
-  SystemExam,
-  User,
-  UserRole,
-  Track,
-} from '@prisma/client'
+import { Course, Curriculum, Cycle, SystemExam, Track } from '~/kysely/types'
+import { QuizType, UserRole } from '~/kysely/enums'
 import {
   ColumnFiltersState,
   createColumnHelper,
@@ -21,7 +11,7 @@ import { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { ReactNode, useState } from 'react'
+import { ReactNode, useMemo, useState } from 'react'
 import { z } from 'zod'
 import { Button, buttonVariants } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
@@ -81,11 +71,18 @@ import { DeleteSystemExamDialog } from '~/components/modals/delete-system-exam'
 import { useToast } from '~/components/ui/use-toast'
 import { saveAs } from 'file-saver'
 import { ExportSystemExamsDialog } from '~/components/modals/export-system-exams'
+import { getColumnFilters } from '~/utils/getColumnFilters'
 
 type Row = SystemExam & {
   cycle: Cycle
   curriculum: Curriculum & { track: Track & { course: Course } }
   quizzes: { id: any }[]
+}
+
+const columnFiltersValidators = {
+  type: z.nativeEnum(QuizType),
+  curriculumId: z.string(),
+  cycleId: z.string(),
 }
 
 const columnHelper = createColumnHelper<Row>()
@@ -111,26 +108,117 @@ const SystemExamsPage = () => {
     pageSize,
   }
 
-  const columns = [
-    columnHelper.accessor('name', {
-      header: 'الإختبار',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor(
-      (row) => `${row.curriculum.track.course.name} :${row.curriculum.name}`,
-      {
-        id: 'curriculum',
-        header: ({ column, table }) => {
-          const { data: curricula, isLoading } =
-            api.curriculum.findMany.useQuery({
-              include: { track: { select: { course: true } } },
-            })
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('name', {
+        header: 'الإختبار',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor(
+        (row) =>
+          `${
+            // row.curriculum.track.course.name
+            row.courseName
+          } :${row.curriculumName}`,
+        {
+          id: 'curriculumId',
+          header: ({ column, table }) => {
+            const { data: curricula, isLoading } = api.curriculum.list.useQuery(
+              { include: { track: true } }
+            )
+            const filterValue = column.getFilterValue() as string | undefined
+            return (
+              <div className='flex items-center'>
+                المنهج
+                <Popover>
+                  <PopoverTrigger className='mr-4' asChild>
+                    <Button
+                      size='icon'
+                      variant={filterValue ? 'secondary' : 'ghost'}
+                    >
+                      <Filter className='h-4 w-4' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Combobox
+                      items={[
+                        { name: 'الكل', id: '' },
+                        ...(curricula?.map((c) => ({
+                          ...c,
+                          name: `${c.courseName}: ${c.name}`,
+                        })) || []),
+                      ]}
+                      loading={isLoading}
+                      labelKey='name'
+                      valueKey='id'
+                      onSelect={column.setFilterValue}
+                      value={filterValue}
+                      triggerText='الكل'
+                      triggerClassName='w-full'
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )
+          },
+          meta: {
+            className: 'text-center',
+          },
+        }
+      ),
+      columnHelper.accessor('type', {
+        header: ({ column }) => {
           const filterValue = column.getFilterValue() as string | undefined
+
           return (
             <div className='flex items-center'>
-              المنهج
+              النوع
+              <Popover>
+                <PopoverTrigger className='mr-4' asChild>
+                  <Button
+                    size='icon'
+                    variant={filterValue ? 'secondary' : 'ghost'}
+                  >
+                    <Filter className='h-4 w-4' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Select
+                    value={filterValue === undefined ? '' : filterValue}
+                    onValueChange={column.setFilterValue}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value=''>الكل</SelectItem>
+                      {Object.entries(examTypeMapping).map(([label, value]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </PopoverContent>
+              </Popover>
+            </div>
+          )
+        },
+        cell: ({ getValue }) => enExamTypeToAr(getValue()),
+      }),
+
+      columnHelper.accessor('cycleName', {
+        id: 'cycleId',
+        header: ({ column }) => {
+          const { data: cycles, isLoading } = api.cycle.list.useQuery({})
+
+          const filterValue = column.getFilterValue() as string | undefined
+
+          return (
+            <div className='flex items-center'>
+              الدورة
               <Popover>
                 <PopoverTrigger className='mr-4' asChild>
                   <Button
@@ -142,13 +230,7 @@ const SystemExamsPage = () => {
                 </PopoverTrigger>
                 <PopoverContent>
                   <Combobox
-                    items={[
-                      { name: 'الكل', id: '' },
-                      ...(curricula?.map((c) => ({
-                        ...c,
-                        name: `${c.track.course.name}: ${c.name}`,
-                      })) || []),
-                    ]}
+                    items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
                     loading={isLoading}
                     labelKey='name'
                     valueKey='id'
@@ -165,189 +247,98 @@ const SystemExamsPage = () => {
         meta: {
           className: 'text-center',
         },
-      }
-    ),
-    columnHelper.accessor('type', {
-      header: ({ column }) => {
-        const filterValue = column.getFilterValue() as string | undefined
-
-        return (
-          <div className='flex items-center'>
-            النوع
-            <Popover>
-              <PopoverTrigger className='mr-4' asChild>
-                <Button
-                  size='icon'
-                  variant={filterValue ? 'secondary' : 'ghost'}
-                >
-                  <Filter className='h-4 w-4' />
+      }),
+      columnHelper.accessor('createdAt', {
+        header: 'وقت الإنشاء',
+        cell: (info) => formatDate(info.getValue()),
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('endsAt', {
+        header: 'وقت القفل',
+        cell: (info) =>
+          info.getValue() ? (
+            <div>
+              {formatDate(info.getValue() as Date)}{' '}
+              {(info.getValue() as Date) > new Date() ? (
+                <Badge>مفتوح</Badge>
+              ) : (
+                <Badge variant='destructive'>مغلق</Badge>
+              )}
+            </div>
+          ) : (
+            '-'
+          ),
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('quizzesCount', {
+        header: 'الطلاب المستحقين للإختبار',
+        cell: (info) => Number(info.getValue()),
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'الإجراءات',
+        cell: ({ row }) => (
+          <div className='flex justify-center gap-2'>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link
+                    className={cn(
+                      buttonVariants({ size: 'icon', variant: 'ghost' })
+                    )}
+                    href={`/dashboard/system-exams/${row.original.id}`}
+                  >
+                    <EyeIcon className='h-4 w-4' />
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>عرض</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant='ghost' size='icon' className='hover:bg-red-50'>
+                  <Trash className='h-4 w-4 text-red-600' />
                 </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Select
-                  value={filterValue === undefined ? '' : filterValue}
-                  onValueChange={column.setFilterValue}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value=''>الكل</SelectItem>
-                    {Object.entries(examTypeMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </PopoverContent>
-            </Popover>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <DeleteSystemExamDialog id={row.original.id} />
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
-        )
-      },
-      cell: ({ getValue }) => enExamTypeToAr(getValue()),
-    }),
-
-    columnHelper.accessor('cycle.name', {
-      id: 'cycle',
-      header: ({ column }) => {
-        const { data: cycles, isLoading } = api.cycle.findMany.useQuery({})
-
-        const filterValue = column.getFilterValue() as string | undefined
-
-        return (
-          <div className='flex items-center'>
-            الدورة
-            <Popover>
-              <PopoverTrigger className='mr-4' asChild>
-                <Button
-                  size='icon'
-                  variant={filterValue ? 'secondary' : 'ghost'}
-                >
-                  <Filter className='h-4 w-4' />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Combobox
-                  items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
-                  loading={isLoading}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={column.setFilterValue}
-                  value={filterValue}
-                  triggerText='الكل'
-                  triggerClassName='w-full'
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )
-      },
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('createdAt', {
-      header: 'وقت الإنشاء',
-      cell: (info) => formatDate(info.getValue()),
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('endsAt', {
-      header: 'وقت القفل',
-      cell: (info) =>
-        info.getValue() ? (
-          <div>
-            {formatDate(info.getValue() as Date)}{' '}
-            {(info.getValue() as Date) > new Date() ? (
-              <Badge>مفتوح</Badge>
-            ) : (
-              <Badge variant='destructive'>مغلق</Badge>
-            )}
-          </div>
-        ) : (
-          '-'
         ),
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('quizzes', {
-      header: 'الطلاب المستحقين للإختبار',
-      cell: (info) => info.getValue().length,
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: 'الإجراءات',
-      cell: ({ row }) => (
-        <div className='flex justify-center gap-2'>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Link
-                  className={cn(
-                    buttonVariants({ size: 'icon', variant: 'ghost' })
-                  )}
-                  href={`/dashboard/system-exams/${row.original.id}`}
-                >
-                  <EyeIcon className='h-4 w-4' />
-                </Link>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>عرض</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant='ghost' size='icon' className='hover:bg-red-50'>
-                <Trash className='h-4 w-4 text-red-600' />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <DeleteSystemExamDialog id={row.original.id} />
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-      ),
-      meta: {
-        className: 'text-center',
-      },
-    }),
-  ]
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
+        meta: {
+          className: 'text-center',
+        },
+      }),
+    ],
+    []
+  )
+  const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
+  const filters = columnFilters.reduce(
+    (obj, f) => ({ ...obj, [f.id]: f.value }),
+    {}
+  )
 
-  const filters = columnFilters.map((filter) => {
-    if (filter.id === 'cycle')
-      return { cycleId: { equals: filter.value as string } }
-    else if (filter.id === 'curriculum')
-      return { curriculumId: { equals: filter.value as string } }
-    return { [filter.id]: { equals: filter.value } }
-  })
-
-  const { data: exams, isFetching } = api.systemExam.findMany.useQuery(
+  const { data: exams, isFetching } = api.systemExam.list.useQuery(
     {
-      skip: pageIndex * pageSize,
-      take: pageSize,
-      include: {
-        curriculum: { include: { track: { select: { course: true } } } },
-        cycle: true,
-        quizzes: { select: { id: true } },
-      },
-      where: { AND: filters },
+      pagination,
+      include: { curriculum: true, cycle: true, quizzesCount: true },
+      filters,
     },
     { networkMode: 'always' }
   )
 
   const { data: count, isLoading: isCountLoading } =
-    api.systemExam.count.useQuery(
-      { where: { AND: filters } },
-      { networkMode: 'always' }
-    )
+    api.systemExam.count.useQuery({ filters }, { networkMode: 'always' })
 
   const pageCount =
     exams !== undefined && typeof count === 'number'
@@ -372,7 +363,18 @@ const SystemExamsPage = () => {
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
-    onColumnFiltersChange: setColumnFilters,
+    onColumnFiltersChange: (updater) => {
+      const newColumnFilters: ColumnFiltersState = (
+        updater as CallableFunction
+      )(columnFilters)
+      Object.keys(columnFiltersValidators).forEach((filterId) => {
+        delete router.query[filterId]
+      })
+      newColumnFilters.forEach((filter) => {
+        ;(router.query as any)[filter.id] = filter.value
+      })
+      router.push(router)
+    },
   })
 
   return (

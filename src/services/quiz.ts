@@ -1,11 +1,10 @@
 import { z } from 'zod'
-import type { PrismaClient, QuizType } from '@prisma/client'
+
 import { correctQuizSchema } from '~/validation/correctQuizSchema'
 import { QuizGroupSchema, newQuizSchema } from '~/validation/newQuizSchema'
 import { CurriculumService } from './curriculum'
 import sampleSize from 'lodash.samplesize'
 import { submitExamSchema } from '~/validation/submitExamSchema'
-import { checkMutate, checkRead } from '~/server/api/routers/custom/helper'
 import { TRPCError } from '@trpc/server'
 import { correctQuestion } from '~/utils/strings'
 import { editQuizSchema } from '~/validation/editQuizSchema'
@@ -47,7 +46,7 @@ export class QuizService {
     const data = submitExamSchema
       .extend({ examineeId: z.string().nullish() })
       .parse(input)
-    const { id, questions: userAnswers, examineeId } = data
+    const { id, answers: userAnswers, examineeId } = data
 
     const quiz = await checkRead(
       this.db.quiz.findFirstOrThrow({ where: { id } })

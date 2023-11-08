@@ -21,7 +21,7 @@ export const AddCurriculumDialog = ({
     },
   })
 
-  const curriculumCreate = api.createCurriculum.useMutation()
+  const curriculumCreate = api.curriculum.create.useMutation()
 
   const { toast } = useToast()
 

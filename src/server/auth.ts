@@ -4,13 +4,14 @@ import {
   type NextAuthOptions,
   type DefaultSession,
 } from 'next-auth'
-import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import { env } from '../env.mjs'
-import { prisma } from './db'
-import { Corrector, Student, UserRole } from '@prisma/client'
+import { db } from './db'
 import Credentials from 'next-auth/providers/credentials'
 import { loginSchema } from '~/validation/loginSchema'
 import { compareSync } from 'bcryptjs'
+import { KyselyAdapter } from '@auth/kysely-adapter'
+import { UserRole } from '~/kysely/enums'
+import { Corrector, Student } from '~/kysely/types'
 
 /**
  * Module augmentation for `next-auth` types.
@@ -77,7 +78,7 @@ export const authOptions: NextAuthOptions = {
       return token
     },
   },
-  adapter: PrismaAdapter(prisma as any),
+  adapter: KyselyAdapter(db),
   providers: [
     Credentials({
       credentials: {
@@ -88,10 +89,11 @@ export const authOptions: NextAuthOptions = {
         const input = loginSchema.safeParse(credentials)
         if (!input.success) return null
 
-        const user = await prisma.user.findFirst({
-          where: { email: input.data.email },
-          include: { student: true, corrector: true },
-        })
+        const user = await db
+          .selectFrom('User')
+          .selectAll()
+          .where('email', '=', input.data.email)
+          .executeTakeFirst()
 
         if (!user) return null
 

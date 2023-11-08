@@ -1,10 +1,4 @@
-import {
-  QuizType,
-  QuestionStyle,
-  QuestionType,
-  QuestionGroupType,
-} from '@prisma/client'
-import { QuestionDifficulty } from '../constants'
+import { QuizType, QuestionsGroupType } from '~/kysely/enums'
 import { z } from 'zod'
 import { groupSchema } from './newQuizSchema'
 
@@ -26,11 +20,11 @@ export const newSystemExamSchema = z.object({
     .array(
       z.discriminatedUnion('type', [
         groupSchema.extend({
-          type: z.literal(QuestionGroupType.AUTOMATIC),
+          type: z.literal(QuestionsGroupType.AUTOMATIC),
           questions: z.array(questionSchema).min(1),
         }),
         z.object({
-          type: z.literal(QuestionGroupType.MANUAL),
+          type: z.literal(QuestionsGroupType.MANUAL),
           questions: z
             .record(questionSchema, {
               invalid_type_error: 'يجب أن يكون هناك سؤال واحد على الأقل',
@@ -47,7 +41,7 @@ export const newSystemExamSchema = z.object({
       let gradeSum = 0
       groups.forEach((group) => {
         // numberSum += group.questionsNumber
-        if (group.type === 'automatic')
+        if (group.type === 'AUTOMATIC')
           gradeSum += group.questionsNumber * group.gradePerQuestion
         else
           gradeSum += Object.values(group.questions).reduce(

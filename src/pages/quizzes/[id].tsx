@@ -8,9 +8,8 @@ import { Button } from '~/components/ui/button'
 import { useState, useEffect } from 'react'
 import WebsiteLayout from '~/components/layout'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
-import { checkRead } from '~/server/api/routers/custom/helper'
 import { enhance } from '@zenstackhq/runtime'
-import { prisma as _prisma } from '~/server/db'
+import { db } from '~/server/db'
 import { getServerAuthSession } from '~/server/auth'
 import {
   Form,
@@ -46,11 +45,12 @@ import { Dialog, DialogTrigger, DialogContent } from '~/components/ui/dialog'
 import { ReportErrorDialog } from '~/components/modals/report-error'
 import { QuizService } from '~/services/quiz'
 import { Alert, AlertTitle } from '~/components/ui/alert'
-import { QuestionStyle, QuestionType } from '@prisma/client'
+import { QuestionStyle, QuestionType } from '~/kysely/enums'
+import { jsonArrayFrom } from 'kysely/helpers/postgres'
 
 type FieldValues = {
   id: string
-  questions: Record<string, string>
+  answers: Record<string, string>
 }
 
 const ExamPage = ({
@@ -64,12 +64,12 @@ const ExamPage = ({
 
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null)
 
-  const examSubmit = api.submitExam.useMutation()
+  const quizSubmit = api.quiz.submit.useMutation()
 
   useEffect(() => {
     form.reset({
       id: exam.id,
-      questions: (exam.questions as any[]).reduce(
+      answers: (exam.questions as any[]).reduce(
         (questionAcc, question) => ({
           ...questionAcc,
           [question.id]: question.answer || undefined,
@@ -80,19 +80,18 @@ const ExamPage = ({
   }, [form, exam.id, exam.questions])
 
   const onSubmit = (data: FieldValues) => {
-    for (let question of Object.values(data.questions)) {
-      if ([undefined, ''].includes(question))
+    for (let answer of Object.values(data.answers)) {
+      if ([undefined, ''].includes(answer))
         return setConfirmationDialogOpen(true)
     }
     submitForm()
   }
 
   const submitForm = () => {
-    examSubmit
+    quizSubmit
       .mutateAsync({
         id: exam!.id,
-        // id: 'clet8uawe000g356lbmte45my',
-        questions: form.getValues('questions'),
+        answers: form.getValues('answers'),
       })
       .then(() => {
         router.reload()
@@ -103,10 +102,7 @@ const ExamPage = ({
       })
   }
 
-  const totalGrade = (exam.questions as any[]).reduce(
-    (acc, question) => acc + question.weight,
-    0
-  )
+  const totalGrade = exam.total
 
   return (
     <>
@@ -141,6 +137,9 @@ const ExamPage = ({
           ))}
 
         <div className='rounded-md bg-white p-4 shadow'>
+          <h3 className='mb-4 text-center text-lg font-semibold'>
+            {!!exam.systemExamId ? exam.systemExamName : 'إختبار تجريبي'}
+          </h3>
           {exam.grade !== null && (
             <div className='sticky top-3 z-10 float-left'>
               <Badge className='shadow'>
@@ -163,7 +162,7 @@ const ExamPage = ({
                 }
               >
                 {exam.questions.map(
-                  ({ question, id, order, grade, weight }) => (
+                  ({ id, order, grade, weight, ...question }) => (
                     <div
                       key={id}
                       className={cn(
@@ -209,7 +208,7 @@ const ExamPage = ({
                       <div className='mt-2'>
                         <FormField
                           control={form.control}
-                          name={`questions.${id}`}
+                          name={`answers.${id}`}
                           render={({ field }) => (
                             <FormItem
                               className={cn(
@@ -322,7 +321,7 @@ const ExamPage = ({
                           )}
                         />
                       </div>
-                      {(question as any)?.answer && (
+                      {!!exam.correctedAt && (
                         <p className='mt-2'>
                           الإجابة الصحيحة: {(question as any).answer}
                         </p>
@@ -331,7 +330,7 @@ const ExamPage = ({
                   )
                 )}
                 {!exam.submittedAt && session?.user.id == exam.examineeId && (
-                  <Button loading={examSubmit.isLoading}>تسليم</Button>
+                  <Button loading={quizSubmit.isLoading}>تسليم</Button>
                 )}
               </form>
             </Form>
@@ -354,29 +353,38 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const id = ctx.params!.id as string
 
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
-  const prisma = enhance(_prisma, { user: session?.user })
-  const quizService = new QuizService(prisma)
 
-  const quiz = await checkRead(
-    prisma.quiz.findFirst({
-      where: { id },
-      include: {
-        questions: {
-          select: {
-            question: true,
-            order: true,
-            id: true,
-            answer: true,
-            grade: true,
-            weight: true,
-          },
-          orderBy: { order: 'asc' },
-        },
-        systemExam: { select: { questions: true } },
-        // descriptor: { include: { groups: { orderBy: { order: 'asc' } } } },
-      },
-    })
-  )
+  const quiz = await db
+    .selectFrom('Quiz')
+    .selectAll('Quiz')
+    .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
+    .select((eb) => [
+      'SystemExam.name as systemExamName',
+      jsonArrayFrom(
+        eb
+          .selectFrom('ModelQuestion')
+          .leftJoin('Question', 'ModelQuestion.questionId', 'Question.id')
+          .select([
+            'ModelQuestion.id',
+            'ModelQuestion.order',
+            'ModelQuestion.weight',
+            'Question.text',
+            'Question.option1',
+            'Question.option2',
+            'Question.option3',
+            'Question.option4',
+            'Question.textForFalse',
+            'Question.textForTrue',
+            'Question.style',
+            'Question.type',
+            'Question.answer',
+          ])
+          .whereRef('Quiz.modelId', '=', 'ModelQuestion.modelId')
+          .orderBy('ModelQuestion.order asc')
+      ).as('questions'),
+    ])
+    .where('Quiz.id', '=', id)
+    .executeTakeFirst()
 
   if (!quiz) return { notFound: true }
 
@@ -395,82 +403,16 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   )
     return { redirect: { destination: '/quizzes/expired', permanent: false } }
 
-  // not submitted but questions have been made, so hide answers
-  if (quiz.questionsCreated)
-    return {
-      props: {
-        exam: {
-          ...quiz,
-          questions: quiz.questions.map((q) => ({
-            ...q,
-            question: {
-              ...q.question,
-              answer: undefined,
-              anotherAnswer: undefined,
-              isInsideShaded: undefined,
-            },
-          })),
-        },
-      },
-    }
-
-  // exam is entered for the first time, create questions
-  // const questions = await quizService.getQuestionsForGroups({
-  //   groups: quiz.descriptor!.groups as any,
-  //   curriculumId: quiz.curriculumId,
-  //   repeatFromSameHadith: quiz.repeatFromSameHadith,
-  // })
-
-  console.log('systemExamQuestions', quiz.systemExam?.questions)
-
-  await _prisma.quiz.update({
-    where: { id },
-    data: {
-      ...(quiz.examineeId == session?.user.id ? { enteredAt: new Date() } : {}),
-      questionsCreated: true,
-      questions: {
-        create: quiz.systemExam!.questions.map((q) => ({
-          questionId: q.questionId,
-          weight: q.weight,
-          order: q.order,
-        })),
-      },
-    },
-  })
+  if (quiz.examineeId === session?.user.id)
+    await db
+      .updateTable('Quiz')
+      .set({ enteredAt: new Date() })
+      .where('id', '=', id)
+      .execute()
 
   return {
     props: {
-      exam: (await prisma.quiz.findFirst({
-        where: { id },
-        include: {
-          questions: {
-            select: {
-              question: {
-                select: {
-                  type: true,
-                  difficulty: true,
-                  id: true,
-                  number: true,
-                  option1: true,
-                  option2: true,
-                  option3: true,
-                  option4: true,
-                  text: true,
-                  textForFalse: true,
-                  textForTrue: true,
-                  style: true,
-                },
-              },
-              order: true,
-              id: true,
-              answer: true,
-              grade: true,
-              weight: true,
-            },
-            orderBy: { order: 'asc' },
-          },
-        },
-      }))!,
+      exam: quiz,
     },
   }
 }

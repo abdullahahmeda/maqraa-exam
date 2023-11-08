@@ -2,7 +2,7 @@
 import DashboardLayout from '~/components/dashboard/layout'
 import Head from 'next/head'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
-import { prisma } from '~/server/db'
+import { db } from '~/server/db'
 import {
   LineChart,
   Line,
@@ -22,7 +22,6 @@ const DashboardPage = ({
   lastMonthExamsStats,
   lastMonthGradesStats,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
-  // console.log(last30DaysExamsCounts)
   return (
     <>
       <Head>
@@ -38,7 +37,7 @@ const DashboardPage = ({
             </h3>
             <div className='rounded-md bg-white p-4 shadow'>
               {lastMonthExamsStats.length === 0 ? (
-                <p className='text-muted'>لا يوجد بيانات</p>
+                <p>لا يوجد بيانات</p>
               ) : (
                 <ResponsiveContainer height={300}>
                   <BarChart
@@ -62,7 +61,7 @@ const DashboardPage = ({
                     <Legend />
                     <Bar
                       type='monotone'
-                      dataKey={(obj) => '' + Number(obj.count)}
+                      dataKey={(obj) => '' + Number(obj.total)}
                       fill='#8884d8'
                       name='المستحقون للإختبار'
                     />
@@ -159,26 +158,43 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       },
     }
 
-  const lastMonthExamsStats: {
-    corrected: number
-    graded: number
-    systemExamId: string
-  }[] = await prisma.$queryRaw`
-    SELECT COUNT(q."correctorId") AS corrected, COUNT(q."submittedAt") AS submitted, COUNT(*), s."name" FROM "Quiz" q
-    LEFT JOIN "SystemExam" s ON q."systemExamId" = s."id"
-    WHERE q."createdAt" >= ${startOfDay(
-      sub(new Date(), { days: 30 })
-    )} AND q."systemExamId" IS NOT NULL
-    GROUP BY s."name"
-  `
+  const thisDayLastMonth = startOfDay(sub(new Date(), { months: 1 }))
 
-  const lastMonthGradesStats: { max: number; avg: number; min: number }[] =
-    await prisma.$queryRaw`
-    SELECT MAX(q."percentage"), AVG(q."percentage"), MIN(q."percentage"), s."name" FROM "Quiz" q
-    LEFT JOIN "SystemExam" s ON q."systemExamId" = s."id"
-    WHERE q."correctorId" IS NOT NULL AND q."systemExamId" IS NOT NULL
-    GROUP BY s."name"
-  `
+  const lastMonthExamsStats = await db
+    .selectFrom('Quiz')
+    .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
+    .where((eb) =>
+      eb.and([
+        eb('Quiz.systemExamId', 'is not', null),
+        eb('Quiz.createdAt', '>=', thisDayLastMonth),
+      ])
+    )
+    .select(({ fn }) => [
+      fn.count('Quiz.correctorId').as('corrected'),
+      fn.count('Quiz.submittedAt').as('submitted'),
+      fn.count('Quiz.id').as('total'),
+      'SystemExam.name',
+    ])
+    .groupBy('SystemExam.name')
+    .execute()
+
+  const lastMonthGradesStats = await db
+    .selectFrom('Quiz')
+    .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
+    .where((eb) =>
+      eb.and([
+        eb('Quiz.systemExamId', 'is not', null),
+        eb('Quiz.correctorId', 'is not', null),
+      ])
+    )
+    .select(({ fn }) => [
+      fn.max('Quiz.percentage').as('max'),
+      fn.avg('Quiz.percentage').as('avg'),
+      fn.min('Quiz.percentage').as('min'),
+      'SystemExam.name',
+    ])
+    .groupBy('SystemExam.name')
+    .execute()
 
   return {
     props: {

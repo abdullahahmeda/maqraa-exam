@@ -22,7 +22,7 @@ export const EditCurriculumDialog = ({
     resolver: zodResolver(editCurriculumSchema),
   })
 
-  const curriculumUpdate = api.updateCurriculum.useMutation()
+  const curriculumUpdate = api.curriculum.update.useMutation()
 
   const { toast } = useToast()
 
@@ -48,8 +48,8 @@ export const EditCurriculumDialog = ({
     data: course,
     isLoading,
     error,
-  } = api.curriculum.findFirst.useQuery({
-    where: { id },
+  } = api.curriculum.get.useQuery({
+    id,
     include: { parts: true },
   })
 

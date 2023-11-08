@@ -19,7 +19,7 @@ export const AddCycleDialog = ({
   const queryClient = useQueryClient()
   const { toast } = useToast()
 
-  const cycleCreate = api.createCycle.useMutation()
+  const cycleCreate = api.cycle.create.useMutation()
 
   const onSubmit = (data: AddCycleFieldValues) => {
     const t = toast({ title: 'جاري إضافة الدورة' })

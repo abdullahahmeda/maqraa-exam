@@ -17,13 +17,9 @@ export const EditCourseDialog = ({ id }: { id: string }) => {
     resolver: zodResolver(editCourseSchema),
   })
 
-  const {
-    data: course,
-    isLoading,
-    error,
-  } = api.course.findFirst.useQuery({ where: { id } })
+  const { data: course, isLoading, error } = api.course.get.useQuery(id)
 
-  const courseUpdate = api.updateCourse.useMutation()
+  const courseUpdate = api.course.update.useMutation()
 
   useEffect(() => {
     if (course) form.reset(course)
