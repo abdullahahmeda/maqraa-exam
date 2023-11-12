@@ -77,6 +77,7 @@ export const ImportQuestionsForm = ({
                   <Input {...field} />
                   <Button
                     type='button'
+                    variant='secondary'
                     onClick={updateSpreadsheet}
                     disabled={isFetchingSheets}
                     loading={isFetchingSheets}

@@ -10,7 +10,11 @@ import {
   ImportStudentsFieldValues,
   ImportStudentsForm,
 } from '../forms/import-users'
-import { AddUserFieldValues, UserForm, makeEmptyCycle } from '../forms/user'
+import {
+  AddUserFieldValues,
+  UserForm,
+  makeEmptyStudentCycle,
+} from '../forms/user'
 import { DialogHeader } from '../ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { useToast } from '../ui/use-toast'
@@ -30,7 +34,7 @@ const AddSingleUserTab = ({ setDialogOpen }: Props) => {
       password: generateRandomPassword(),
       role: UserRole.STUDENT,
       student: { cycles: {} },
-      corrector: { courses: [] },
+      corrector: { cycles: {} },
     },
     resolver: zodResolver(newUserSchema),
   })
@@ -74,17 +78,17 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
   const { toast } = useToast()
   const studentsImport = api.user.import.useMutation()
   const onSubmit = (data: ImportStudentsFieldValues) => {
-    const t = toast({ title: 'جاري إضافة الطلبة' })
+    // const t = toast({ title: 'جاري تنفيذ الطلب' })
     studentsImport
       .mutateAsync(data as z.infer<typeof importUsersSchema>)
       .then(() => {
-        t.dismiss()
+        // t.dismiss()
         form.reset()
-        toast({ title: 'تم إضافة الطلبة بنجاح' })
+        toast({ title: 'سيتم إضافة الطلبة' })
         setDialogOpen(false)
       })
       .catch((error) => {
-        t.dismiss()
+        // t.dismiss()
         toast({ title: error.message })
       })
       .finally(() => {

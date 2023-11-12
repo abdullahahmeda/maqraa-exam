@@ -13,7 +13,6 @@ import {
 import { Input } from '~/components/ui/input'
 import { Button } from '~/components/ui/button'
 import { GetServerSideProps } from 'next'
-import { prisma } from '~/server/db'
 import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
 import { api } from '~/utils/api'
 import { useToast } from '~/components/ui/use-toast'
@@ -34,18 +33,19 @@ export const PasswordTokenPage = ({ token }: { token: string }) => {
 
   const { toast } = useToast()
 
-  const passwordReset = api.resetPassword.useMutation()
+  // TODO: fix this
+  // const passwordReset = api.resetPassword.useMutation()
 
   const onSubmit = (data: FieldValues) => {
-    passwordReset
-      .mutateAsync(data)
-      .then(() => {
-        toast({ title: 'تم تغيير كلمة المرور، قم بتسجيل الدخول' })
-        router.replace('/')
-      })
-      .catch((error) => {
-        toast({ title: (error as any).message, variant: 'destructive' })
-      })
+    // passwordReset
+    //   .mutateAsync(data)
+    //   .then(() => {
+    //     toast({ title: 'تم تغيير كلمة المرور، قم بتسجيل الدخول' })
+    //     router.replace('/')
+    //   })
+    //   .catch((error) => {
+    //     toast({ title: (error as any).message, variant: 'destructive' })
+    //   })
   }
 
   return (
@@ -100,13 +100,13 @@ export const PasswordTokenPage = ({ token }: { token: string }) => {
 
 export const getServerSideProps: GetServerSideProps = async (ctx) => {
   const token = ctx.params!.token as string
-  const passwordToken = await prisma.resetPasswordToken.findFirst({
-    where: { token, expires: { gt: new Date() } },
-  })
-  if (!passwordToken)
-    return {
-      notFound: true,
-    }
+  // const passwordToken = await prisma.resetPasswordToken.findFirst({
+  //   where: { token, expires: { gt: new Date() } },
+  // })
+  // if (!passwordToken)
+  //   return {
+  //     notFound: true,
+  //   }
 
   return { props: { token } }
 }

@@ -8,7 +8,6 @@ import { newQuizSchema } from '~/validation/newQuizSchema'
 import { TRPCError } from '@trpc/server'
 import { submitExamSchema } from '~/validation/submitExamSchema'
 import { correctQuizSchema } from '~/validation/correctQuizSchema'
-import { QuizService } from '~/services/quiz'
 import { editQuizSchema } from '~/validation/editQuizSchema'
 import { exportSheet } from '~/services/sheet'
 import { percentage } from '~/utils/percentage'
@@ -20,6 +19,7 @@ import { correctQuestion } from '~/utils/strings'
 
 const quizFilterSchema = z.object({
   systemExamId: z.string().nullable().optional(),
+  examineeName: z.string().optional(),
 })
 
 const quizIncludeSchema = z.record(
@@ -36,22 +36,27 @@ function applyQuizFilters<O>(
   query: SelectQueryBuilder<DB, 'Quiz', O>,
   filters: z.infer<typeof quizFilterSchema>
 ) {
-  return applyFilters(query, filters)
+  return applyFilters(query, filters, {
+    examineeName: (query, examineeName) =>
+      query
+        .innerJoin('User', 'Quiz.examineeId', 'User.id')
+        .where('User.name', 'like', `${examineeName}%`),
+  })
 }
 
 export const quizRouter = createTRPCRouter({
-  create: publicProcedure
-    .input(newQuizSchema)
-    .mutation(async ({ ctx, input }) => {
-      const { groups: _groups, courseId, trackId, ...data } = input
+  // create: publicProcedure
+  //   .input(newQuizSchema)
+  //   .mutation(async ({ ctx, input }) => {
+  //     const { groups: _groups, courseId, trackId, ...data } = input
 
-      const quizService = new QuizService(db(ctx))
+  //     const quizService = new QuizService(db(ctx))
 
-      return await quizService.create({
-        ...input,
-        examineeId: ctx.session?.user.id,
-      })
-    }),
+  //     return await quizService.create({
+  //       ...input,
+  //       examineeId: ctx.session?.user.id,
+  //     })
+  //   }),
 
   get: protectedProcedure
     .input(z.string())
@@ -95,8 +100,7 @@ export const quizRouter = createTRPCRouter({
         )
         .$if(!!input.include?.corrector, (qb) =>
           qb
-            .leftJoin('Corrector', 'Quiz.correctorId', 'Corrector.id')
-            .leftJoin('User as corrector', 'Corrector.userId', 'corrector.id')
+            .leftJoin('User as corrector', 'Quiz.correctorId', 'corrector.id')
             .select('corrector.name as correctorName')
         )
         .$if(!!input.include?.systemExam, (qb) =>
@@ -119,7 +123,7 @@ export const quizRouter = createTRPCRouter({
       const query = applyQuizFilters(
         ctx.db
           .selectFrom('Quiz')
-          .select(({ fn }) => fn.count('id').as('total')),
+          .select(({ fn }) => fn.count('Quiz.id').as('total')),
         input.filters
       )
       const total = Number((await query.executeTakeFirst())?.total)
@@ -172,7 +176,8 @@ export const quizRouter = createTRPCRouter({
           .values(
             modelQuestions.map((question) => {
               const answer = answers[question.id] || null
-              const questionGrade = correctQuestion(question, answer)
+              // TODO: try to remove `as any` and see if there is a possibilty for errors
+              const questionGrade = correctQuestion(question as any, answer)
               grade += questionGrade
 
               return {
@@ -294,5 +299,12 @@ export const quizRouter = createTRPCRouter({
         'وقت التصحيح': q.correctedAt ? formatDate(q.correctedAt) : '',
         المصحح: q.correctorName,
       }))
+    }),
+
+  delete: protectedProcedure
+    .input(z.string())
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db.deleteFrom('Quiz').where('id', '=', input).execute()
+      return true
     }),
 })

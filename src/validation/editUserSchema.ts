@@ -19,7 +19,7 @@ const studentSchema = baseSchema.extend({
     cycles: z
       .record(
         z.object({
-          id: z.number().optional(),
+          id: z.string().optional(),
           courseId: z.string().min(1),
           trackId: z.string().min(1),
           curriculumId: z.string().min(1),
@@ -37,8 +37,16 @@ const adminSchema = baseSchema.extend({
 const correctorSchema = baseSchema.extend({
   role: z.literal(UserRole.CORRECTOR),
   corrector: z.object({
-    cycleId: z.string().min(1),
-    courses: z.array(z.string().min(1)).min(1),
+    cycles: z
+      .record(
+        z.object({
+          id: z.string().optional(),
+          curricula: z.array(z.string().min(1)).min(1),
+        })
+      )
+      .refine((cycles) => Object.keys(cycles).length > 0, {
+        message: 'يجب أن ينضم المصحح لدورة واحدة على الأقل',
+      }),
   }),
 })
 

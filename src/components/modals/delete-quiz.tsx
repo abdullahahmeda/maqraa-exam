@@ -18,7 +18,7 @@ export const DeleteQuizDialog = ({ id }: { id: string }) => {
   const deletequiz = () => {
     const t = toast({ title: 'جاري حذف الإمتحان' })
     quizDelete
-      .mutateAsync({ where: { id } })
+      .mutateAsync(id)
       .then(() => {
         t.dismiss()
         toast({ title: 'تم حذف الإمتحان بنجاح' })

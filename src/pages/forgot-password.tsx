@@ -31,17 +31,18 @@ const ForgotPasswordPage = () => {
 
   const { toast } = useToast()
 
-  const passwordResetRequest = api.forgotPassword.useMutation()
+  // TODO: fix this
+  // const passwordResetRequest = api.forgotPassword.useMutation()
 
   const onSubmit = (data: FieldValues) => {
-    passwordResetRequest
-      .mutateAsync(data)
-      .then(() => {
-        setIsSuccess(true)
-      })
-      .catch((error) => {
-        toast({ title: (error as any).message, variant: 'destructive' })
-      })
+    // passwordResetRequest
+    //   .mutateAsync(data)
+    //   .then(() => {
+    //     setIsSuccess(true)
+    //   })
+    //   .catch((error) => {
+    //     toast({ title: (error as any).message, variant: 'destructive' })
+    //   })
   }
 
   return (
@@ -81,7 +82,12 @@ const ForgotPasswordPage = () => {
                       سيتم ارسال رابط لإعادة تعيين كلمة المرور على البريد
                       الإلكتروني الخاص بك.
                     </p>
-                    <Button loading={passwordResetRequest.isLoading}>
+                    <Button
+                      loading={
+                        false
+                        // passwordResetRequest.isLoading
+                      }
+                    >
                       أرسل
                     </Button>
                   </div>

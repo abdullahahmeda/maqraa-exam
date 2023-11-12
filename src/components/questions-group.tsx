@@ -196,7 +196,6 @@ export const QuestionGroup = ({
   } = api.question.list.useQuery(
     {
       filters: {
-        courseId: courseId as string,
         curriculum: { id: curriculumId, type: examType as QuizType },
       },
     },

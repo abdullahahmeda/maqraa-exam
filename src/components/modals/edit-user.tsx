@@ -28,67 +28,66 @@ export const EditUserDialog = ({
     data: user,
     isLoading,
     error,
-  } = api.user.findFirstOrThrow.useQuery(
+  } = api.user.get.useQuery(
     {
-      where: { id },
-      include: {
-        corrector: { include: { courses: true } },
-        student: {
-          include: {
-            cycles: {
-              include: {
-                curriculum: {
-                  include: { track: { include: { course: true } } },
-                },
-              },
-            },
-          },
-        },
-      },
+      id,
+      include: { cycles: true },
     },
     { enabled: id != null }
   )
-  const userUpdate = api.updateUser.useMutation()
+  const userUpdate = api.user.update.useMutation()
 
   const { data: session } = useSession()
 
   useEffect(() => {
     if (user) {
       if (user.role === 'STUDENT')
-        form.reset(
-          mapValues(
-            {
-              ...user,
-              student: {
-                cycles: user.student?.cycles.reduce(
-                  (acc: object, cycle: any) => ({
-                    ...acc,
-                    [cycle.cycleId]: {
-                      id: cycle.id,
-                      courseId: cycle.curriculum.track.courseId,
-                      trackId: cycle.curriculum.trackId,
-                      curriculumId: cycle.curriculumId,
-                    },
-                  }),
-                  {}
-                ),
-              },
-            corrector: { courses: [] }
-            },
-            (value: any) => value ?? undefined
-          )
-        )
+        form.reset({
+          ...user,
+          student: {
+            cycles: user?.cycles?.reduce(
+              (acc: object, cycle) => ({
+                ...acc,
+                [cycle.cycleId]: {
+                  id: cycle.id,
+                  courseId: cycle.courseId,
+                  trackId: cycle.trackId,
+                  curriculumId: cycle.curriculumId,
+                },
+              }),
+              {}
+            ),
+          },
+          corrector: { cycles: {} },
+        })
       else if (user.role === 'CORRECTOR')
         form.reset({
           ...user,
           corrector: {
-            ...user.corrector,
-            courses: user.corrector!.courses.map((c) => c.courseId),
+            cycles: user?.cycles?.reduce(
+              (acc: object, cycle) => ({
+                ...acc,
+                [cycle.cycleId]: {
+                  id: cycle.id,
+                  curricula:
+                    user.cycles
+                      ?.filter((c) => c.cycleId === cycle.cycleId)
+                      .map((c) => c.curriculumId) ?? [],
+                },
+              }),
+              {}
+            ),
           },
-        student: { cycles: {} }
-        } as any) // Please leave me alone typescript
-      else form.reset(mapValues({ ...user, corrector: { courses: [] }, student: {cycles: {}} }, (value: any) => value ?? undefined))
-      // consol
+          student: { cycles: {} },
+        } as any)
+      // Please leave me alone, typescript
+      else
+        form.reset(
+          mapValues(
+            { ...user, corrector: { cycles: {} }, student: { cycles: {} } },
+            (value: any) => value ?? undefined
+          )
+        )
     }
   }, [user, form])
 

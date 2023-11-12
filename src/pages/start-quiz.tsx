@@ -32,7 +32,7 @@ import {
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { CheckedState } from '@radix-ui/react-checkbox'
-import { QuestionStyle, QuestionType, QuestionDifficulty } from '~/kysely/enums'
+import { QuestionType, QuestionDifficulty } from '~/kysely/enums'
 import { Input } from '~/components/ui/input'
 import { difficultyMapping, styleMapping, typeMapping } from '~/utils/questions'
 import {
@@ -64,7 +64,7 @@ type Group = {
   questionsNumber: number
   gradePerQuestion: number
   difficulty: QuestionDifficulty | string | undefined
-  styleOrType: QuestionStyle | QuestionType | string | undefined
+  styleOrType: QuestionType | string | undefined
 }
 
 type FieldValues = {
@@ -226,7 +226,8 @@ const HomePage = () => {
     },
   })
 
-  const quizCreate = api.quiz.create.useMutation()
+  // TODO: fix this
+  // const quizCreate = api.quiz.create.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
@@ -270,21 +271,21 @@ const HomePage = () => {
   const router = useRouter()
 
   const onSubmit = (data: FieldValues) => {
-    setSubmitting(true)
-    quizCreate
-      .mutateAsync(data as z.infer<typeof newQuizSchema>)
-      .then((quiz) => {
-        if (quiz) router.push(`/quizzes/${quiz.id}`)
-      })
-      .catch((error) => {
-        setSubmitting(false)
-        handleFormError(error, {
-          fields: (key, message) =>
-            form.setError(key as keyof FieldValues, { message }),
-          form: (message) => form.setError('root.form', { message }),
-          default: (message) => toast({ title: message }),
-        })
-      })
+    // setSubmitting(true)
+    // quizCreate
+    //   .mutateAsync(data as z.infer<typeof newQuizSchema>)
+    //   .then((quiz) => {
+    //     if (quiz) router.push(`/quizzes/${quiz.id}`)
+    //   })
+    //   .catch((error) => {
+    //     setSubmitting(false)
+    //     handleFormError(error, {
+    //       fields: (key, message) =>
+    //         form.setError(key as keyof FieldValues, { message }),
+    //       form: (message) => form.setError('root.form', { message }),
+    //       default: (message) => toast({ title: message }),
+    //     })
+    //   })
   }
 
   const appendGroup = () => {

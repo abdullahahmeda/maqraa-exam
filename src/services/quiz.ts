@@ -1,314 +1,316 @@
-import { z } from 'zod'
+export const UNUSED = true
 
-import { correctQuizSchema } from '~/validation/correctQuizSchema'
-import { QuizGroupSchema, newQuizSchema } from '~/validation/newQuizSchema'
-import { CurriculumService } from './curriculum'
-import sampleSize from 'lodash.samplesize'
-import { submitExamSchema } from '~/validation/submitExamSchema'
-import { TRPCError } from '@trpc/server'
-import { correctQuestion } from '~/utils/strings'
-import { editQuizSchema } from '~/validation/editQuizSchema'
+// import { z } from 'zod'
 
-export class QuizService {
-  private db
+// import { correctQuizSchema } from '~/validation/correctQuizSchema'
+// import { QuizGroupSchema, newQuizSchema } from '~/validation/newQuizSchema'
+// import { CurriculumService } from './curriculum'
+// import sampleSize from 'lodash.samplesize'
+// import { submitExamSchema } from '~/validation/submitExamSchema'
+// import { TRPCError } from '@trpc/server'
+// import { correctQuestion } from '~/utils/strings'
+// import { editQuizSchema } from '~/validation/editQuizSchema'
 
-  public constructor(db: PrismaClient) {
-    this.db = db
-  }
+// export class QuizService {
+//   private db
 
-  public async create(input: any) {
-    const { groups, courseId, trackId, ...data } = newQuizSchema
-      .extend({ examineeId: z.string().nullish() })
-      .parse(input)
+//   public constructor(db: PrismaClient) {
+//     this.db = db
+//   }
 
-    await this.validateSufficientQeustionsInGroups({
-      type: 'WHOLE_CURRICULUM',
-      groups,
-      curriculumId: data.curriculumId,
-      repeatFromSameHadith: data.repeatFromSameHadith,
-    })
+//   public async create(input: any) {
+//     const { groups, courseId, trackId, ...data } = newQuizSchema
+//       .extend({ examineeId: z.string().nullish() })
+//       .parse(input)
 
-    const total = groups.reduce(
-      (acc, g) => acc + g.gradePerQuestion * g.questionsNumber,
-      0
-    )
+//     await this.validateSufficientQeustionsInGroups({
+//       type: 'WHOLE_CURRICULUM',
+//       groups,
+//       curriculumId: data.curriculumId,
+//       repeatFromSameHadith: data.repeatFromSameHadith,
+//     })
 
-    return this.db.quiz.create({
-      data: {
-        ...data,
-        total,
-        groups: { create: groups.map((g, i) => ({ ...g, order: i + 1 })) },
-      },
-    })
-  }
+//     const total = groups.reduce(
+//       (acc, g) => acc + g.gradePerQuestion * g.questionsNumber,
+//       0
+//     )
 
-  public async submit(input: any) {
-    const data = submitExamSchema
-      .extend({ examineeId: z.string().nullish() })
-      .parse(input)
-    const { id, answers: userAnswers, examineeId } = data
+//     return this.db.quiz.create({
+//       data: {
+//         ...data,
+//         total,
+//         groups: { create: groups.map((g, i) => ({ ...g, order: i + 1 })) },
+//       },
+//     })
+//   }
 
-    const quiz = await checkRead(
-      this.db.quiz.findFirstOrThrow({ where: { id } })
-    )
+//   public async submit(input: any) {
+//     const data = submitExamSchema
+//       .extend({ examineeId: z.string().nullish() })
+//       .parse(input)
+//     const { id, answers: userAnswers, examineeId } = data
 
-    if (!quiz)
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'هذا الاختبار غير موجود',
-      })
+//     const quiz = await checkRead(
+//       this.db.quiz.findFirstOrThrow({ where: { id } })
+//     )
 
-    if (quiz.submittedAt)
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'هذا الاختبار تم تسليمه من قبل',
-      })
+//     if (!quiz)
+//       throw new TRPCError({
+//         code: 'BAD_REQUEST',
+//         message: 'هذا الاختبار غير موجود',
+//       })
 
-    if (examineeId != quiz.examineeId)
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'ليس لديك الصلاحيات لهذه العملية',
-      })
+//     if (quiz.submittedAt)
+//       throw new TRPCError({
+//         code: 'BAD_REQUEST',
+//         message: 'هذا الاختبار تم تسليمه من قبل',
+//       })
 
-    const examQuestions = await checkRead(
-      this.db.quizQuestion.findMany({
-        where: { quizId: id },
-        include: { question: true },
-      })
-    )
+//     if (examineeId != quiz.examineeId)
+//       throw new TRPCError({
+//         code: 'FORBIDDEN',
+//         message: 'ليس لديك الصلاحيات لهذه العملية',
+//       })
 
-    let grade = 0
-    const questionsUpdates: Promise<any>[] = []
-    for (const examQuestion of examQuestions) {
-      const userAnswer = userAnswers[examQuestion.id] || null
-      const questionGrade = correctQuestion(
-        { ...examQuestion.question, weight: examQuestion.weight },
-        userAnswer
-      )
-      grade += questionGrade
-      questionsUpdates.push(
-        this.db.quizQuestion.update({
-          where: { id: examQuestion.id },
-          data: { answer: userAnswer, grade: questionGrade },
-        })
-      )
-    }
+//     const examQuestions = await checkRead(
+//       this.db.quizQuestion.findMany({
+//         where: { quizId: id },
+//         include: { question: true },
+//       })
+//     )
 
-    const percentage = (grade / quiz.total!) * 100
+//     let grade = 0
+//     const questionsUpdates: Promise<any>[] = []
+//     for (const examQuestion of examQuestions) {
+//       const userAnswer = userAnswers[examQuestion.id] || null
+//       const questionGrade = correctQuestion(
+//         { ...examQuestion.question, weight: examQuestion.weight },
+//         userAnswer
+//       )
+//       grade += questionGrade
+//       questionsUpdates.push(
+//         this.db.quizQuestion.update({
+//           where: { id: examQuestion.id },
+//           data: { answer: userAnswer, grade: questionGrade },
+//         })
+//       )
+//     }
 
-    return this.db.$transaction(async (tx) => {
-      await Promise.all(questionsUpdates)
-      return await checkMutate(
-        tx.quiz.update({
-          where: { id },
-          data: {
-            ...(quiz.systemExamId ? {} : { correctedAt: new Date() }),
-            grade,
-            percentage,
-            submittedAt: new Date(),
-          },
-        })
-      )
-    })
-  }
+//     const percentage = (grade / quiz.total!) * 100
 
-  public async correct(input: any) {
-    const { id, correctorId, questions } = correctQuizSchema
-      .extend({ correctorId: z.string().min(1) })
-      .parse(input)
+//     return this.db.$transaction(async (tx) => {
+//       await Promise.all(questionsUpdates)
+//       return await checkMutate(
+//         tx.quiz.update({
+//           where: { id },
+//           data: {
+//             ...(quiz.systemExamId ? {} : { correctedAt: new Date() }),
+//             grade,
+//             percentage,
+//             submittedAt: new Date(),
+//           },
+//         })
+//       )
+//     })
+//   }
 
-    const quiz = await checkRead(
-      this.db.quiz.findFirstOrThrow({ where: { id } })
-    )
+//   public async correct(input: any) {
+//     const { id, correctorId, questions } = correctQuizSchema
+//       .extend({ correctorId: z.string().min(1) })
+//       .parse(input)
 
-    if (!quiz)
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: 'هذا الاختبار غير موجود',
-      })
+//     const quiz = await checkRead(
+//       this.db.quiz.findFirstOrThrow({ where: { id } })
+//     )
 
-    let grade = Object.values(questions).reduce(
-      (acc, questionGrade) => acc + questionGrade,
-      0
-    )
+//     if (!quiz)
+//       throw new TRPCError({
+//         code: 'BAD_REQUEST',
+//         message: 'هذا الاختبار غير موجود',
+//       })
 
-    // TODO: validate that `grade` is in range [0, weight]
-    const percentage = (grade / quiz.total!) * 100
+//     let grade = Object.values(questions).reduce(
+//       (acc, questionGrade) => acc + questionGrade,
+//       0
+//     )
 
-    return await this.db.quiz.update({
-      where: { id },
-      data: {
-        correctedAt: new Date(),
-        correctorId,
-        grade,
-        percentage,
-        questions: {
-          update: Object.entries(questions).map(([id, grade]) => ({
-            where: { id },
-            data: { grade },
-          })),
-        },
-      },
-    })
-  }
+//     // TODO: validate that `grade` is in range [0, weight]
+//     const percentage = (grade / quiz.total!) * 100
 
-  public async validateSufficientQeustionsInGroups({
-    type,
-    groups,
-    curriculumId,
-    repeatFromSameHadith,
-  }: {
-    type: QuizType
-    groups: QuizGroupSchema[]
-    curriculumId: string
-    repeatFromSameHadith: boolean
-  }) {
-    const parts = await this.db.curriculumPart.findMany({
-      where: { curriculumId },
-      select: { from: true, mid: true, to: true, number: true },
-    })
+//     return await this.db.quiz.update({
+//       where: { id },
+//       data: {
+//         correctedAt: new Date(),
+//         correctorId,
+//         grade,
+//         percentage,
+//         questions: {
+//           update: Object.entries(questions).map(([id, grade]) => ({
+//             where: { id },
+//             data: { grade },
+//           })),
+//         },
+//       },
+//     })
+//   }
 
-    const usedQuestions: string[] = []
-    const usedHadiths: { [partNumber: number]: number[] } = {}
-    for (const [groupIndex, group] of groups.entries()) {
-      const styleQuery =
-        group.styleOrType === 'MCQ' || group.styleOrType === 'WRITTEN'
-          ? { type: group.styleOrType || undefined }
-          : { style: group.styleOrType || undefined }
+//   public async validateSufficientQeustionsInGroups({
+//     type,
+//     groups,
+//     curriculumId,
+//     repeatFromSameHadith,
+//   }: {
+//     type: QuizType
+//     groups: QuizGroupSchema[]
+//     curriculumId: string
+//     repeatFromSameHadith: boolean
+//   }) {
+//     const parts = await this.db.curriculumPart.findMany({
+//       where: { curriculumId },
+//       select: { from: true, mid: true, to: true, number: true },
+//     })
 
-      const groupQuestions = await this.db.question.findMany({
-        where: {
-          AND: [
-            {
-              course: {
-                tracks: {
-                  some: { curricula: { some: { id: curriculumId } } },
-                },
-              },
-            },
-            { id: { notIn: usedQuestions } },
-            { difficulty: group.difficulty || undefined },
-            styleQuery,
-            {
-              OR: parts.map((part) => {
-                // WHOLE_CURRICULUM
-                let range = {
-                  gte: part.from,
-                  lte: part.to,
-                }
-                if (type === 'FIRST_MEHWARY')
-                  range = { gte: part.from, lte: part.mid }
-                else if (type === 'SECOND_MEHWARY')
-                  range = { gte: Math.max(part.from, part.mid), lte: part.to }
-                return {
-                  partNumber: part.number,
-                  hadithNumber: {
-                    ...range,
-                    notIn: repeatFromSameHadith ? [] : usedHadiths[part.number],
-                  },
-                }
-              }),
-            },
-          ],
-        },
-        ...(repeatFromSameHadith ? {} : { distinct: ['hadithNumber'] }),
-        take: group.questionsNumber,
-        // select: { id: true, hadithNumber: true, partNumber: true, difficulty: true },
-      })
+//     const usedQuestions: string[] = []
+//     const usedHadiths: { [partNumber: number]: number[] } = {}
+//     for (const [groupIndex, group] of groups.entries()) {
+//       const styleQuery =
+//         group.styleOrType === 'MCQ' || group.styleOrType === 'WRITTEN'
+//           ? { type: group.styleOrType || undefined }
+//           : { style: group.styleOrType || undefined }
 
-      if (groupQuestions.length < group.questionsNumber) {
-        throw new z.ZodError([
-          {
-            code: z.ZodIssueCode.too_big,
-            maximum: groupQuestions.length,
-            inclusive: true,
-            type: 'number',
-            message: `أقصى عدد مسموح للأسئلة في المجموعة ${groupIndex + 1} هو ${
-              groupQuestions.length
-            }`,
-            path: ['groups', groupIndex, 'questionsNumber'],
-          },
-        ])
-      }
+//       const groupQuestions = await this.db.question.findMany({
+//         where: {
+//           AND: [
+//             {
+//               course: {
+//                 tracks: {
+//                   some: { curricula: { some: { id: curriculumId } } },
+//                 },
+//               },
+//             },
+//             { id: { notIn: usedQuestions } },
+//             { difficulty: group.difficulty || undefined },
+//             styleQuery,
+//             {
+//               OR: parts.map((part) => {
+//                 // WHOLE_CURRICULUM
+//                 let range = {
+//                   gte: part.from,
+//                   lte: part.to,
+//                 }
+//                 if (type === 'FIRST_MEHWARY')
+//                   range = { gte: part.from, lte: part.mid }
+//                 else if (type === 'SECOND_MEHWARY')
+//                   range = { gte: Math.max(part.from, part.mid), lte: part.to }
+//                 return {
+//                   partNumber: part.number,
+//                   hadithNumber: {
+//                     ...range,
+//                     notIn: repeatFromSameHadith ? [] : usedHadiths[part.number],
+//                   },
+//                 }
+//               }),
+//             },
+//           ],
+//         },
+//         ...(repeatFromSameHadith ? {} : { distinct: ['hadithNumber'] }),
+//         take: group.questionsNumber,
+//         // select: { id: true, hadithNumber: true, partNumber: true, difficulty: true },
+//       })
 
-      for (const question of groupQuestions) {
-        if (!repeatFromSameHadith) {
-          if (usedHadiths[question.partNumber] === undefined)
-            usedHadiths[question.partNumber] = [question.hadithNumber]
-          else usedHadiths[question.partNumber]!.push(question.hadithNumber)
-        }
-        usedQuestions.push(question.id)
-      }
-    }
-  }
+//       if (groupQuestions.length < group.questionsNumber) {
+//         throw new z.ZodError([
+//           {
+//             code: z.ZodIssueCode.too_big,
+//             maximum: groupQuestions.length,
+//             inclusive: true,
+//             type: 'number',
+//             message: `أقصى عدد مسموح للأسئلة في المجموعة ${groupIndex + 1} هو ${
+//               groupQuestions.length
+//             }`,
+//             path: ['groups', groupIndex, 'questionsNumber'],
+//           },
+//         ])
+//       }
 
-  public async getQuestionsForGroups({
-    groups,
-    curriculumId,
-    repeatFromSameHadith,
-  }: {
-    groups: QuizGroupSchema[]
-    curriculumId: string
-    repeatFromSameHadith: boolean
-  }) {
-    // TODO: questions order is not the same as in groups.order (so the question from last group may come first)
-    const curriculumService = new CurriculumService(this.db)
-    const allCurriculumQuestions = await curriculumService.getAllQuestions(
-      curriculumId
-    )
+//       for (const question of groupQuestions) {
+//         if (!repeatFromSameHadith) {
+//           if (usedHadiths[question.partNumber] === undefined)
+//             usedHadiths[question.partNumber] = [question.hadithNumber]
+//           else usedHadiths[question.partNumber]!.push(question.hadithNumber)
+//         }
+//         usedQuestions.push(question.id)
+//       }
+//     }
+//   }
 
-    // console.log('curriculum questions:', allCurriculumQuestions.length)
-    // console.log('groups', groups)
+//   public async getQuestionsForGroups({
+//     groups,
+//     curriculumId,
+//     repeatFromSameHadith,
+//   }: {
+//     groups: QuizGroupSchema[]
+//     curriculumId: string
+//     repeatFromSameHadith: boolean
+//   }) {
+//     // TODO: questions order is not the same as in groups.order (so the question from last group may come first)
+//     const curriculumService = new CurriculumService(this.db)
+//     const allCurriculumQuestions = await curriculumService.getAllQuestions(
+//       curriculumId
+//     )
 
-    let usedQuestions = new Set()
-    const usedHadiths: { [partNumber: number]: Set<number> } = {}
+//     // console.log('curriculum questions:', allCurriculumQuestions.length)
+//     // console.log('groups', groups)
 
-    let questions: { id: string; weight: number; order: number }[] = []
-    let iota = 1
-    for (const {
-      difficulty,
-      gradePerQuestion,
-      questionsNumber,
-      styleOrType,
-    } of groups) {
-      const possibleQuestions = allCurriculumQuestions.filter((q) => {
-        const conditions: boolean[] = []
-        conditions.push(!usedQuestions.has(q.id)) // Question is not repeated
-        if (difficulty) conditions.push(q.difficulty === difficulty)
+//     let usedQuestions = new Set()
+//     const usedHadiths: { [partNumber: number]: Set<number> } = {}
 
-        if (styleOrType === 'MCQ' || styleOrType === 'WRITTEN')
-          conditions.push(q.type === styleOrType)
-        else if (styleOrType) conditions.push(q.style === styleOrType)
+//     let questions: { id: string; weight: number; order: number }[] = []
+//     let iota = 1
+//     for (const {
+//       difficulty,
+//       gradePerQuestion,
+//       questionsNumber,
+//       styleOrType,
+//     } of groups) {
+//       const possibleQuestions = allCurriculumQuestions.filter((q) => {
+//         const conditions: boolean[] = []
+//         conditions.push(!usedQuestions.has(q.id)) // Question is not repeated
+//         if (difficulty) conditions.push(q.difficulty === difficulty)
 
-        if (!repeatFromSameHadith)
-          conditions.push(
-            usedHadiths[q.partNumber] !== undefined &&
-              !usedHadiths[q.partNumber]!.has(q.hadithNumber)
-          ) // Don't repeat from same hadith
-        const a = conditions.every((condition) => condition === true)
-        // console.log('questionn taken:', a)
-        return a
-      })
+//         if (styleOrType === 'MCQ' || styleOrType === 'WRITTEN')
+//           conditions.push(q.type === styleOrType)
+//         else if (styleOrType) conditions.push(q.style === styleOrType)
 
-      const chosenGroupQuestions = sampleSize(
-        possibleQuestions,
-        questionsNumber
-      ).map((q) => ({ ...q, order: iota++, weight: gradePerQuestion }))
-      for (const question of chosenGroupQuestions) {
-        if (!repeatFromSameHadith) {
-          if (usedHadiths[question.partNumber] === undefined)
-            usedHadiths[question.partNumber] = new Set([question.hadithNumber])
-          else usedHadiths[question.partNumber]!.add(question.hadithNumber)
-        }
-        usedQuestions.add(question.id)
-      }
-      questions = questions.concat(chosenGroupQuestions)
-    }
-    return questions
-  }
+//         if (!repeatFromSameHadith)
+//           conditions.push(
+//             usedHadiths[q.partNumber] !== undefined &&
+//               !usedHadiths[q.partNumber]!.has(q.hadithNumber)
+//           ) // Don't repeat from same hadith
+//         const a = conditions.every((condition) => condition === true)
+//         // console.log('questionn taken:', a)
+//         return a
+//       })
 
-  public async update(input: any) {
-    const { id, ...data } = editQuizSchema.parse(input)
-    return await checkMutate(this.db.quiz.update({ where: { id }, data }))
-  }
-}
+//       const chosenGroupQuestions = sampleSize(
+//         possibleQuestions,
+//         questionsNumber
+//       ).map((q) => ({ ...q, order: iota++, weight: gradePerQuestion }))
+//       for (const question of chosenGroupQuestions) {
+//         if (!repeatFromSameHadith) {
+//           if (usedHadiths[question.partNumber] === undefined)
+//             usedHadiths[question.partNumber] = new Set([question.hadithNumber])
+//           else usedHadiths[question.partNumber]!.add(question.hadithNumber)
+//         }
+//         usedQuestions.add(question.id)
+//       }
+//       questions = questions.concat(chosenGroupQuestions)
+//     }
+//     return questions
+//   }
+
+//   public async update(input: any) {
+//     const { id, ...data } = editQuizSchema.parse(input)
+//     return await checkMutate(this.db.quiz.update({ where: { id }, data }))
+//   }
+// }

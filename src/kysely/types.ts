@@ -7,7 +7,6 @@ export type Timestamp = ColumnType<Date, Date | string, Date | string>
 import type {
   UserRole,
   QuestionType,
-  QuestionStyle,
   QuestionDifficulty,
   QuizType,
   QuestionsGroupType,
@@ -87,7 +86,6 @@ export type Question = {
   partNumber: number
   hadithNumber: number
   type: QuestionType
-  style: QuestionStyle
   difficulty: QuestionDifficulty
   text: string
   textForTrue: string | null
@@ -101,6 +99,7 @@ export type Question = {
   isInsideShaded: boolean
   objective: string
   courseId: string
+  styleId: string
 }
 export type QuestionsGroup = {
   id: Generated<string>
@@ -111,6 +110,12 @@ export type QuestionsGroup = {
   difficulty: QuestionDifficulty | null
   styleOrType: string | null
   systemExamId: string
+}
+export type QuestionStyle = {
+  id: Generated<string>
+  name: string
+  type: QuestionType
+  choicesColumns: string[]
 }
 export type Quiz = {
   id: Generated<string>
@@ -139,6 +144,10 @@ export type Session = {
   sessionToken: string
   userId: string
   expires: Timestamp
+}
+export type Setting = {
+  key: string
+  value: string
 }
 export type SystemExam = {
   id: Generated<string>
@@ -189,9 +198,11 @@ export type DB = {
   ModelQuestion: ModelQuestion
   Question: Question
   QuestionsGroup: QuestionsGroup
+  QuestionStyle: QuestionStyle
   Quiz: Quiz
   ResetPasswordToken: ResetPasswordToken
   Session: Session
+  Setting: Setting
   SystemExam: SystemExam
   Track: Track
   User: User

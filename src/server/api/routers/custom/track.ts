@@ -8,6 +8,7 @@ import { newTrackSchema } from '~/validation/newTrackSchema'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
 import { SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
+import { TRPCError } from '@trpc/server'
 
 const trackFilterSchema = z.object({
   courseId: z.string().optional(),
@@ -71,6 +72,19 @@ export const trackRouter = createTRPCRouter({
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
       await ctx.db.deleteFrom('Track').where('id', '=', input).execute()
+      return true
+    }),
+
+  bulkDelete: protectedProcedure
+    .input(z.array(z.string().min(1)))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      await ctx.db.deleteFrom('Track').where('id', 'in', input).execute()
       return true
     }),
 })

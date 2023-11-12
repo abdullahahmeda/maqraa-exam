@@ -11,7 +11,6 @@ import { loginSchema } from '~/validation/loginSchema'
 import { compareSync } from 'bcryptjs'
 import { KyselyAdapter } from '@auth/kysely-adapter'
 import { UserRole } from '~/kysely/enums'
-import { Corrector, Student } from '~/kysely/types'
 
 /**
  * Module augmentation for `next-auth` types.
@@ -25,15 +24,11 @@ declare module 'next-auth' {
     user: {
       id: string
       role: UserRole
-      studentId: string | undefined
-      correctorId: string | undefined
     } & DefaultSession['user']
   }
 
   interface User {
     role: UserRole
-    student: Student | null
-    corrector: Corrector | null
   }
 }
 
@@ -58,8 +53,6 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.sub!
         session.user.email = token.email
         session.user.role = token.role as UserRole
-        session.user.studentId = token.studentId as any
-        session.user.correctorId = token.correctorId as any
       }
       return session
     },
@@ -72,13 +65,11 @@ export const authOptions: NextAuthOptions = {
         token.name = user!.name
         token.email = user!.email
         token.role = user!.role
-        token.studentId = user!.student?.id
-        token.correctorId = user!.corrector?.id
       }
       return token
     },
   },
-  adapter: KyselyAdapter(db),
+  adapter: KyselyAdapter(db as any) as any,
   providers: [
     Credentials({
       credentials: {

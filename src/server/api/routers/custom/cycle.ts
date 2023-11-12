@@ -3,6 +3,7 @@ import { createTRPCRouter, protectedProcedure } from '../../trpc'
 import { newCycleSchema } from '~/validation/newCycleSchema'
 import { editCycleSchema } from '~/validation/editCycleSchema'
 import { applyPagination, paginationSchema } from '~/utils/db'
+import { TRPCError } from '@trpc/server'
 
 export const cycleRouter = createTRPCRouter({
   create: protectedProcedure
@@ -57,6 +58,19 @@ export const cycleRouter = createTRPCRouter({
     .input(z.string())
     .mutation(async ({ input, ctx }) => {
       await ctx.db.deleteFrom('Cycle').where('id', '=', input).execute()
+      return true
+    }),
+
+  bulkDelete: protectedProcedure
+    .input(z.array(z.string().min(1)))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      await ctx.db.deleteFrom('Cycle').where('id', 'in', input).execute()
       return true
     }),
 })

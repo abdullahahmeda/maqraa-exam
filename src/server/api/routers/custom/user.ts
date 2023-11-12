@@ -28,6 +28,7 @@ import { importFromGoogleSheet } from '~/services/sheet'
 import { Client } from '@upstash/qstash'
 import { env } from '~/env.mjs'
 import { sleep } from '~/utils/sleep'
+import { jsonArrayFrom } from 'kysely/helpers/postgres'
 
 const userFiltersSchema = z.object({
   email: z.string().optional(),
@@ -43,6 +44,28 @@ function restrictUsersRows<O>(
   return query // admins
 }
 
+const userIncludeSchema = z.record(z.literal('cycles'), z.boolean().optional())
+
+function applyUserIncludes<O>(
+  query: SelectQueryBuilder<DB, 'User', O>,
+  includes: z.infer<typeof userIncludeSchema> | undefined
+) {
+  return query.$if(!!includes?.cycles, (qb) =>
+    qb.select((eb) => [
+      jsonArrayFrom(
+        eb
+          .selectFrom('UserCycle')
+          .leftJoin('Curriculum', 'UserCycle.curriculumId', 'Curriculum.id')
+          .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
+          .leftJoin('Course', 'Track.courseId', 'Course.id')
+          .selectAll('UserCycle')
+          .select(['Course.id as courseId', 'Track.id as trackId'])
+          .whereRef('UserCycle.userId', '=', 'User.id')
+      ).as('cycles'),
+    ])
+  )
+}
+
 function applyUserFilters<O>(
   query: SelectQueryBuilder<DB, 'User', O>,
   filters: z.infer<typeof userFiltersSchema>
@@ -53,26 +76,26 @@ function applyUserFilters<O>(
   })
 }
 
-const googleSheetErrorHandler = (error: any) => {
-  if (error instanceof GaxiosError) {
-    if (Number(error.code) === 404) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'هذا الملف غير موجود',
-      })
-    }
-    if (Number(error.code) === 403 || Number(error.code) === 400) {
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'الصلاحيات غير كافية، تأكد من تفعيل مشاركة الملف',
-      })
-    }
-  }
-
-  throw error
-}
-
 export const userRouter = createTRPCRouter({
+  get: protectedProcedure
+    .input(z.object({ id: z.string(), include: userIncludeSchema.optional() }))
+    .query(async ({ ctx, input }) => {
+      const user = applyUserIncludes(
+        ctx.db
+          .selectFrom('User')
+          .select([
+            'User.id',
+            'User.email',
+            'User.name',
+            'User.phone',
+            'User.role',
+          ])
+          .where('User.id', '=', input.id),
+        input.include
+      )
+      return user.executeTakeFirst()
+    }),
+
   list: protectedProcedure
     .input(
       z.object({
@@ -132,14 +155,18 @@ export const userRouter = createTRPCRouter({
           .returning('id')
           .executeTakeFirstOrThrow()
         if (role === 'CORRECTOR') {
-          const corrector = await trx
+          await trx
             .insertInto('UserCycle')
-            .values({
-              // TODO: this
-              // curriculumId: ,
-              userId: user.id,
-              cycleId: input.corrector.cycleId,
-            })
+            .values(
+              Object.entries(input.corrector.cycles).flatMap(
+                ([cycleId, { curricula }]) =>
+                  curricula.map((curriculumId) => ({
+                    cycleId,
+                    curriculumId,
+                    userId: user.id,
+                  }))
+              )
+            )
             .returning('id')
             .executeTakeFirstOrThrow()
         } else if (role === 'STUDENT') {
@@ -235,11 +262,6 @@ export const userRouter = createTRPCRouter({
         })
       }
 
-      // const emails = []
-      // const coursesNames = []
-      // const tracksNames = []
-      // const curriculaNames = []
-
       const qstashClient = new Client({ token: env.QSTASH_TOKEN })
 
       for (const [i, student] of data.entries()) {
@@ -249,402 +271,217 @@ export const userRouter = createTRPCRouter({
           body: { ...student, cycleId },
         })
       }
-
-      // const students = await ctx.db
-      //   .selectFrom('User')
-      //   .selectAll()
-      //   .where('email', 'in', emails)
-      //   .execute()
-      // const courses = await ctx.db
-      //   .selectFrom('Course')
-      //   .selectAll()
-      //   .where('name', 'in', coursesNames)
-      //   .execute()
-      // const tracks = await ctx.db
-      //   .selectFrom('Track')
-      //   .leftJoin('Course', 'Track.courseId', 'Course.id')
-      //   .selectAll('Track')
-      //   .select('Course.name as courseName')
-      //   .where('name', 'in', tracksNames)
-      //   .execute()
-      // const curricula = await ctx.db
-      //   .selectFrom('Curriculum')
-      //   .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-      //   .selectAll('Curriculum')
-      //   .select('Track.name as trackName')
-      //   .where('name', 'in', emails)
-      //   .execute()
-
-      // const exisitngUsers: Record<string, string> = {}
-      // const existingCourses: Record<string, string> = {}
-      // const existingTracks: Record<string, string> = {}
-      // const existingCurricula: Record<string, string> = {}
-      // for (
-      //   let i = 0;
-      //   i <
-      //   Math.max(
-      //     students.length,
-      //     courses.length,
-      //     tracks.length,
-      //     curricula.length
-      //   );
-      //   i++
-      // ) {
-      //   const user = students?.[i]
-      //   if (user) exisitngUsers[user.email] = user.id
-
-      //   const course = courses?.[i]
-      //   if (course) existingCourses[course.name] = course.id
-
-      //   const track = tracks?.[i]
-      //   if (track)
-      //     existingTracks[`${track.name}:${track.courseName}`] = track.id
-
-      //   const curriculum = curricula?.[i]
-      //   if (curriculum)
-      //     existingCurricula[`${curriculum.name}:${curriculum.trackName}`] =
-      //       curriculum.id
-      // }
-
-      // await ctx.db.transaction().execute(async (trx) => {
-      //   for (const student of data) {
-      //     let userId = exisitngUsers[student.email]
-      //     if (typeof userId === 'undefined')
-      //       userId = (await trx
-      //         .insertInto('User')
-      //         .values({
-      //           email: student.email,
-      //           name: student.name,
-      //           password: bcrypt.hashSync(generatePassword()),
-      //           role: 'STUDENT',
-      //           phone: student.phone,
-      //         })
-      //         .returning('id')
-      //         .executeTakeFirstOrThrow()).id
-      //     await trx
-      //       .insertInto('UserCycle')
-      //       .values({ cycleId, curriculumId, userId: userId })
-      //       .execute()
-      //   }
-      // })
-
-      // let rows
-      // try {
-      //   rows = await getFields(spreadsheetId, input.sheet)
-      // } catch (error) {
-      //   throw googleSheetErrorHandler(error)
-      // }
-
-      // for (const [i, row] of rows.entries()) {
-      //   if (i === 0) continue // TODO: validate sheet headers are equal to `headers` 👆
-
-      //   const curriculum = await ctx.db.curriculum.findFirst({
-      //     where: {
-      //       name: row[4]?.trim(),
-      //       track: { course: { name: row[2]?.trim() } },
-      //     },
-      //   })
-
-      //   if (!curriculum)
-      //     throw new TRPCError({
-      //       code: 'BAD_REQUEST',
-      //       message: `المنهج ${row[4]} غير موجود`,
-      //     })
-
-      //   try {
-      //     const student = studentSchema.parse(
-      //       {
-      //         name: row[0],
-      //         phone: row[1],
-      //         email: row[5],
-      //       },
-      //       { path: [i + 1] }
-      //     )
-      //     let s = await ctx.db.student.findFirst({
-      //       where: { user: { email: student.email } },
-      //     })
-
-      //     const password = generatePassword()
-
-      //     // await sendMail({
-      //     //   subject: 'تم إضافة حسابك في المقرأة!',
-      //     //   to: [{ email: student.email }],
-      //     //   textContent: `كلمة المرور الخاصة بك في المقرأة هي: ${password}\nيمكنك تسجيل الدخول عن طريق الرابط: ${getBaseUrl()}`,
-      //     // })
-      //     if (!s)
-      //       s = await ctx.db.student.create({
-      //         data: {
-      //           user: {
-      //             create: {
-      //               ...student,
-      //               password,
-      //               role: 'STUDENT',
-      //             },
-      //           },
-      //         },
-      //       })
-      //     !(await ctx.db.studentCycle.create({
-      //       data: {
-      //         cycle: {
-      //           connect: { id: input.cycleId },
-      //         },
-      //         curriculum: {
-      //           connect: { id: curriculum.id },
-      //         },
-      //         student: {
-      //           connect: { id: s.id },
-      //         },
-      //       },
-      //     }))
-      //   } catch (error: any) {
-      //     if (error instanceof ZodError) {
-      //       const issue = error.issues[0]!
-
-      //       const [rowNumber, field] = issue.path
-
-      //       throw new TRPCError({
-      //         code: 'BAD_REQUEST',
-      //         message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
-      //         cause: issue,
-      //       })
-      //     } else if (
-      //       error?.cause instanceof Prisma.PrismaClientKnownRequestError
-      //     ) {
-      //       console.log(error)
-      //       if (error.cause.code === 'P2002')
-      //         throw new TRPCError({
-      //           code: 'BAD_REQUEST',
-      //           message: `خطأ في الصف رقم ${
-      //             i + 1
-      //           }: هذا الطالب مسجل بالفعل في هذه الدورة`,
-      //         })
-      //     }
-
-      //     throw new TRPCError({
-      //       code: 'INTERNAL_SERVER_ERROR',
-      //       message: 'حدث خطأ غير متوقع',
-      //     })
-      //   }
-      // }
     }),
 
   update: protectedProcedure
     .input(editUserSchema)
     .mutation(async ({ ctx, input }) => {
-      try {
-        const { id, email, password, name, role, phone } = input
-        const data = Prisma.validator<Prisma.UserUpdateInput>()({
-          name,
-          email,
-          role,
-          ...(password ? { password } : {}),
-          phone,
-          ...(role !== 'STUDENT'
-            ? {
-                corrector: {
-                  upsert: {
-                    where: {
-                      userId: id,
-                    },
-                    update: {
-                      ...(role === 'CORRECTOR'
-                        ? {
-                            ...input.corrector,
-                            courses: {
-                              deleteMany: {},
-                              create: input.corrector.courses.map(
-                                (courseId) => ({ courseId })
-                              ),
-                            },
-                          }
-                        : { cycleId: null, courses: {} }),
-                    },
-                    create: {
-                      ...(role === 'CORRECTOR'
-                        ? {
-                            ...input.corrector,
-                            courses: {
-                              deleteMany: {},
-                              create: input.corrector.courses.map(
-                                (courseId) => ({ courseId })
-                              ),
-                            },
-                          }
-                        : { cycleId: null, courses: {} }),
-                    },
-                  },
-                },
-              }
-            : undefined),
-          ...(role === 'STUDENT'
-            ? {
-                student: {
-                  upsert: {
-                    where: { userId: id },
-                    update: {
-                      cycles: {
-                        deleteMany: {
-                          cycleId: {
-                            notIn: Object.keys(input.student.cycles),
-                          },
-                        },
-                        upsert: Object.entries(input.student.cycles).map(
-                          ([cycleId, { curriculumId, id }]) => ({
-                            where: { id: id || 0 },
-                            create: {
-                              curriculumId,
-                              cycleId,
-                            },
-                            update: {
-                              curriculumId,
-                            },
-                          })
-                        ),
-                      },
-                    },
-                    create: {
-                      cycles: {
-                        create: Object.entries(input.student.cycles).map(
-                          ([cycleId, { curriculumId }]) => ({
-                            curriculumId,
-                            cycleId,
-                          })
-                        ),
-                      },
-                    },
-                  },
-                },
-              }
-            : undefined),
-        })
-
-        const response = await ctx.db.user.update({
-          where: { id },
-          data,
-        })
-
-        if (password) {
-          // if password changed
-          try {
-            await sendPasswordChangedEmail({ email, password })
-          } catch (error) {
-            console.log('error here', error)
-            throw new TRPCError({
-              code: 'INTERNAL_SERVER_ERROR',
-              message: 'تم تعديل البيانات لكن حدث خطأ أثناء إرسال الإيميل',
-            })
+      const { id: userId, email, name, role, password, phone } = input
+      await ctx.db.transaction().execute(async (trx) => {
+        await trx
+          .updateTable('User')
+          .set({
+            name,
+            email,
+            phone,
+            role,
+          })
+          .$if(!!password, (qb) => {
+            const hashedPassword = bcrypt.hashSync(password as string)
+            return qb.set({ password: hashedPassword })
+          })
+          .where('id', '=', userId)
+          .execute()
+        if (role === 'CORRECTOR') {
+          const recordsToKeep = Object.values(input.corrector.cycles)
+            .filter((c) => typeof c.id !== 'undefined')
+            .map((c) => c.id as string)
+          await trx
+            .deleteFrom('UserCycle')
+            .where('userId', '=', userId)
+            .where('id', 'not in', recordsToKeep)
+            .execute()
+          for (const [cycleId, { id, curricula }] of Object.entries(
+            input.corrector.cycles
+          )) {
+            // TODO: here
+          }
+          // await trx
+          //   .insertInto('UserCycle')
+          //   .values(
+          //     Object.entries(input.corrector.cycles).flatMap(
+          //       ([cycleId, { curricula }]) =>
+          //         curricula.map((curriculumId) => ({
+          //           cycleId,
+          //           curriculumId,
+          //           userId,
+          //         }))
+          //     )
+          //   )
+          //   .returning('id')
+          //   .executeTakeFirstOrThrow()
+        } else if (role === 'STUDENT') {
+          const recordsToKeep = Object.values(input.student.cycles)
+            .filter((c) => typeof c.id !== 'undefined')
+            .map((c) => c.id as string)
+          await trx
+            .deleteFrom('UserCycle')
+            .where('userId', '=', userId)
+            .where('id', 'not in', recordsToKeep)
+            .execute()
+          for (const [cycleId, { id, curriculumId }] of Object.entries(
+            input.student.cycles
+          )) {
+            if (id)
+              await trx
+                .updateTable('UserCycle')
+                .set({ curriculumId })
+                .where('id', '=', id)
+                .execute()
+            else
+              await trx
+                .insertInto('UserCycle')
+                .values({ userId, curriculumId, cycleId })
+                .execute()
           }
         }
+      })
 
-        return response
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError) {
-          if (error.code === 'P2002')
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'هذا البريد الإلكتروني مسجل بالفعل',
-            })
-        }
-
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'حدث خطأ غير متوقع',
-        })
-      }
-    }),
-
-  updateProfile: protectedProcedure
-    .input(updateProfileSchema)
-    .mutation(async ({ ctx, input }) => {
-      let password: string | undefined = undefined
-      if (input.changePassword) {
-        const user = await prisma.user.findFirstOrThrow({
-          where: { id: ctx.session.user.id },
-        })
-        const isPasswordCorrect = compareSync(
-          input.currentPassword,
-          user.password
-        )
-        if (!isPasswordCorrect)
+      // if password changed
+      if (password) {
+        try {
+          await sendPasswordChangedEmail({ email, password })
+        } catch (error) {
           throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'حقل كلمة المرور الحالية غير صحيح',
-            cause: new z.ZodError([
-              {
-                code: 'custom',
-                message: 'كلمة المرور هذه غير صحيحة',
-                path: ['currentPassword'],
-              },
-            ]),
+            code: 'INTERNAL_SERVER_ERROR',
+            message: 'تم تعديل البيانات لكن حدث خطأ أثناء إرسال الإيميل',
           })
-        password = input.newPassword
+        }
       }
 
-      return ctx.db.user.update({
-        where: { id: ctx.session.user.id },
-        data: {
-          name: input.name,
-          phone: input.phone,
-          ...(password ? { password } : {}),
-        },
-      })
-    }),
-
-  forgotPassword: publicProcedure
-    .input(forgotPasswordSchema)
-    .mutation(async ({ ctx, input }) => {
-      const user = await prisma.user.findFirst({
-        where: { email: input.email },
-      })
-      if (!user)
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'هذا الحساب غير موجود',
-        })
-      const expires = add(new Date(), { hours: 24 })
-      const { token } = await prisma.resetPasswordToken.create({
-        data: { user: { connect: { email: input.email } }, expires },
-      })
-      await sendMail({
-        subject: 'طلب تغيير كلمة المرور',
-        to: [{ email: input.email }],
-        textContent: `قم بتغيير كلمة المرور الخاصة بك من خلال الرابط: ${
-          getBaseUrl() + '/reset-password/' + token
-        }`,
-      })
       return true
+      //   return response
+      // } catch (error) {
+      //   if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      //     if (error.code === 'P2002')
+      //       throw new TRPCError({
+      //         code: 'BAD_REQUEST',
+      //         message: 'هذا البريد الإلكتروني مسجل بالفعل',
+      //       })
+      //   }
+
+      //   throw new TRPCError({
+      //     code: 'INTERNAL_SERVER_ERROR',
+      //     message: 'حدث خطأ غير متوقع',
+      //   })
+      // }
     }),
 
-  resetPassword: publicProcedure
-    .input(resetPasswordSchema)
-    .mutation(async ({ ctx, input }) => {
-      const { token, password } = input
-      const passwordToken = await prisma.resetPasswordToken.findFirst({
-        where: { token },
-      })
-      if (!passwordToken)
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'هذا التوكين غير موجود',
-        })
+  // updateProfile: protectedProcedure
+  //   .input(updateProfileSchema)
+  //   .mutation(async ({ ctx, input }) => {
+  //     let password: string | undefined = undefined
+  //     if (input.changePassword) {
+  //       const user = await prisma.user.findFirstOrThrow({
+  //         where: { id: ctx.session.user.id },
+  //       })
+  //       const isPasswordCorrect = compareSync(
+  //         input.currentPassword,
+  //         user.password
+  //       )
+  //       if (!isPasswordCorrect)
+  //         throw new TRPCError({
+  //           code: 'BAD_REQUEST',
+  //           message: 'حقل كلمة المرور الحالية غير صحيح',
+  //           cause: new z.ZodError([
+  //             {
+  //               code: 'custom',
+  //               message: 'كلمة المرور هذه غير صحيحة',
+  //               path: ['currentPassword'],
+  //             },
+  //           ]),
+  //         })
+  //       password = input.newPassword
+  //     }
 
-      // This prisma object will handle hashing passwords
-      const prismaWithPasswordUtility = withPassword(prisma)
-      await prismaWithPasswordUtility.$transaction(async (tx) => {
-        await tx.user.update({
-          where: { id: passwordToken.userId },
-          data: { password },
-        })
-        await tx.resetPasswordToken.delete({ where: { token } })
-      })
+  //     return ctx.db.user.update({
+  //       where: { id: ctx.session.user.id },
+  //       data: {
+  //         name: input.name,
+  //         phone: input.phone,
+  //         ...(password ? { password } : {}),
+  //       },
+  //     })
+  //   }),
 
-      return true
-    }),
+  // forgotPassword: publicProcedure
+  //   .input(forgotPasswordSchema)
+  //   .mutation(async ({ ctx, input }) => {
+  //     const user = await prisma.user.findFirst({
+  //       where: { email: input.email },
+  //     })
+  //     if (!user)
+  //       throw new TRPCError({
+  //         code: 'BAD_REQUEST',
+  //         message: 'هذا الحساب غير موجود',
+  //       })
+  //     const expires = add(new Date(), { hours: 24 })
+  //     const { token } = await prisma.resetPasswordToken.create({
+  //       data: { user: { connect: { email: input.email } }, expires },
+  //     })
+  //     await sendMail({
+  //       subject: 'طلب تغيير كلمة المرور',
+  //       to: [{ email: input.email }],
+  //       textContent: `قم بتغيير كلمة المرور الخاصة بك من خلال الرابط: ${
+  //         getBaseUrl() + '/reset-password/' + token
+  //       }`,
+  //     })
+  //     return true
+  //   }),
+
+  // resetPassword: publicProcedure
+  //   .input(resetPasswordSchema)
+  //   .mutation(async ({ ctx, input }) => {
+  //     const { token, password } = input
+  //     const passwordToken = await prisma.resetPasswordToken.findFirst({
+  //       where: { token },
+  //     })
+  //     if (!passwordToken)
+  //       throw new TRPCError({
+  //         code: 'BAD_REQUEST',
+  //         message: 'هذا التوكين غير موجود',
+  //       })
+
+  //     // This prisma object will handle hashing passwords
+  //     const prismaWithPasswordUtility = withPassword(prisma)
+  //     await prismaWithPasswordUtility.$transaction(async (tx) => {
+  //       await tx.user.update({
+  //         where: { id: passwordToken.userId },
+  //         data: { password },
+  //       })
+  //       await tx.resetPasswordToken.delete({ where: { token } })
+  //     })
+
+  //     return true
+  //   }),
 
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
       await ctx.db.deleteFrom('User').where('id', '=', input).execute()
+      return true
+    }),
+
+  bulkDelete: protectedProcedure
+    .input(z.array(z.string().min(1)))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      await ctx.db.deleteFrom('User').where('id', 'in', input).execute()
       return true
     }),
 })

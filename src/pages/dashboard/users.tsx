@@ -40,15 +40,24 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogHeader,
+  AlertDialogCancel,
+  AlertDialogFooter,
+  AlertDialogDescription,
 } from '~/components/ui/alert-dialog'
 import { DeleteUserDialog } from '~/components/modals/delete-user'
 import { Input } from '~/components/ui/input'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 import { UserRole } from '~/kysely/enums'
-import { Cycle, StudentCycle, User } from '~/kysely/types'
+import { Cycle, UserCycle, User } from '~/kysely/types'
+import { Checkbox } from '~/components/ui/checkbox'
+import { useQueryClient } from '@tanstack/react-query'
+import { useToast } from '~/components/ui/use-toast'
 
 type Row = User & {
-  student: { cycles: (StudentCycle & { cycle: Cycle })[] }
+  student: { cycles: (UserCycle & { cycle: Cycle })[] }
   corrector: {
     cycle: Cycle
   }
@@ -65,8 +74,10 @@ const PAGE_SIZE = 25
 
 const UsersPage = () => {
   const router = useRouter()
-
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [rowSelection, setRowSelection] = useState({})
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -80,6 +91,8 @@ const UsersPage = () => {
     pageIndex,
     pageSize,
   }
+
+  const bulkDelete = api.user.bulkDelete.useMutation()
 
   const columnFilters: ColumnFiltersState = getColumnFilters(
     router.query,
@@ -111,6 +124,31 @@ const UsersPage = () => {
 
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? table.getIsAllPageRowsSelected()
+                : table.getIsSomePageRowsSelected()
+                ? 'indeterminate'
+                : false
+            }
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label='تحديد الكل'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label='تحديد الصف'
+          />
+        ),
+      }),
       columnHelper.accessor('email', {
         header: ({ column }) => {
           const filterValue = column.getFilterValue() as string | undefined
@@ -198,37 +236,39 @@ const UsersPage = () => {
         (row) => row.student?.cycles.map((c) => c.cycle.name).join('، '),
         {
           id: 'cycles',
-          header: ({ column }) => {
-            const { data: cycles, isLoading } = api.cycle.findMany.useQuery({})
-            const filterValue = column.getFilterValue() as string | undefined
-            return (
-              <div className='flex items-center'>
-                الدورة
-                <Popover>
-                  <PopoverTrigger className='mr-4' asChild>
-                    <Button
-                      size='icon'
-                      variant={filterValue ? 'secondary' : 'ghost'}
-                    >
-                      <Filter className='h-4 w-4' />
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent>
-                    <Combobox
-                      items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
-                      loading={isLoading}
-                      labelKey='name'
-                      valueKey='id'
-                      onSelect={column.setFilterValue}
-                      value={filterValue}
-                      triggerText='الكل'
-                      triggerClassName='w-full'
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-            )
-          },
+          header: 'الدورة',
+          // TODO: fix this
+          // header: ({ column }) => {
+          //   const { data: cycles, isLoading } = api.cycle.list.useQuery({})
+          //   const filterValue = column.getFilterValue() as string | undefined
+          //   return (
+          //     <div className='flex items-center'>
+          //       الدورة
+          //       <Popover>
+          //         <PopoverTrigger className='mr-4' asChild>
+          //           <Button
+          //             size='icon'
+          //             variant={filterValue ? 'secondary' : 'ghost'}
+          //           >
+          //             <Filter className='h-4 w-4' />
+          //           </Button>
+          //         </PopoverTrigger>
+          //         <PopoverContent>
+          //           <Combobox
+          //             items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
+          //             loading={isLoading}
+          //             labelKey='name'
+          //             valueKey='id'
+          //             onSelect={column.setFilterValue}
+          //             value={filterValue}
+          //             triggerText='الكل'
+          //             triggerClassName='w-full'
+          //           />
+          //         </PopoverContent>
+          //       </Popover>
+          //     </div>
+          //   )
+          // },
           cell: (info) => info.getValue() || '-',
           meta: {
             className: 'text-center',
@@ -253,7 +293,7 @@ const UsersPage = () => {
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
-                  <UserInfoModal id={row.original.id} />
+                  <UserInfoModal id={row.original.id as unknown as string} />
                 </DialogContent>
               </Dialog>
               <Dialog>
@@ -268,7 +308,7 @@ const UsersPage = () => {
                 </DialogTrigger>
                 <DialogContent>
                   <EditUserDialog
-                    id={row.original.id}
+                    id={row.original.id as unknown as string}
                     setDialogOpen={setDialogOpen}
                   />
                 </DialogContent>
@@ -284,7 +324,7 @@ const UsersPage = () => {
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
-                  <DeleteUserDialog id={row.original.id} />
+                  <DeleteUserDialog id={row.original.id as unknown as string} />
                 </AlertDialogContent>
               </AlertDialog>
             </div>
@@ -296,13 +336,14 @@ const UsersPage = () => {
   )
 
   const table = useReactTable({
-    data: (users as Row[]) || [],
+    data: (users as any[]) ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     pageCount,
     manualPagination: true,
-    state: { pagination, columnFilters },
+    state: { pagination, columnFilters, rowSelection },
+    enableRowSelection: true,
     manualFiltering: true,
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
@@ -311,7 +352,7 @@ const UsersPage = () => {
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
-    // onColumnFiltersChange: setColumnFilters,
+    onRowSelectionChange: setRowSelection,
     onColumnFiltersChange: (updater) => {
       const newColumnFilters: ColumnFiltersState = (
         updater as CallableFunction
@@ -325,6 +366,27 @@ const UsersPage = () => {
       router.push(router)
     },
   })
+  const selectedRows = table
+    .getSelectedRowModel()
+    .flatRows.map((item) => item.original)
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) return
+    const t = toast({ title: 'جاري حذف المستخدمين المختارين...' })
+    bulkDelete
+      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
+      .then(() => {
+        toast({ title: 'تم الحذف بنجاح' })
+        setRowSelection({})
+      })
+      .catch((e) => {
+        toast({ title: 'حدث خطأ أثناء الحذف' })
+      })
+      .finally(() => {
+        t.dismiss()
+        queryClient.invalidateQueries([['user']])
+      })
+  }
 
   return (
     <>
@@ -345,13 +407,37 @@ const UsersPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      {/* <EditUserDialog
-      title='تعديل بيانات المستخدم'
-        open={!!userToEdit}
-        setOpen={setUserToEdit}
-        refetch={refetch}
-        id={typeof userToEdit === 'string' ? userToEdit : null}
-      /> */}
+      <div className='mb-4'>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant='destructive'
+              className='flex items-center gap-2'
+              disabled={selectedRows.length === 0}
+            >
+              <Trash size={16} />
+              حذف{' '}
+              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                هل تريد حقاً حذف المستخدمين المختارين؟
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription>
+              سيتم حذف {selectedRows.length} من المستخدمين
+            </AlertDialogDescription>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={handleBulkDelete}>
+                تأكيد
+              </AlertDialogAction>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
       <DataTable table={table} fetching={isFetchingUsers} />
     </>
   )

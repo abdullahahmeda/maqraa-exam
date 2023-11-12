@@ -22,6 +22,12 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
+  AlertDialogDescription,
+  AlertDialogTitle,
+  AlertDialogAction,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogCancel,
 } from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
@@ -29,10 +35,36 @@ import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
 import { Plus } from 'lucide-react'
+import { useToast } from '~/components/ui/use-toast'
+import { useQueryClient } from '@tanstack/react-query'
+import { Checkbox } from '~/components/ui/checkbox'
 
 const columnHelper = createColumnHelper<Cycle>()
 
 const columns = [
+  columnHelper.display({
+    id: 'select',
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected()
+            ? table.getIsAllPageRowsSelected()
+            : table.getIsSomePageRowsSelected()
+            ? 'indeterminate'
+            : false
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label='تحديد الكل'
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label='تحديد الصف'
+      />
+    ),
+  }),
   columnHelper.accessor('name', { header: 'الدورة' }),
   columnHelper.display({
     id: 'actions',
@@ -49,7 +81,7 @@ const columns = [
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <EditCycleDialog id={row.original.id} />
+            <EditCycleDialog id={row.original.id as unknown as string} />
           </DialogContent>
         </Dialog>
         <AlertDialog>
@@ -59,7 +91,7 @@ const columns = [
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
-            <DeleteCycleDialog id={row.original.id} />
+            <DeleteCycleDialog id={row.original.id as unknown as string} />
           </AlertDialogContent>
         </AlertDialog>
       </div>
@@ -71,8 +103,10 @@ const PAGE_SIZE = 25
 
 const CyclesPage = () => {
   const router = useRouter()
-
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [rowSelection, setRowSelection] = useState({})
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -86,6 +120,8 @@ const CyclesPage = () => {
     pageIndex,
     pageSize,
   }
+
+  const bulkDelete = api.cycle.bulkDelete.useMutation()
 
   const { data: cycles, isFetching: isFetchingCycles } =
     api.cycle.list.useQuery({ pagination }, { networkMode: 'always' })
@@ -101,13 +137,15 @@ const CyclesPage = () => {
       : -1
 
   const table = useReactTable({
-    data: cycles || [],
+    data: (cycles as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     pageCount,
     manualPagination: true,
-    state: { pagination },
+    state: { pagination, rowSelection },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -116,6 +154,28 @@ const CyclesPage = () => {
       router.push(router)
     },
   })
+
+  const selectedRows = table
+    .getSelectedRowModel()
+    .flatRows.map((item) => item.original)
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) return
+    const t = toast({ title: 'جاري حذف الدورات المختارة...' })
+    bulkDelete
+      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
+      .then(() => {
+        toast({ title: 'تم الحذف بنجاح' })
+        setRowSelection({})
+      })
+      .catch((e) => {
+        toast({ title: 'حدث خطأ أثناء الحذف' })
+      })
+      .finally(() => {
+        t.dismiss()
+        queryClient.invalidateQueries([['cycle']])
+      })
+  }
 
   return (
     <>
@@ -135,6 +195,38 @@ const CyclesPage = () => {
             <AddCycleDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
+      </div>
+      <div className='mb-4'>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant='destructive'
+              className='flex items-center gap-2'
+              // onClick={handleBulkDelete}
+              disabled={selectedRows.length === 0}
+            >
+              <Trash size={16} />
+              حذف{' '}
+              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                هل تريد حقاً حذف الدورات المختارة؟
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription>
+              سيتم حذف {selectedRows.length} من الدورات
+            </AlertDialogDescription>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={handleBulkDelete}>
+                تأكيد
+              </AlertDialogAction>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <DataTable table={table} fetching={isFetchingCycles} />
     </>

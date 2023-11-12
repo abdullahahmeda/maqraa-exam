@@ -80,7 +80,7 @@ type Row = Quiz & {
   curriculum: Curriculum & { track: { course: Course } }
 }
 
-const columnHelper = createColumnHelper<Row>()
+const columnHelper = createColumnHelper<any>()
 
 const PAGE_SIZE = 50
 
@@ -262,8 +262,8 @@ const MyExamsPage = () => {
         cell: (info) =>
           info.getValue() ? (
             <div>
-              {formatDate(info.getValue() as Date)}{' '}
-              {(info.getValue() as Date) > new Date() ? (
+              {formatDate(info.getValue() as unknown as Date)}{' '}
+              {(info.getValue() as unknown as Date) > new Date() ? (
                 <Badge>مفتوح</Badge>
               ) : (
                 <Badge variant='destructive'>مغلق</Badge>
@@ -279,7 +279,9 @@ const MyExamsPage = () => {
       columnHelper.accessor('enteredAt', {
         header: 'وقت البدأ',
         cell: (info) =>
-          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+          info.getValue()
+            ? formatDate(info.getValue() as unknown as Date)
+            : '-',
         meta: {
           className: 'text-center',
         },
@@ -287,7 +289,9 @@ const MyExamsPage = () => {
       columnHelper.accessor('submittedAt', {
         header: 'وقت التسليم',
         cell: (info) =>
-          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+          info.getValue()
+            ? formatDate(info.getValue() as unknown as Date)
+            : '-',
         meta: {
           className: 'text-center',
         },
@@ -295,7 +299,9 @@ const MyExamsPage = () => {
       columnHelper.accessor('correctedAt', {
         header: 'وقت التصحيح',
         cell: (info) =>
-          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+          info.getValue()
+            ? formatDate(info.getValue() as unknown as Date)
+            : '-',
         meta: {
           className: 'text-center',
         },
@@ -341,7 +347,8 @@ const MyExamsPage = () => {
             ) : (
               <>
                 {(!row.original.endsAt ||
-                  (row.original.endsAt && row.original.endsAt > new Date())) &&
+                  (row.original.endsAt &&
+                    (row.original.endsAt as unknown as Date) > new Date())) &&
                   !row.original.submittedAt && (
                     <TooltipProvider>
                       <Tooltip>
@@ -411,7 +418,7 @@ const MyExamsPage = () => {
       : -1
 
   const table = useReactTable({
-    data: (quizzes as Row[]) || [],
+    data: (quizzes as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,

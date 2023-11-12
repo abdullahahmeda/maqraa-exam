@@ -41,6 +41,7 @@ import { useToast } from '~/components/ui/use-toast'
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
 import { getColumnFilters } from '~/utils/getColumnFilters'
+import { Checkbox } from '~/components/ui/checkbox'
 
 const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   const curriculumDelete = api.curriculum.delete.useMutation()
@@ -91,9 +92,33 @@ const columnFiltersValidators = {
   trackId: z.string(),
 }
 
-const columnHelper = createColumnHelper<RowType>()
+const columnHelper = createColumnHelper<any>()
+// RowType
 
 const columns = [
+  columnHelper.display({
+    id: 'select',
+    header: ({ table }) => (
+      <Checkbox
+        checked={
+          table.getIsAllPageRowsSelected()
+            ? table.getIsAllPageRowsSelected()
+            : table.getIsSomePageRowsSelected()
+            ? 'indeterminate'
+            : false
+        }
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label='تحديد الكل'
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label='تحديد الصف'
+      />
+    ),
+  }),
   columnHelper.accessor('name', {
     header: 'المنهج',
     meta: {
@@ -177,7 +202,7 @@ const columns = [
             </DialogTrigger>
             <DialogContent>
               <EditCurriculumDialog
-                id={row.original.id}
+                id={row.original.id as unknown as string}
                 setDialogOpen={setDialogOpen}
               />
             </DialogContent>
@@ -189,7 +214,9 @@ const columns = [
               </Button>
             </AlertDialogTrigger>
             <AlertDialogContent>
-              <DeleteCurriculumDialog id={row.original.id} />
+              <DeleteCurriculumDialog
+                id={row.original.id as unknown as string}
+              />
             </AlertDialogContent>
           </AlertDialog>
         </div>
@@ -205,8 +232,10 @@ const PAGE_SIZE = 25
 
 const CurriculaPage = () => {
   const router = useRouter()
-
+  const queryClient = useQueryClient()
+  const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [rowSelection, setRowSelection] = useState({})
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -220,6 +249,8 @@ const CurriculaPage = () => {
     pageIndex,
     pageSize,
   }
+
+  const bulkDelete = api.curriculum.bulkDelete.useMutation()
 
   const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
   const filters = columnFilters.reduce(
@@ -246,11 +277,13 @@ const CurriculaPage = () => {
       : -1
 
   const table = useReactTable({
-    data: curricula || [],
+    data: (curricula as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
-    state: { pagination, columnFilters },
+    state: { pagination, columnFilters, rowSelection },
+    onRowSelectionChange: setRowSelection,
+    enableRowSelection: true,
     manualPagination: true,
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
@@ -274,6 +307,28 @@ const CurriculaPage = () => {
     },
   })
 
+  const selectedRows = table
+    .getSelectedRowModel()
+    .flatRows.map((item) => item.original)
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) return
+    const t = toast({ title: 'جاري حذف المناهج المختارة...' })
+    bulkDelete
+      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
+      .then(() => {
+        toast({ title: 'تم الحذف بنجاح' })
+        setRowSelection({})
+      })
+      .catch((e) => {
+        toast({ title: 'حدث خطأ أثناء الحذف' })
+      })
+      .finally(() => {
+        t.dismiss()
+        queryClient.invalidateQueries([['curriculum']])
+      })
+  }
+
   return (
     <>
       <Head>
@@ -294,6 +349,37 @@ const CurriculaPage = () => {
         </Dialog>
       </div>
 
+      <div className='mb-4'>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant='destructive'
+              className='flex items-center gap-2'
+              disabled={selectedRows.length === 0}
+            >
+              <Trash size={16} />
+              حذف{' '}
+              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                هل تريد حقاً حذف المناهج المختارة؟
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription>
+              سيتم حذف {selectedRows.length} من المناهج
+            </AlertDialogDescription>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={handleBulkDelete}>
+                تأكيد
+              </AlertDialogAction>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
       <DataTable table={table} fetching={isFetchingCurricula} />
     </>
   )

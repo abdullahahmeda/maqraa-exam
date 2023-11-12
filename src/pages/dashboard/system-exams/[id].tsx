@@ -17,7 +17,7 @@ import { GetServerSideProps } from 'next'
 import Head from 'next/head'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, useMemo } from 'react'
 import { z } from 'zod'
 import { Button, buttonVariants } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
@@ -82,13 +82,19 @@ import { useToast } from '~/components/ui/use-toast'
 import { saveAs } from 'file-saver'
 import { CircularProgress } from '~/components/ui/circular-progress'
 import { getColumnFilters } from '~/utils/getColumnFilters'
+import { Input } from '~/components/ui/input'
 
 type Row = Quiz & {
   examinee: User
   corrector: User | null
 }
 
-const columnHelper = createColumnHelper<Row>()
+const columnFiltersValidators = {
+  examineeName: z.string(),
+}
+
+const columnHelper = createColumnHelper<any>()
+// Row
 
 const PAGE_SIZE = 50
 
@@ -99,14 +105,16 @@ const ExamsPage = ({
   submittedQuizPercentage,
   avgStats,
 }: {
-  systemExam: SystemExam & {
-    cycle: Cycle
-    curriculum: Curriculum & { track: { course: Course } }
-  }
+  systemExam: any
+  // systemExam: SystemExam & {
+  //   cycle: Cycle
+  //   curriculum: Curriculum & { track: { course: Course } }
+  // }
   quizCount: number
   submittedQuizCount: number
   submittedQuizPercentage: number
-  avgStats: { _avg: { grade: number | null; percentage: number | null } }
+  avgStats: any
+  // avgStats: { _avg: { grade: number | null; percentage: number | null } }
 }) => {
   const router = useRouter()
   const { data: session } = useSession()
@@ -126,168 +134,124 @@ const ExamsPage = ({
     pageSize,
   }
 
-  const columns = [
-    columnHelper.accessor('examineeName', {
-      header: 'الطالب',
-      cell: (info) => info.getValue() || '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('examineeEmail', {
-      header: 'الإيميل',
-      cell: (info) => info.getValue() || '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('grade', {
-      header: 'الدرجة',
-      cell: ({ getValue, row }) =>
-        typeof getValue() === 'number'
-          ? `${
-              !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-            }${getValue()} من ${row.original.total} (${percentage(
-              getValue() as number,
-              row.original.total as number
-            )}%)`
-          : '-',
-    }),
-    columnHelper.accessor('endsAt', {
-      header: 'وقت القفل',
-      cell: (info) =>
-        info.getValue() ? (
-          <div>
-            {formatDate(info.getValue() as Date)}{' '}
-            {(info.getValue() as Date) > new Date() ? (
-              <Badge>مفتوح</Badge>
-            ) : (
-              <Badge variant='destructive'>مغلق</Badge>
-            )}
-          </div>
-        ) : (
-          '-'
-        ),
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('enteredAt', {
-      header: 'وقت البدأ',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('submittedAt', {
-      header: 'وقت التسليم',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('correctedAt', {
-      header: 'وقت التصحيح',
-      cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.accessor('correctorName', {
-      header: 'المصحح',
-      cell: (info) => info.getValue() || '-',
-      meta: {
-        className: 'text-center',
-      },
-    }),
-    columnHelper.display({
-      id: 'actions',
-      header: 'الإجراءات',
-      cell: function Cell({ row }) {
-        const [dialogOpen, setDialogOpen] = useState(false)
-        return (
-          <div className='flex justify-center gap-2'>
-            {session?.user.role !== 'STUDENT' ? (
-              <>
-                {!!row.original.submittedAt && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Link
-                          className={cn(
-                            buttonVariants({ variant: 'ghost', size: 'icon' })
-                          )}
-                          href={`/dashboard/quizzes/${row.original.id}`}
-                        >
-                          <FileCheck2 className='h-4 w-4 text-success' />
-                        </Link>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>تصحيح الإختبار</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger>
-                      <Button
-                        size='icon'
-                        variant='ghost'
-                        onClick={() => {
-                          navigator.clipboard.writeText(
-                            `${location.origin}/quizzes/${row.original.id}`
-                          )
-                        }}
-                      >
-                        <LinkIcon className='h-4 w-4' />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>نسخ رابط الإختبار</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='hover:bg-orange-50'
-                    >
-                      <Pencil className='h-4 w-4 text-orange-500' />
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <EditQuizDialog
-                      id={row.original.id}
-                      setDialogOpen={setDialogOpen}
-                    />
-                  </DialogContent>
-                </Dialog>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button
-                      variant='ghost'
-                      size='icon'
-                      className='hover:bg-red-50'
-                    >
-                      <Trash className='h-4 w-4 text-red-600' />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <DeleteQuizDialog id={row.original.id} />
-                  </AlertDialogContent>
-                </AlertDialog>
-              </>
-            ) : (
-              <>
-                {(!row.original.endsAt ||
-                  (row.original.endsAt && row.original.endsAt > new Date())) &&
-                  !row.original.submittedAt && (
+  const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
+  const filters = {
+    systemExamId: systemExam.id,
+    ...columnFilters.reduce((obj, f) => ({ ...obj, [f.id]: f.value }), {}),
+  }
+  const columns = useMemo(
+    () => [
+      columnHelper.accessor('examineeName', {
+        header: ({ column }) => {
+          const filterValue = column.getFilterValue() as string | undefined
+          return (
+            <div className='flex items-center'>
+              الطالب
+              <Popover>
+                <PopoverTrigger className='mr-4' asChild>
+                  <Button
+                    size='icon'
+                    variant={filterValue ? 'secondary' : 'ghost'}
+                  >
+                    <Filter className='h-4 w-4' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Input
+                    value={filterValue === undefined ? '' : filterValue}
+                    onChange={(e) => {
+                      column.setFilterValue(e.target.value)
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )
+        },
+        cell: (info) => info.getValue() || '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('examineeEmail', {
+        header: 'الإيميل',
+        cell: (info) => info.getValue() || '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('grade', {
+        header: 'الدرجة',
+        cell: ({ getValue, row }) =>
+          typeof getValue() === 'number'
+            ? `${
+                !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
+              }${getValue()} من ${row.original.total} (${percentage(
+                getValue() as number,
+                row.original.total as number
+              )}%)`
+            : '-',
+      }),
+      columnHelper.accessor('endsAt', {
+        header: 'وقت القفل',
+        cell: (info) =>
+          info.getValue() ? (
+            <div>
+              {formatDate(info.getValue() as unknown as Date)}{' '}
+              {(info.getValue() as Date) > new Date() ? (
+                <Badge>مفتوح</Badge>
+              ) : (
+                <Badge variant='destructive'>مغلق</Badge>
+              )}
+            </div>
+          ) : (
+            '-'
+          ),
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('enteredAt', {
+        header: 'وقت البدأ',
+        cell: (info) =>
+          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('submittedAt', {
+        header: 'وقت التسليم',
+        cell: (info) =>
+          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('correctedAt', {
+        header: 'وقت التصحيح',
+        cell: (info) =>
+          info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.accessor('correctorName', {
+        header: 'المصحح',
+        cell: (info) => info.getValue() || '-',
+        meta: {
+          className: 'text-center',
+        },
+      }),
+      columnHelper.display({
+        id: 'actions',
+        header: 'الإجراءات',
+        cell: function Cell({ row }) {
+          const [dialogOpen, setDialogOpen] = useState(false)
+          return (
+            <div className='flex justify-center gap-2'>
+              {session?.user.role !== 'STUDENT' ? (
+                <>
+                  {!!row.original.submittedAt && (
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
@@ -295,35 +259,117 @@ const ExamsPage = ({
                             className={cn(
                               buttonVariants({ variant: 'ghost', size: 'icon' })
                             )}
-                            href={`/quizzes/${row.original.id}`}
+                            href={`/dashboard/quizzes/${row.original.id}`}
                           >
-                            <LogIn className='h-4 w-4' />
+                            <FileCheck2 className='h-4 w-4 text-success' />
                           </Link>
                         </TooltipTrigger>
-                        <TooltipContent>دخول الإختبار</TooltipContent>
+                        <TooltipContent>
+                          <p>تصحيح الإختبار</p>
+                        </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
                   )}
-              </>
-            )}
-          </div>
-        )
-      },
-      meta: {
-        className: 'text-center',
-      },
-    }),
-  ]
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Button
+                          size='icon'
+                          variant='ghost'
+                          onClick={() => {
+                            navigator.clipboard.writeText(
+                              `${location.origin}/quizzes/${row.original.id}`
+                            )
+                          }}
+                        >
+                          <LinkIcon className='h-4 w-4' />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>نسخ رابط الإختبار</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='hover:bg-orange-50'
+                      >
+                        <Pencil className='h-4 w-4 text-orange-500' />
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <EditQuizDialog
+                        id={row.original.id}
+                        setDialogOpen={setDialogOpen}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant='ghost'
+                        size='icon'
+                        className='hover:bg-red-50'
+                      >
+                        <Trash className='h-4 w-4 text-red-600' />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <DeleteQuizDialog id={row.original.id} />
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              ) : (
+                <>
+                  {(!row.original.endsAt ||
+                    (row.original.endsAt &&
+                      row.original.endsAt > new Date())) &&
+                    !row.original.submittedAt && (
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Link
+                              className={cn(
+                                buttonVariants({
+                                  variant: 'ghost',
+                                  size: 'icon',
+                                })
+                              )}
+                              href={`/quizzes/${row.original.id}`}
+                            >
+                              <LogIn className='h-4 w-4' />
+                            </Link>
+                          </TooltipTrigger>
+                          <TooltipContent>دخول الإختبار</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    )}
+                </>
+              )}
+            </div>
+          )
+        },
+        meta: {
+          className: 'text-center',
+        },
+      }),
+    ],
+    []
+  )
 
-  const filters = { systemExamId: systemExam.id }
   const include = { examinee: true, corrector: true }
 
   const { data: quizzes, isFetching } = api.quiz.list.useQuery(
+    // @ts-ignore
     { pagination, filters, include },
     { networkMode: 'always' }
   )
 
   const { data: count, isLoading: isCountLoading } = api.quiz.count.useQuery(
+    // @ts-ignore
     { filters },
     { networkMode: 'always' }
   )
@@ -336,13 +382,13 @@ const ExamsPage = ({
       : -1
 
   const table = useReactTable({
-    data: (quizzes as Row[]) || [],
+    data: (quizzes as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
     manualPagination: true,
     manualFiltering: true,
-    state: { pagination },
+    state: { pagination, columnFilters },
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -350,12 +396,24 @@ const ExamsPage = ({
       router.query.page = `${newPagination.pageIndex + 1}`
       router.push(router)
     },
+    onColumnFiltersChange: (updater) => {
+      const newColumnFilters: ColumnFiltersState = (
+        updater as CallableFunction
+      )(columnFilters)
+      Object.keys(columnFiltersValidators).forEach((filterId) => {
+        delete router.query[filterId]
+      })
+      newColumnFilters.forEach((filter) => {
+        ;(router.query as any)[filter.id] = filter.value
+      })
+      router.push(router)
+    },
   })
 
   const handleDownload = async () => {
     const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
     quizzesExport
-      .mutateAsync({ systemExamId: systemExam.id })
+      .mutateAsync({ systemExamId: systemExam.id as unknown as string })
       .then((arrayBuffer) => {
         const content = new Blob([arrayBuffer])
         saveAs(content, `الإختبار ${systemExam.name}.xlsx`)
@@ -426,7 +484,7 @@ const ExamsPage = ({
                 {avgStats.gradeAvg === null
                   ? 'لم يتم حسابها'
                   : `${Number(avgStats.gradeAvg).toFixed(2)}/${
-                      quizzes[0].total
+                      quizzes?.[0]?.total
                     }`}
               </p>
               <p>متوسط الدرجات</p>

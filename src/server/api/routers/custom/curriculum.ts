@@ -6,6 +6,7 @@ import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
 import { SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
 import { jsonArrayFrom } from 'kysely/helpers/postgres'
+import { TRPCError } from '@trpc/server'
 
 const curriculumFilterSchema = z.object({
   trackId: z.string().optional(),
@@ -15,6 +16,29 @@ const curriculumIncludeSchema = z.record(
   z.union([z.literal('parts'), z.literal('track')]),
   z.boolean().optional()
 )
+
+function applyCurriculumIncludes<O>(
+  query: SelectQueryBuilder<DB, 'Curriculum', O>,
+  includes: z.infer<typeof curriculumIncludeSchema> | undefined
+) {
+  return query
+    .$if(!!includes?.track, (qb) =>
+      qb
+        .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
+        .leftJoin('Course', 'Track.courseId', 'Course.id')
+        .select(['Course.name as courseName', 'Track.name as trackName'])
+    )
+    .$if(!!includes?.parts, (qb) =>
+      qb.select((eb) => [
+        jsonArrayFrom(
+          eb
+            .selectFrom('CurriculumPart')
+            .selectAll('CurriculumPart')
+            .whereRef('CurriculumPart.curriculumId', '=', 'Curriculum.id')
+        ).as('parts'),
+      ])
+    )
+}
 
 function applyCurriculumFilters<O>(
   query: SelectQueryBuilder<DB, 'Curriculum', O>,
@@ -53,21 +77,13 @@ export const curriculumRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      return ctx.db
-        .selectFrom('Curriculum')
-        .selectAll('Curriculum')
-        .where('id', '=', input.id)
-        .$if(!!input.include?.parts, (qb) =>
-          qb.select((eb) => [
-            jsonArrayFrom(
-              eb
-                .selectFrom('CurriculumPart')
-                .selectAll('CurriculumPart')
-                .whereRef('CurriculumPart.curriculumId', '=', 'Curriculum.id')
-            ).as('parts'),
-          ])
-        )
-        .executeTakeFirst()
+      return applyCurriculumIncludes(
+        ctx.db
+          .selectFrom('Curriculum')
+          .selectAll('Curriculum')
+          .where('id', '=', input.id),
+        input.include
+      ).executeTakeFirst()
     }),
 
   list: protectedProcedure
@@ -79,19 +95,14 @@ export const curriculumRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const query = ctx.db
-        .selectFrom('Curriculum')
-        .selectAll('Curriculum')
-        .$if(!!input.include?.track, (qb) =>
-          qb
-            .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-            .leftJoin('Course', 'Track.courseId', 'Course.id')
-            .select(['Course.name as courseName', 'Track.name as trackName'])
-        )
+      const query = ctx.db.selectFrom('Curriculum').selectAll('Curriculum')
 
-      return await applyPagination(
-        applyCurriculumFilters(query, input.filters),
-        input.pagination
+      return applyCurriculumIncludes(
+        applyPagination(
+          applyCurriculumFilters(query, input.filters),
+          input.pagination
+        ),
+        input.include
       ).execute()
     }),
   count: protectedProcedure
@@ -135,6 +146,19 @@ export const curriculumRouter = createTRPCRouter({
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
       await ctx.db.deleteFrom('Curriculum').where('id', '=', input).execute()
+      return true
+    }),
+
+  bulkDelete: protectedProcedure
+    .input(z.array(z.string().min(1)))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      await ctx.db.deleteFrom('Curriculum').where('id', 'in', input).execute()
       return true
     }),
 })

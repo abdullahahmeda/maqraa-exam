@@ -33,6 +33,7 @@ import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import { useToast } from '~/components/ui/use-toast'
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
+import { Checkbox } from '~/components/ui/checkbox'
 
 const DeleteCourseDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
@@ -78,8 +79,10 @@ const PAGE_SIZE = 25
 
 const CoursesPage = () => {
   const router = useRouter()
-
+  const { toast } = useToast()
+  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [rowSelection, setRowSelection] = useState({})
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -93,6 +96,8 @@ const CoursesPage = () => {
     pageIndex,
     pageSize,
   }
+
+  const bulkDelete = api.course.bulkDelete.useMutation()
 
   const {
     data: courses,
@@ -112,6 +117,31 @@ const CoursesPage = () => {
 
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? table.getIsAllPageRowsSelected()
+                : table.getIsSomePageRowsSelected()
+                ? 'indeterminate'
+                : false
+            }
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label='تحديد الكل'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label='تحديد الصف'
+          />
+        ),
+      }),
       columnHelper.accessor('name', {
         header: 'المقرر',
         meta: {
@@ -128,35 +158,43 @@ const CoursesPage = () => {
       columnHelper.display({
         id: 'actions',
         header: 'الإجراءات',
-        cell: ({ row }) => (
-          <div className='flex justify-center gap-2'>
-            {/* <Button>عرض المناهج</Button> */}
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button
-                  variant='ghost'
-                  size='icon'
-                  className='hover:bg-orange-50'
-                >
-                  <Pencil className='h-4 w-4 text-orange-500' />
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <EditCourseDialog id={row.original.id} />
-              </DialogContent>
-            </Dialog>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant='ghost' size='icon' className='hover:bg-red-50'>
-                  <Trash className='h-4 w-4 text-red-600' />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <DeleteCourseDialog id={row.original.id} />
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        ),
+        cell: function Cell({ row }) {
+          const [dialogOpen, setDialogOpen] = useState(false)
+          return (
+            <div className='flex justify-center gap-2'>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='hover:bg-orange-50'
+                  >
+                    <Pencil className='h-4 w-4 text-orange-500' />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <EditCourseDialog id={row.original.id as unknown as string} />
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='hover:bg-red-50'
+                  >
+                    <Trash className='h-4 w-4 text-red-600' />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <DeleteCourseDialog
+                    id={row.original.id as unknown as string}
+                  />
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )
+        },
         meta: {
           className: 'text-center',
         },
@@ -166,12 +204,14 @@ const CoursesPage = () => {
   )
 
   const table = useReactTable({
-    data: courses || [],
+    data: (courses as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
     manualPagination: true,
-    state: { pagination },
+    state: { pagination, rowSelection },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -180,6 +220,28 @@ const CoursesPage = () => {
       router.push(router)
     },
   })
+
+  const selectedRows = table
+    .getSelectedRowModel()
+    .flatRows.map((item) => item.original)
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) return
+    const t = toast({ title: 'جاري حذف المقررات المختارة...' })
+    bulkDelete
+      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
+      .then(() => {
+        toast({ title: 'تم الحذف بنجاح' })
+        setRowSelection({})
+      })
+      .catch((e) => {
+        toast({ title: 'حدث خطأ أثناء الحذف' })
+      })
+      .finally(() => {
+        t.dismiss()
+        queryClient.invalidateQueries([['course']])
+      })
+  }
 
   return (
     <>
@@ -199,6 +261,37 @@ const CoursesPage = () => {
             <AddCourseDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
+      </div>
+      <div className='mb-4'>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button
+              variant='destructive'
+              className='flex items-center gap-2'
+              disabled={selectedRows.length === 0}
+            >
+              <Trash size={16} />
+              حذف{' '}
+              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                هل تريد حقاً حذف المقررات المختارة؟
+              </AlertDialogTitle>
+            </AlertDialogHeader>
+            <AlertDialogDescription>
+              سيتم حذف {selectedRows.length} من المقررات
+            </AlertDialogDescription>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={handleBulkDelete}>
+                تأكيد
+              </AlertDialogAction>
+              <AlertDialogCancel>إلغاء</AlertDialogCancel>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
       <DataTable table={table} fetching={isFetchingCourses} />
     </>

@@ -23,6 +23,12 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
+  AlertDialogCancel,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogAction,
+  AlertDialogTitle,
+  AlertDialogDescription,
 } from '~/components/ui/alert-dialog'
 import {
   Filter,
@@ -72,6 +78,8 @@ import { useToast } from '~/components/ui/use-toast'
 import { saveAs } from 'file-saver'
 import { ExportSystemExamsDialog } from '~/components/modals/export-system-exams'
 import { getColumnFilters } from '~/utils/getColumnFilters'
+import { Checkbox } from '~/components/ui/checkbox'
+import { useQueryClient } from '@tanstack/react-query'
 
 type Row = SystemExam & {
   cycle: Cycle
@@ -85,13 +93,17 @@ const columnFiltersValidators = {
   cycleId: z.string(),
 }
 
-const columnHelper = createColumnHelper<Row>()
+const columnHelper = createColumnHelper<any>()
+// Row
 
 const PAGE_SIZE = 50
 
 const SystemExamsPage = () => {
+  const queryClient = useQueryClient()
   const router = useRouter()
+  const [rowSelection, setRowSelection] = useState({})
   const { data: session } = useSession()
+  const { toast } = useToast()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
 
@@ -100,6 +112,8 @@ const SystemExamsPage = () => {
     .safeParse(router.query.page).success
     ? Number(router.query.page) - 1
     : 0
+
+  const bulkDelete = api.systemExam.bulkDelete.useMutation()
 
   const pageSize = PAGE_SIZE
 
@@ -110,6 +124,31 @@ const SystemExamsPage = () => {
 
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? table.getIsAllPageRowsSelected()
+                : table.getIsSomePageRowsSelected()
+                ? 'indeterminate'
+                : false
+            }
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label='تحديد الكل'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label='تحديد الصف'
+          />
+        ),
+      }),
       columnHelper.accessor('name', {
         header: 'الإختبار',
         meta: {
@@ -250,7 +289,7 @@ const SystemExamsPage = () => {
       }),
       columnHelper.accessor('createdAt', {
         header: 'وقت الإنشاء',
-        cell: (info) => formatDate(info.getValue()),
+        cell: (info) => formatDate(info.getValue() as unknown as Date),
         meta: {
           className: 'text-center',
         },
@@ -260,8 +299,8 @@ const SystemExamsPage = () => {
         cell: (info) =>
           info.getValue() ? (
             <div>
-              {formatDate(info.getValue() as Date)}{' '}
-              {(info.getValue() as Date) > new Date() ? (
+              {formatDate(info.getValue() as unknown as Date)}{' '}
+              {(info.getValue() as unknown as Date) > new Date() ? (
                 <Badge>مفتوح</Badge>
               ) : (
                 <Badge variant='destructive'>مغلق</Badge>
@@ -310,7 +349,9 @@ const SystemExamsPage = () => {
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
-                <DeleteSystemExamDialog id={row.original.id} />
+                <DeleteSystemExamDialog
+                  id={row.original.id as unknown as string}
+                />
               </AlertDialogContent>
             </AlertDialog>
           </div>
@@ -346,7 +387,7 @@ const SystemExamsPage = () => {
       : -1
 
   const table = useReactTable({
-    data: (exams as Row[]) || [],
+    data: (exams as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
@@ -355,7 +396,10 @@ const SystemExamsPage = () => {
     state: {
       pagination,
       columnFilters,
+      rowSelection,
     },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -376,6 +420,28 @@ const SystemExamsPage = () => {
       router.push(router)
     },
   })
+
+  const selectedRows = table
+    .getSelectedRowModel()
+    .flatRows.map((item) => item.original)
+
+  const handleBulkDelete = () => {
+    if (selectedRows.length === 0) return
+    const t = toast({ title: 'جاري حذف الإختبارات المختارة...' })
+    bulkDelete
+      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
+      .then(() => {
+        toast({ title: 'تم الحذف بنجاح' })
+        setRowSelection({})
+      })
+      .catch((e) => {
+        toast({ title: 'حدث خطأ أثناء الحذف' })
+      })
+      .finally(() => {
+        t.dismiss()
+        queryClient.invalidateQueries([['systemExam']])
+      })
+  }
 
   return (
     <>
@@ -416,6 +482,38 @@ const SystemExamsPage = () => {
           </DialogContent>
         </Dialog>
 
+        <div className='mb-4'>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant='destructive'
+                className='flex items-center gap-2'
+                disabled={selectedRows.length === 0}
+              >
+                <Trash size={16} />
+                حذف{' '}
+                {selectedRows.length > 0 &&
+                  `(${selectedRows.length} من العناصر)`}
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  هل تريد حقاً حذف الإختبارات المختارة؟
+                </AlertDialogTitle>
+              </AlertDialogHeader>
+              <AlertDialogDescription>
+                سيتم حذف {selectedRows.length} من الإختبارات
+              </AlertDialogDescription>
+              <AlertDialogFooter>
+                <AlertDialogAction onClick={handleBulkDelete}>
+                  تأكيد
+                </AlertDialogAction>
+                <AlertDialogCancel>إلغاء</AlertDialogCancel>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
         <DataTable table={table} fetching={isFetching} />
       </div>
     </>

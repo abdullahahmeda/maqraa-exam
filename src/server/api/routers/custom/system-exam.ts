@@ -6,7 +6,6 @@ import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
 import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
-import { SystemExamService } from '~/services/systemExam'
 import { z } from 'zod'
 import { SystemExamWhereInputObjectSchema } from '@zenstackhq/runtime/zod/objects'
 import { QuizType } from '~/kysely/enums'
@@ -56,11 +55,12 @@ export const systemExamRouter = createTRPCRouter({
       }
 
       const students = await ctx.db
-        .selectFrom('StudentCycle')
-        .leftJoin('Student', 'StudentCycle.studentId', 'Student.id')
-        .select(['StudentCycle.studentId', 'Student.userId'])
+        .selectFrom('UserCycle')
+        .leftJoin('User', 'UserCycle.userId', 'User.id')
+        .where('User.role', '=', 'STUDENT')
         .where('cycleId', '=', data.cycleId)
         .where('curriculumId', '=', data.curriculumId)
+        .select('UserCycle.userId')
         .execute()
 
       await ctx.db.transaction().execute(async (trx) => {
@@ -229,6 +229,19 @@ export const systemExamRouter = createTRPCRouter({
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
       await ctx.db.deleteFrom('SystemExam').where('id', '=', input).execute()
+      return true
+    }),
+
+  bulkDelete: protectedProcedure
+    .input(z.array(z.string().min(1)))
+    .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      await ctx.db.deleteFrom('SystemExam').where('id', 'in', input).execute()
       return true
     }),
 })

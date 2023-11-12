@@ -1,6 +1,12 @@
 import * as React from 'react'
 import * as SelectPrimitive from '@radix-ui/react-select'
-import { Check, ChevronDown, Loader2 } from 'lucide-react'
+import { AlertCircleIcon, Check, ChevronDown, Loader2 } from 'lucide-react'
+import {
+  TooltipProvider,
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from './tooltip'
 
 import { cn } from 'src/lib/utils'
 
@@ -14,27 +20,44 @@ const SelectTrigger = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Trigger>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> & {
     loading?: boolean
+    loadingError?: string
   }
->(({ className, children, loading = false, ...props }, ref) => (
-  <SelectPrimitive.Trigger
-    ref={ref}
-    className={cn(
-      'flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
-      className
-    )}
-    disabled={loading}
-    {...props}
-  >
-    {children}
-    <SelectPrimitive.Icon asChild>
-      {loading ? (
-        <Loader2 className='h-4 w-4 animate-spin opacity-50' />
-      ) : (
-        <ChevronDown className='h-4 w-4 opacity-50' />
+>(
+  (
+    { className, children, loading = false, loadingError = null, ...props },
+    ref
+  ) => (
+    <SelectPrimitive.Trigger
+      ref={ref}
+      className={cn(
+        'flex h-10 w-full items-center justify-between rounded-md border border-input bg-transparent px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50',
+        className
       )}
-    </SelectPrimitive.Icon>
-  </SelectPrimitive.Trigger>
-))
+      disabled={loading}
+      {...props}
+    >
+      {children}
+      <SelectPrimitive.Icon asChild>
+        {loading ? (
+          <Loader2 className='h-4 w-4 animate-spin opacity-50' />
+        ) : loadingError ? (
+          <TooltipProvider delayDuration={0}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <AlertCircleIcon className='h-4 w-4 stroke-current text-destructive' />
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className='text-destructive'>{loadingError}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : (
+          <ChevronDown className='h-4 w-4 opacity-50' />
+        )}
+      </SelectPrimitive.Icon>
+    </SelectPrimitive.Trigger>
+  )
+)
 SelectTrigger.displayName = SelectPrimitive.Trigger.displayName
 
 const SelectContent = React.forwardRef<
@@ -91,7 +114,7 @@ const SelectItem = React.forwardRef<
     )}
     {...props}
   >
-    <span className='absolute left-2 flex h-3.5 w-3.5 items-center justify-center'>
+    <span className='ml-4 flex h-3.5 w-3.5 items-center justify-center'>
       <SelectPrimitive.ItemIndicator>
         <Check className='h-4 w-4' />
       </SelectPrimitive.ItemIndicator>

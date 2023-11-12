@@ -79,13 +79,24 @@ type FormProps = {
   submitText: string
 }
 
-export const makeEmptyCycle = () => ({
+export const makeEmptyStudentCycle = () => ({
   courseId: null,
   trackId: null,
   curriculumId: null,
 })
 
-const CycleForm = ({ form, path }: { form: UseFormReturn; path: string }) => {
+export const makeEmptyCorrectorCycle = () => ({
+  // courseId: null,
+  curricula: [],
+})
+
+const StudentCycleForm = ({
+  form,
+  path,
+}: {
+  form: UseFormReturn
+  path: string
+}) => {
   // const { data: cycles, isLoading: isCyclesLoading } =
   //   api.cycle.findMany.useQuery({})
 
@@ -121,30 +132,6 @@ const CycleForm = ({ form, path }: { form: UseFormReturn; path: string }) => {
 
   return (
     <div className='space-y-4'>
-      {/* <FormField
-        control={form.control}
-        name='cycleId'
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>الدورة</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger loading={isCyclesLoading}>
-                  <SelectValue placeholder='اختر الدورة' />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {cycles?.map((cycle) => (
-                  <SelectItem key={cycle.id} value={cycle.id}>
-                    {cycle.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      /> */}
       <FormField
         control={form.control}
         name={`${path}.courseId`}
@@ -229,6 +216,52 @@ const CycleForm = ({ form, path }: { form: UseFormReturn; path: string }) => {
   )
 }
 
+const CorrectorCycleForm = ({
+  form,
+  path,
+}: {
+  form: UseFormReturn
+  path: string
+}) => {
+  // const { data: cycles, isLoading: isCyclesLoading } =
+  //   api.cycle.findMany.useQuery({})
+
+  const { data: curricula, isLoading: isCurriculaLoading } =
+    api.curriculum.list.useQuery(
+      { include: { track: true } },
+      {
+        select: (data) =>
+          data.map((c) => ({ ...c, label: `${c.courseName}: ${c.name}` })),
+      }
+    )
+
+  return (
+    <div>
+      <FormField
+        control={form.control}
+        name={`${path}.curricula`}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>المناهج</FormLabel>
+            <FormControl>
+              <MultiSelect
+                placeholder='اختر الدورات'
+                items={(curricula as any) || []}
+                labelKey='label'
+                valueKey='id'
+                onSelect={field.onChange}
+                value={field.value}
+              />
+            </FormControl>
+
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+    </div>
+  )
+}
+
 export const UserForm = ({
   form,
   onSubmit,
@@ -247,12 +280,14 @@ export const UserForm = ({
     name: 'student.cycles',
   })
 
+  const correctorCycles = useWatch({
+    control: form.control,
+    name: 'corrector.cycles',
+  })
+
   const { data: cycles, isLoading: isLoadingCycles } = api.cycle.list.useQuery(
     {}
   )
-
-  const { data: courses, isLoading: isLoadingCourses } =
-    api.course.list.useQuery({})
 
   return (
     <Form {...form}>
@@ -390,7 +425,6 @@ export const UserForm = ({
                       items={(cycles as any) || []}
                       labelKey='name'
                       valueKey='id'
-                      // onSelect={field.onChange}
                       onSelect={(newValue: string[]) => {
                         const currentValue = Object.keys(studentCycles)
                         if (newValue.length > currentValue.length) {
@@ -400,7 +434,7 @@ export const UserForm = ({
                           )[0] as string
                           field.onChange({
                             ...studentCycles,
-                            [diff]: makeEmptyCycle(),
+                            [diff]: makeEmptyStudentCycle(),
                           })
                         } else if (currentValue.length > newValue.length) {
                           const diff = difference(
@@ -426,7 +460,7 @@ export const UserForm = ({
                     {cycles?.find((c) => c.id === cycleId)?.name}
                   </AccordionTrigger>
                   <AccordionContent className='p-2'>
-                    <CycleForm
+                    <StudentCycleForm
                       form={form as any}
                       path={`student.cycles.${cycleId}`}
                     />
@@ -443,43 +477,55 @@ export const UserForm = ({
               name='corrector.cycles'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>الدورة</FormLabel>
+                  <FormLabel>الدورات</FormLabel>
                   <FormControl>
                     <MultiSelect
                       items={cycles || []}
-                      loading={isLoadingCycles}
                       labelKey='name'
                       valueKey='id'
-                      onSelect={field.onChange}
+                      onSelect={(newValue: string[]) => {
+                        const currentValue = Object.keys(correctorCycles)
+                        if (newValue.length > currentValue.length) {
+                          const diff = difference(
+                            newValue,
+                            currentValue
+                          )[0] as string
+                          field.onChange({
+                            ...correctorCycles,
+                            [diff]: makeEmptyCorrectorCycle(),
+                          })
+                        } else if (currentValue.length > newValue.length) {
+                          const diff = difference(
+                            currentValue,
+                            newValue
+                          )[0] as string
+                          const obj = { ...correctorCycles }
+                          delete obj[diff]
+                          field.onChange(obj)
+                        }
+                      }}
                       value={Object.keys(field.value)}
-                      triggerText='اختر'
-                      triggerClassName='w-full'
                     />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name='corrector.courses'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>المقرر</FormLabel>
-                  <FormControl>
-                    <MultiSelect
-                      placeholder='اختر المقررات'
-                      items={(courses as any) || []}
-                      labelKey='name'
-                      valueKey='id'
-                      onSelect={field.onChange}
-                      value={field.value}
+            <Accordion type='single' collapsible>
+              {Object.entries(correctorCycles).map(([cycleId, fields]) => (
+                <AccordionItem key={cycleId} value={cycleId}>
+                  <AccordionTrigger className='rounded bg-gray-100 p-2'>
+                    {cycles?.find((c) => c.id === cycleId)?.name}
+                  </AccordionTrigger>
+                  <AccordionContent className='p-2'>
+                    <CorrectorCycleForm
+                      form={form as any}
+                      path={`corrector.cycles.${cycleId}`}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </>
         )}
         <DialogFooter>

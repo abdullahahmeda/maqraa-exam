@@ -1,83 +1,85 @@
-import type { PrismaClient } from '@prisma/client'
-import { TRPCError } from '@trpc/server'
-import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
-import { QuizService } from './quiz'
+export const UNUSED = true
 
-export class SystemExamService {
-  private db
+// import type { PrismaClient } from '@prisma/client'
+// import { TRPCError } from '@trpc/server'
+// import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
+// import { QuizService } from './quiz'
 
-  public constructor(db: PrismaClient) {
-    this.db = db
-  }
+// export class SystemExamService {
+//   private db
 
-  public async create(input: any) {
-    const { groups, trackId, courseId, ...data } =
-      newSystemExamSchema.parse(input)
+//   public constructor(db: PrismaClient) {
+//     this.db = db
+//   }
 
-    // const quizService = new QuizService(this.db)
-    // await quizService.validateSufficientQeustionsInGroups({
-    //   type: data.type,
-    //   groups,
-    //   curriculumId: data.curriculumId,
-    //   repeatFromSameHadith: data.repeatFromSameHadith,
-    // })
+//   public async create(input: any) {
+//     const { groups, trackId, courseId, ...data } =
+//       newSystemExamSchema.parse(input)
 
-    let total = 0
-    let questions: { questionId: string; weight: number }[] = []
-    let usedQuestions = new Set()
-    for (const group of groups) {
-      for (const question of Object.values(group.questions)) {
-        total += question.weight
-        if (usedQuestions.has(question.id))
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'هناك أسئلة مكررة',
-          })
-        questions.push({ questionId: question.id, weight: question.weight })
-        usedQuestions.add(question.id)
-      }
-    }
+//     // const quizService = new QuizService(this.db)
+//     // await quizService.validateSufficientQeustionsInGroups({
+//     //   type: data.type,
+//     //   groups,
+//     //   curriculumId: data.curriculumId,
+//     //   repeatFromSameHadith: data.repeatFromSameHadith,
+//     // })
 
-    const students = await this.db.student.findMany({
-      where: {
-        cycles: {
-          some: { cycleId: data.cycleId, curriculumId: data.curriculumId },
-        },
-      },
-    })
+//     let total = 0
+//     let questions: { questionId: string; weight: number }[] = []
+//     let usedQuestions = new Set()
+//     for (const group of groups) {
+//       for (const question of Object.values(group.questions)) {
+//         total += question.weight
+//         if (usedQuestions.has(question.id))
+//           throw new TRPCError({
+//             code: 'BAD_REQUEST',
+//             message: 'هناك أسئلة مكررة',
+//           })
+//         questions.push({ questionId: question.id, weight: question.weight })
+//         usedQuestions.add(question.id)
+//       }
+//     }
 
-    const descriptor = await this.db.questionsDescriptor.create({
-      data: {
-        groups: {
-          create: groups.map(({ questions, ...g }, i) => ({
-            ...g,
-            order: i + 1,
-          })),
-        },
-      },
-    })
+//     const students = await this.db.student.findMany({
+//       where: {
+//         cycles: {
+//           some: { cycleId: data.cycleId, curriculumId: data.curriculumId },
+//         },
+//       },
+//     })
 
-    // TODO: work on this
-    const result = await this.db.systemExam.create({
-      data: {
-        ...data,
-        descriptorId: descriptor.id,
-        questions: {
-          create: questions.map((q, index) => ({ ...q, order: index + 1 })),
-        },
-        quizzes: {
-          create: students.map(({ userId }) => ({
-            total,
-            endsAt: data.endsAt,
-            curriculumId: data.curriculumId,
-            descriptorId: descriptor.id,
-            repeatFromSameHadith: data.repeatFromSameHadith,
-            type: data.type,
-            examineeId: userId,
-          })),
-        },
-      },
-    })
-    return result
-  }
-}
+//     const descriptor = await this.db.questionsDescriptor.create({
+//       data: {
+//         groups: {
+//           create: groups.map(({ questions, ...g }, i) => ({
+//             ...g,
+//             order: i + 1,
+//           })),
+//         },
+//       },
+//     })
+
+//     // TODO: work on this
+//     const result = await this.db.systemExam.create({
+//       data: {
+//         ...data,
+//         descriptorId: descriptor.id,
+//         questions: {
+//           create: questions.map((q, index) => ({ ...q, order: index + 1 })),
+//         },
+//         quizzes: {
+//           create: students.map(({ userId }) => ({
+//             total,
+//             endsAt: data.endsAt,
+//             curriculumId: data.curriculumId,
+//             descriptorId: descriptor.id,
+//             repeatFromSameHadith: data.repeatFromSameHadith,
+//             type: data.type,
+//             examineeId: userId,
+//           })),
+//         },
+//       },
+//     })
+//     return result
+//   }
+// }

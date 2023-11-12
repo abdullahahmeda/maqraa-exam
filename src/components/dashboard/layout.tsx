@@ -31,6 +31,11 @@ const menuLinks = {
       href: '/dashboard/questions',
     },
     {
+      icon: <HelpCircle className='ml-2 h-4 w-4' />,
+      label: 'أنواع الأسئلة',
+      href: '/dashboard/questions/styles',
+    },
+    {
       icon: <Construction className='ml-2 h-4 w-4' />,
       label: 'إختبارات النظام',
       href: '/dashboard/system-exams',
@@ -101,7 +106,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <>
-      <nav className='fixed left-0 right-0 top-0 z-10 h-16 border-b bg-background'>
+      <nav className='fixed left-0 right-0 top-0 z-10 h-16 border-b bg-white'>
         <div className='flex h-full items-center justify-between px-4'>
           <div className='flex items-center'>
             <Button

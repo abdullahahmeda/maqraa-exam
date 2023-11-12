@@ -21,16 +21,24 @@ enum QuestionType {
   MCQ
 }
 
-enum QuestionStyle {
-  TRUE_OR_FALSE
-  CHOOSE
-  RAWI
-  ANSWER
-  MENTION
-  COMPLETE
-  NUMBER
-  EVIDENCE
-  WHO_SAID
+// enum QuestionStyle {
+//   TRUE_OR_FALSE
+//   CHOOSE
+//   RAWI
+//   ANSWER
+//   MENTION
+//   COMPLETE
+//   NUMBER
+//   EVIDENCE
+//   WHO_SAID
+// }
+
+model QuestionStyle {
+  id             String       @id() @default(dbgenerated("gen_random_uuid()"))
+  name           String       @unique
+  type           QuestionType
+  choicesColumns String[]
+  questions      Question[]
 }
 
 enum QuestionDifficulty {
@@ -91,6 +99,8 @@ model User {
   sessions            Session[]
   resetPasswordTokens ResetPasswordToken[]
   correctedQuizzes    Quiz[]               @relation("Quiz_corrector")
+
+  @@index([name])
 }
 
 model UserCycle {
@@ -132,7 +142,6 @@ model Question {
   partNumber     Int
   hadithNumber   Int
   type           QuestionType
-  style          QuestionStyle
   difficulty     QuestionDifficulty
   text           String             @db.Text()
   textForTrue    String?            @db.Text()
@@ -146,15 +155,19 @@ model Question {
   isInsideShaded Boolean
   objective      String
   courseId       String
+  styleId        String
   course         Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  style          QuestionStyle      @relation(fields: [styleId], references: [id], onDelete: Cascade)
   systemExams    ModelQuestion[]
   errorReports   ErrorReport[]
 
   @@index([partNumber])
+  @@index([pageNumber])
   @@index([hadithNumber])
   @@index([difficulty])
+  // @@index([text])
   @@index([type])
-  @@index([style])
+  @@index([styleId])
   @@index([courseId])
 }
 
@@ -340,4 +353,9 @@ model ErrorReport {
 
   @@index([questionId])
   @@index([createdAt])
+}
+
+model Setting {
+  key   String @id() @db.VarChar(255)
+  value String
 }

@@ -2,13 +2,11 @@ import Head from 'next/head'
 import { api } from '~/utils/api'
 import { useForm } from 'react-hook-form'
 import { Badge } from '~/components/ui/badge'
-import { enStyleToAr } from '~/utils/questions'
 import { useRouter } from 'next/router'
 import { Button } from '~/components/ui/button'
 import { useState, useEffect } from 'react'
 import WebsiteLayout from '~/components/layout'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
-import { enhance } from '@zenstackhq/runtime'
 import { db } from '~/server/db'
 import { getServerAuthSession } from '~/server/auth'
 import {
@@ -43,10 +41,9 @@ import { useSession } from 'next-auth/react'
 import { AlertTriangleIcon } from 'lucide-react'
 import { Dialog, DialogTrigger, DialogContent } from '~/components/ui/dialog'
 import { ReportErrorDialog } from '~/components/modals/report-error'
-import { QuizService } from '~/services/quiz'
 import { Alert, AlertTitle } from '~/components/ui/alert'
-import { QuestionStyle, QuestionType } from '~/kysely/enums'
-import { jsonArrayFrom } from 'kysely/helpers/postgres'
+import { QuestionType } from '~/kysely/enums'
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 
 type FieldValues = {
   id: string
@@ -72,7 +69,7 @@ const ExamPage = ({
       answers: (exam.questions as any[]).reduce(
         (questionAcc, question) => ({
           ...questionAcc,
-          [question.id]: question.answer || undefined,
+          [question.id]: question.userAnswer.answer || undefined,
         }),
         {}
       ),
@@ -162,29 +159,28 @@ const ExamPage = ({
                 }
               >
                 {exam.questions.map(
-                  ({ id, order, grade, weight, ...question }) => (
+                  ({ id, order, userAnswer, weight, ...question }) => (
                     <div
                       key={id}
                       className={cn(
                         'mb-4 rounded-md py-2',
                         exam.submittedAt && 'px-4',
                         exam.grade !== null &&
-                          grade === weight &&
+                          userAnswer?.grade === weight &&
                           'bg-success/20',
                         exam.grade !== null &&
-                          0 < grade &&
-                          grade < weight &&
+                          typeof userAnswer?.grade === 'number' &&
+                          0 < userAnswer?.grade &&
+                          userAnswer?.grade < weight &&
                           'bg-orange-500/20',
                         exam.grade !== null &&
-                          grade === 0 &&
+                          userAnswer?.grade === 0 &&
                           'bg-destructive/20'
                       )}
                     >
                       <div className='flex items-center'>
                         {order}.
-                        <Badge className='ml-2 mr-1'>
-                          {enStyleToAr(question.style)}
-                        </Badge>
+                        <Badge className='ml-2 mr-1'>{question.style}</Badge>
                         <p>{question.text}</p>
                         <TooltipProvider>
                           <Tooltip>
@@ -193,7 +189,9 @@ const ExamPage = ({
                                 size='icon'
                                 variant='ghost'
                                 className='mr-2'
-                                onClick={() => setSelectedQuestion(question.id)}
+                                onClick={() =>
+                                  setSelectedQuestion(question.questionId)
+                                }
                                 type='button'
                               >
                                 <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
@@ -221,7 +219,7 @@ const ExamPage = ({
                                   ? 'الإجابة الخاصة بك'
                                   : 'الإجابة'}
                               </FormLabel>
-                              {question.type === QuestionType.WRITTEN ? (
+                              {question.type === 'WRITTEN' ? (
                                 <FormControl>
                                   <Textarea
                                     {...field}
@@ -229,7 +227,7 @@ const ExamPage = ({
                                     className='bg-white'
                                   />
                                 </FormControl>
-                              ) : question.style === QuestionStyle.CHOOSE ? (
+                              ) : question.style === 'CHOOSE' ? (
                                 <FormControl>
                                   <RadioGroup
                                     value={field.value}
@@ -323,7 +321,7 @@ const ExamPage = ({
                       </div>
                       {!!exam.correctedAt && (
                         <p className='mt-2'>
-                          الإجابة الصحيحة: {(question as any).answer}
+                          الإجابة الصحيحة: {(question as any).correctAnswer}
                         </p>
                       )}
                     </div>
@@ -364,7 +362,9 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
         eb
           .selectFrom('ModelQuestion')
           .leftJoin('Question', 'ModelQuestion.questionId', 'Question.id')
-          .select([
+          .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
+          .select(({ eb, selectFrom }) => [
+            'Question.id as questionId',
             'ModelQuestion.id',
             'ModelQuestion.order',
             'ModelQuestion.weight',
@@ -375,9 +375,15 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             'Question.option4',
             'Question.textForFalse',
             'Question.textForTrue',
-            'Question.style',
+            'QuestionStyle.name as style',
             'Question.type',
-            'Question.answer',
+            'Question.answer as correctAnswer',
+            jsonObjectFrom(
+              selectFrom('Answer')
+                .select(['Answer.answer', 'Answer.grade'])
+                .whereRef('Answer.modelQuestionId', '=', 'ModelQuestion.id')
+                .where('Answer.quizId', '=', id)
+            ).as('userAnswer'),
           ])
           .whereRef('Quiz.modelId', '=', 'ModelQuestion.modelId')
           .orderBy('ModelQuestion.order asc')
@@ -402,6 +408,8 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     quiz.endsAt <= new Date()
   )
     return { redirect: { destination: '/quizzes/expired', permanent: false } }
+
+  // hide answers
 
   if (quiz.examineeId === session?.user.id)
     await db

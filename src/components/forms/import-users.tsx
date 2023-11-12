@@ -93,7 +93,7 @@ export const ImportStudentsForm = ({
         />
         <FormField
           control={form.control}
-          name='sheet'
+          name='sheetName'
           render={({ field }) => (
             <FormItem>
               <FormLabel>الورقة</FormLabel>

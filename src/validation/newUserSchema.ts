@@ -38,7 +38,6 @@ const correctorSchema = baseSchema.extend({
     cycles: z
       .record(
         z.object({
-          courseId: z.string().min(1),
           curricula: z.array(z.string().min(1)).min(1),
         })
       )

@@ -13,7 +13,6 @@ import {
 } from '~/components/ui/form'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { prisma as _prisma } from '~/server/db'
 import { enhance } from '@zenstackhq/runtime'
 import { Input } from '~/components/ui/input'
 import { useEffect } from 'react'
@@ -52,30 +51,31 @@ const ProfilePage = ({ user }: Props) => {
     name: 'changePassword',
   })
 
-  const profileUpdate = api.updateUserProfile.useMutation()
+  // TODO: fix this
+  // const profileUpdate = api.updateUserProfile.useMutation()
 
   useEffect(() => {
     form.reset(user as any)
   }, [form, user])
 
   const onSubmit = (data: FieldValues) => {
-    profileUpdate
-      .mutateAsync(data)
-      .then((newData) => {
-        toast({
-          title:
-            'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات',
-        })
-        update({ name: newData?.name, phone: newData?.phone })
-      })
-      .catch((error) => {
-        toast({
-          title:
-            error instanceof TRPCClientError
-              ? error.message
-              : 'حدث خطأ أثناء حفظ البيانات',
-        })
-      })
+    // profileUpdate
+    //   .mutateAsync(data)
+    //   .then((newData) => {
+    //     toast({
+    //       title:
+    //         'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات',
+    //     })
+    //     update({ name: newData?.name, phone: newData?.phone })
+    //   })
+    //   .catch((error) => {
+    //     toast({
+    //       title:
+    //         error instanceof TRPCClientError
+    //           ? error.message
+    //           : 'حدث خطأ أثناء حفظ البيانات',
+    //     })
+    //   })
   }
 
   return (
@@ -174,7 +174,14 @@ const ProfilePage = ({ user }: Props) => {
                 />
               </>
             )}
-            <Button loading={profileUpdate.isLoading}>حفظ</Button>
+            <Button
+              loading={
+                false
+                // profileUpdate.isLoading
+              }
+            >
+              حفظ
+            </Button>
           </form>
         </Form>
       </div>
@@ -190,22 +197,20 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   if (!session?.user)
     return { redirect: { destination: '/', permanent: false } }
 
-  const prisma = enhance(_prisma, { user: session?.user })
+  // const user = await prisma.user.findFirst({
+  //   where: { id: session.user.id },
+  //   select: {
+  //     name: true,
+  //     phone: true,
+  //   },
+  // })
 
-  const user = await prisma.user.findFirst({
-    where: { id: session.user.id },
-    select: {
-      name: true,
-      phone: true,
-    },
-  })
-
-  if (!user) return { notFound: true }
+  // if (!user) return { notFound: true }
 
   return {
     props: {
       session,
-      user,
+      // user,
     },
   }
 }

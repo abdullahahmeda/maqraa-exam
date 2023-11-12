@@ -1,5 +1,5 @@
 import { TRPCError } from '@trpc/server'
-import { z, ZodError } from 'zod'
+import { z } from 'zod'
 import { getGoogleSheetsNames } from '~/services/sheet'
 import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { spreadsheetUrlSchema } from '~/validation/importQuestionsSchema'

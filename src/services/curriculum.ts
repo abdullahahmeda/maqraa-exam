@@ -1,58 +1,60 @@
-import { PrismaClient } from '@prisma/client'
-import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
+export const UNUSED = true
 
-export class CurriculumService {
-  private db
+// import { PrismaClient } from '@prisma/client'
+// import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
 
-  public constructor(db: PrismaClient) {
-    this.db = db
-  }
+// export class CurriculumService {
+//   private db
 
-  public async create(input: any) {
-    // TODO: implement this
-    throw new Error('not implemented')
-  }
+//   public constructor(db: PrismaClient) {
+//     this.db = db
+//   }
 
-  public async update(input: any) {
-    const { id, parts, ...data } = editCurriculumSchema.parse(input)
+//   public async create(input: any) {
+//     // TODO: implement this
+//     throw new Error('not implemented')
+//   }
 
-    return await this.db.$transaction(async (tx) => {
-      await checkMutate(
-        tx.curriculumPart.deleteMany({ where: { curriculumId: id } })
-      )
-      return await checkMutate(
-        tx.curriculum.update({
-          where: { id },
-          data: {
-            ...data,
-            parts: { create: parts },
-          },
-        })
-      )
-    })
-  }
+//   public async update(input: any) {
+//     const { id, parts, ...data } = editCurriculumSchema.parse(input)
 
-  public async getAllQuestions(id: string) {
-    const parts = await this.db.curriculumPart.findMany({
-      where: { curriculumId: id },
-      select: { from: true, to: true, number: true },
-    })
-    const questions = await this.db.question.findMany({
-      where: {
-        course: {
-          tracks: {
-            some: { curricula: { some: { id } } },
-          },
-        },
-        OR: parts.map((part) => ({
-          partNumber: part.number,
-          hadithNumber: {
-            gte: part.from,
-            lte: part.to,
-          },
-        })),
-      },
-    })
-    return questions
-  }
-}
+//     return await this.db.$transaction(async (tx) => {
+//       await checkMutate(
+//         tx.curriculumPart.deleteMany({ where: { curriculumId: id } })
+//       )
+//       return await checkMutate(
+//         tx.curriculum.update({
+//           where: { id },
+//           data: {
+//             ...data,
+//             parts: { create: parts },
+//           },
+//         })
+//       )
+//     })
+//   }
+
+//   public async getAllQuestions(id: string) {
+//     const parts = await this.db.curriculumPart.findMany({
+//       where: { curriculumId: id },
+//       select: { from: true, to: true, number: true },
+//     })
+//     const questions = await this.db.question.findMany({
+//       where: {
+//         course: {
+//           tracks: {
+//             some: { curricula: { some: { id } } },
+//           },
+//         },
+//         OR: parts.map((part) => ({
+//           partNumber: part.number,
+//           hadithNumber: {
+//             gte: part.from,
+//             lte: part.to,
+//           },
+//         })),
+//       },
+//     })
+//     return questions
+//   }
+// }

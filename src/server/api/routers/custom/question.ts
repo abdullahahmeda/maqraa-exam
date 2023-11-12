@@ -8,15 +8,10 @@ import { GaxiosError } from 'gaxios'
 import { QuestionWhereInputObjectSchema } from '@zenstackhq/runtime/zod/objects'
 import { db } from '~/server/db'
 import XLSX from 'xlsx'
-import { enDifficultyToAr, enStyleToAr, enTypeToAr } from '~/utils/questions'
+import { enColumnToAr, enDifficultyToAr, enTypeToAr } from '~/utils/questions'
 import { exportSheet, importFromGoogleSheet } from '~/services/sheet'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
-import {
-  QuestionDifficulty,
-  QuestionStyle,
-  QuestionType,
-  QuizType,
-} from '~/kysely/enums'
+import { QuestionDifficulty, QuestionType, QuizType } from '~/kysely/enums'
 import { SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
 
@@ -24,7 +19,14 @@ const questionFilterSchema = z.object({
   number: z
     .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
     .optional(),
+  pageNumber: z
+    .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
+    .optional(),
+  hadithNumber: z
+    .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
+    .optional(),
   courseId: z.string().optional(),
+  text: z.string().optional(),
   curriculum: z
     .object({
       id: z.string(),
@@ -32,7 +34,7 @@ const questionFilterSchema = z.object({
     })
     .optional(),
   type: z.nativeEnum(QuestionType).optional(),
-  style: z.nativeEnum(QuestionStyle).optional(),
+  styleId: z.string().optional(),
   difficulty: z.nativeEnum(QuestionDifficulty).optional(),
 })
 
@@ -42,6 +44,7 @@ function applyQuestionFilters<O>(
 ) {
   return applyFilters(query, filters, {
     curriculum: (query, curriculum) => query, // Custom handler below in `list`
+    text: (query, text) => query.where('text', 'like', `%${text}%`),
   })
 }
 
@@ -79,6 +82,14 @@ export const questionRouter = createTRPCRouter({
           .select(['from', 'mid', 'to', 'number'])
           .execute()
 
+        const courseId = await db
+          .selectFrom('Curriculum')
+          .where('Curriculum.id', '=', input.filters.curriculum.id)
+          .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
+          .leftJoin('Course', 'Track.courseId', 'Course.id')
+          .select('Course.id')
+          .executeTakeFirst()
+
         query = query.where((eb) =>
           eb.or(
             parts.map((part) => {
@@ -102,6 +113,7 @@ export const questionRouter = createTRPCRouter({
                 eb('hadithNumber', '>=', minLimit),
                 eb('hadithNumber', '<=', maxLimit),
                 eb('partNumber', '=', part.number),
+                eb('courseId', '=', courseId!.id),
               ])
             })
           )
@@ -128,6 +140,13 @@ export const questionRouter = createTRPCRouter({
       const { url, sheetName, courseId } = input
       const spreadsheetId = getSpreadsheetIdFromURL(url) as string
 
+      const questionStyles = (
+        await db.selectFrom('QuestionStyle').selectAll().execute()
+      ).reduce((acc, s) => ({ ...acc, [s.name]: s }), {}) as Record<
+        string,
+        { id: string; type: QuestionType; columnChoices: string[] }
+      >
+
       let data
       try {
         data = await importFromGoogleSheet({
@@ -139,7 +158,7 @@ export const questionRouter = createTRPCRouter({
             partNumber: row[2],
             hadithNumber: row[3],
             type: row[4],
-            style: row[5],
+            styleName: row[5],
             difficulty: row[6],
             text: row[7],
             textForTrue: row[8],
@@ -153,8 +172,73 @@ export const questionRouter = createTRPCRouter({
             isInsideShaded: row[16],
             objective: row[17],
             courseId,
+            questionStyles,
           }),
-          validationSchema: questionSchema,
+          validationSchema: questionSchema
+            .extend({
+              questionStyles: z.record(
+                z.object({
+                  name: z.string(),
+                  type: z.nativeEnum(QuestionType),
+                  choicesColumns: z.union([
+                    z.array(z.string()),
+                    z.literal(null),
+                  ]),
+                })
+              ),
+            })
+            .superRefine(
+              ({ questionStyles, styleName, type, answer, ...obj }, ctx) => {
+                const style = questionStyles[styleName]
+                if (!style)
+                  return ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `السؤال من نوع (${styleName}) غير موجود في قاعدة البيانات`,
+                  })
+                if (style.type !== type)
+                  return ctx.addIssue({
+                    code: z.ZodIssueCode.custom,
+                    message: `السؤال من نوع (${styleName}) يجب أن يكون ${enTypeToAr(
+                      style.type
+                    )} لكنه في الإكسل (${enTypeToAr(type)})`,
+                  })
+
+                if (type === 'MCQ') {
+                  let answerIsInChoices = false
+                  for (const column of style.choicesColumns!) {
+                    const field = obj[column as keyof typeof obj] as string
+                    if (field === answer) {
+                      if (answerIsInChoices)
+                        return ctx.addIssue({
+                          code: z.ZodIssueCode.custom,
+                          message: 'الإجابة الصحيحة موجودة في أكثر من خيار',
+                        })
+                      answerIsInChoices = true
+                    }
+                    if (field == undefined || field === '')
+                      return ctx.addIssue({
+                        code: z.ZodIssueCode.custom,
+                        message: `الحقل (${enColumnToAr(
+                          column
+                        )}) مطلوب لنوع السؤال ${styleName} لكن قيمته فارغة في الإكسل`,
+                      })
+                  }
+                  if (!answerIsInChoices)
+                    return ctx.addIssue({
+                      code: z.ZodIssueCode.custom,
+                      message: 'الإجابة الصحيحة ليست موجودة في الإختيارات',
+                    })
+                }
+              }
+            )
+            .transform((d) => ({
+              ...d,
+              questionStyles: undefined,
+              styleName: undefined,
+              styleId: questionStyles[
+                d.styleName as keyof typeof questionStyles
+              ]!.id as string,
+            })),
         })
       } catch (error) {
         if (error instanceof GaxiosError) {
@@ -174,12 +258,11 @@ export const questionRouter = createTRPCRouter({
 
         if (error instanceof ZodError) {
           const issue = error.issues[0]!
-
           const [rowNumber, field] = issue.path
 
           throw new TRPCError({
             code: 'BAD_REQUEST',
-            message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
+            message: `خطأ في الصف رقم ${rowNumber}: ${issue.message}`,
             cause: issue,
           })
         }
@@ -205,7 +288,9 @@ export const questionRouter = createTRPCRouter({
 
       const questions = await ctx.db
         .selectFrom('Question')
-        .selectAll()
+        .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
+        .selectAll('Question')
+        .select('QuestionStyle.name as styleName')
         .orderBy('number asc')
         .execute()
 
@@ -215,7 +300,7 @@ export const questionRouter = createTRPCRouter({
         'رقم الجزء': q.partNumber,
         'رقم الحديث': q.hadithNumber,
         'نوع السؤال': enTypeToAr(q.type),
-        'طريقة السؤال': enStyleToAr(q.style),
+        'طريقة السؤال': q.styleName,
         'مستوى السؤال': enDifficultyToAr(q.difficulty),
         السؤال: q.text,
         صح: q.textForTrue,
@@ -229,6 +314,13 @@ export const questionRouter = createTRPCRouter({
         'داخل المظلل': q.isInsideShaded ? 'نعم' : 'لا',
         'يستهدف السؤال': q.objective,
       }))
+    }),
+
+  delete: protectedProcedure
+    .input(z.string())
+    .mutation(async ({ input, ctx }) => {
+      await ctx.db.deleteFrom('Question').where('id', '=', input).execute()
+      return true
     }),
 
   bulkDelete: protectedProcedure

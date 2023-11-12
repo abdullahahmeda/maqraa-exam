@@ -40,14 +40,18 @@ export default function LoginPage() {
     setIsLoading(true)
     signIn('credentials', { ...data, redirect: false })
       .then((response) => {
-        if (response?.error === 'CredentialsSignin') {
+        if (!response?.ok) {
+          if (response?.error === 'CredentialsSignin') {
+            form.setError('root.serverError', {
+              message: 'هذه البيانات غير صحيحة',
+            })
+          }
           form.setError('root.serverError', {
-            message: 'هذه البيانات غير صحيحة',
+            message: 'حدث خطأ أثناء تسجيل الدخول، يرجى إعادة المحاولة',
           })
+          return
         }
-        if (response?.ok) {
-          router.push('/')
-        }
+        router.push('/')
       })
       .catch(() => {
         form.setError('root.serverError', {
