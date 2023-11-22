@@ -85,7 +85,7 @@ function applyUserFilters<O>(
         exists(
           selectFrom('UserCycle')
             .whereRef('UserCycle.userId', '=', 'User.id')
-            .where('UserCycle.cycleId', '=', cycleId)
+            .where('UserCycle.cycleId', '=', cycleId as string)
         )
       ),
   })
