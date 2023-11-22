@@ -73,7 +73,7 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
  */
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
-import { UserRole } from '../../constants'
+import { UserRole } from '~/kysely/enums'
 import { ZodError } from 'zod'
 import { env } from '~/env.mjs'
 import { Kysely } from 'kysely'
