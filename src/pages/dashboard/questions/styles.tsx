@@ -10,7 +10,7 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Plus, Trash, Pencil } from 'lucide-react'
-import { AddQuestionStyleDialog } from '~/components/modals/add-question-style'
+import { NewQuestionStyleDialog } from '~/components/modals/new-question-style'
 import { EditQuestionStyleDialog } from '~/components/modals/edit-question-style'
 import type { QuestionStyle } from '~/kysely/types'
 import { api } from '~/utils/api'
@@ -210,7 +210,7 @@ const QuestionsStylesPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <AddQuestionStyleDialog setDialogOpen={setDialogOpen} />
+            <NewQuestionStyleDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>
