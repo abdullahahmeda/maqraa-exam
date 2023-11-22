@@ -5,7 +5,6 @@ import { questionSchema } from '~/validation/questionSchema'
 import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { TRPCError } from '@trpc/server'
 import { GaxiosError } from 'gaxios'
-import { QuestionWhereInputObjectSchema } from '@zenstackhq/runtime/zod/objects'
 import { db } from '~/server/db'
 import XLSX from 'xlsx'
 import { enColumnToAr, enDifficultyToAr, enTypeToAr } from '~/utils/questions'
@@ -16,6 +15,7 @@ import { SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
 
 const questionFilterSchema = z.object({
+  id: z.string().optional(),
   number: z
     .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
     .optional(),
@@ -43,9 +43,36 @@ function applyQuestionFilters<O>(
   filters: z.infer<typeof questionFilterSchema>
 ) {
   return applyFilters(query, filters, {
+    id: (query, id) => query.where('Question.id', '=', id as string),
     curriculum: (query, curriculum) => query, // Custom handler below in `list`
     text: (query, text) => query.where('text', 'like', `%${text}%`),
   })
+}
+
+const includeSchema = z.record(
+  z.union([z.literal('course'), z.literal('style')]),
+  z.boolean().optional()
+)
+
+function withCourse<O>(qb: SelectQueryBuilder<DB, 'Question', O>) {
+  return qb
+    .leftJoin('Course', 'Question.courseId', 'Course.id')
+    .select('Course.name as courseName')
+}
+
+function withStyle<O>(qb: SelectQueryBuilder<DB, 'Question', O>) {
+  return qb
+    .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
+    .select('QuestionStyle.name as styleName')
+}
+
+function applyInclude<O>(
+  query: SelectQueryBuilder<DB, 'Question', O>,
+  include: z.infer<typeof includeSchema> | undefined
+) {
+  return query
+    .$if(!!include?.course, withCourse)
+    .$if(!!include?.style, withStyle)
 }
 
 export const questionRouter = createTRPCRouter({
@@ -53,26 +80,20 @@ export const questionRouter = createTRPCRouter({
     .input(
       z.object({
         filters: questionFilterSchema,
-        include: z
-          .record(z.literal('course'), z.boolean().optional())
-          .optional(),
+        include: includeSchema.optional(),
         pagination: paginationSchema.optional(),
       })
     )
     .query(async ({ ctx, input }) => {
-      let query = applyPagination(
-        applyQuestionFilters(
-          ctx.db
-            .selectFrom('Question')
-            .selectAll('Question')
-            .$if(!!input.include?.course, (qb) =>
-              qb
-                .leftJoin('Course', 'Question.courseId', 'Course.id')
-                .select('Course.name as courseName')
-            ),
-          input.filters
+      let query = applyInclude(
+        applyPagination(
+          applyQuestionFilters(
+            ctx.db.selectFrom('Question').selectAll('Question'),
+            input.filters
+          ),
+          input.pagination
         ),
-        input.pagination
+        input.include
       )
 
       if (input.filters.curriculum) {
@@ -122,6 +143,21 @@ export const questionRouter = createTRPCRouter({
 
       return await query.execute()
     }),
+
+  get: protectedProcedure
+    .input(z.object({ id: z.string(), include: includeSchema.optional() }))
+    .query(async ({ input, ctx }) => {
+      const query = applyInclude(
+        ctx.db
+          .selectFrom('Question')
+          .selectAll('Question')
+          .where('Question.id', '=', input.id),
+        input.include
+      )
+
+      return query.executeTakeFirst()
+    }),
+
   count: protectedProcedure
     .input(z.object({ filters: questionFilterSchema.optional().default({}) }))
     .query(async ({ ctx, input }) => {
@@ -278,7 +314,7 @@ export const questionRouter = createTRPCRouter({
     }),
 
   export: protectedProcedure
-    .input(z.object({ where: QuestionWhereInputObjectSchema }).optional())
+    .input(z.object({ filters: questionFilterSchema }).optional())
     .mutation(async ({ input, ctx }) => {
       if (ctx.session.user.role !== 'ADMIN')
         throw new TRPCError({

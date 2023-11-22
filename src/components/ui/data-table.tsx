@@ -21,6 +21,7 @@ import {
   Loader2,
 } from 'lucide-react'
 import { Input } from './input'
+import { cn } from '~/lib/utils'
 
 interface DataTableProps<T> {
   table: TanstackTable<T>
@@ -146,8 +147,20 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
+                  const meta = header.column.columnDef.meta
                   return (
-                    <TableHead key={header.id} className='p-4'>
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        'p-4',
+                        {
+                          'text-right': meta?.textAlign === 'right',
+                          'text-left': meta?.textAlign === 'left',
+                          'text-center': meta?.textAlign === 'center',
+                        },
+                        header.column.columnDef.meta?.thClassName
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -179,14 +192,28 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
                   key={row.id}
                   data-state={row.getIsSelected() && 'selected'}
                 >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className='p-4'>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
-                  ))}
+                  {row.getVisibleCells().map((cell) => {
+                    const meta = cell.column.columnDef.meta
+                    return (
+                      <TableCell
+                        key={cell.id}
+                        className={cn(
+                          'p-4',
+                          {
+                            'text-right': meta?.textAlign === 'right',
+                            'text-left': meta?.textAlign === 'left',
+                            'text-center': meta?.textAlign === 'center',
+                          },
+                          meta?.tdClassName
+                        )}
+                      >
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    )
+                  })}
                 </TableRow>
               ))
             ) : (

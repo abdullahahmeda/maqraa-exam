@@ -44,6 +44,7 @@ import { ReportErrorDialog } from '~/components/modals/report-error'
 import { Alert, AlertTitle } from '~/components/ui/alert'
 import { QuestionType } from '~/kysely/enums'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { formatNumber } from '~/utils/strings'
 
 type FieldValues = {
   id: string
@@ -69,7 +70,7 @@ const ExamPage = ({
       answers: (exam.questions as any[]).reduce(
         (questionAcc, question) => ({
           ...questionAcc,
-          [question.id]: question.userAnswer.answer || undefined,
+          [question.id]: question.userAnswer?.answer || undefined,
         }),
         {}
       ),
@@ -181,7 +182,18 @@ const ExamPage = ({
                       <div className='flex items-center'>
                         {order}.
                         <Badge className='ml-2 mr-1'>{question.style}</Badge>
-                        <p>{question.text}</p>
+                        <p>
+                          {question.text} (
+                          {formatNumber(weight, {
+                            zero: '',
+                            few: 'درجات',
+                            many: 'درجة',
+                            other: 'درجة',
+                            one: 'درجة واحدة',
+                            two: 'درجتان',
+                          })}
+                          )
+                        </p>
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -227,63 +239,6 @@ const ExamPage = ({
                                     className='bg-white'
                                   />
                                 </FormControl>
-                              ) : question.style === 'CHOOSE' ? (
-                                <FormControl>
-                                  <RadioGroup
-                                    value={field.value}
-                                    onValueChange={field.onChange}
-                                    disabled={!!exam.submittedAt}
-                                  >
-                                    {question.option1 && (
-                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                        <FormControl>
-                                          <RadioGroupItem
-                                            value={question.option1}
-                                          />
-                                        </FormControl>
-                                        <FormLabel>
-                                          {question.option1}
-                                        </FormLabel>
-                                      </FormItem>
-                                    )}
-                                    {question.option2 && (
-                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                        <FormControl>
-                                          <RadioGroupItem
-                                            value={question.option2}
-                                          />
-                                        </FormControl>
-                                        <FormLabel>
-                                          {question.option2}
-                                        </FormLabel>
-                                      </FormItem>
-                                    )}
-                                    {question.option3 && (
-                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                        <FormControl>
-                                          <RadioGroupItem
-                                            value={question.option3}
-                                          />
-                                        </FormControl>
-                                        <FormLabel>
-                                          {question.option3}
-                                        </FormLabel>
-                                      </FormItem>
-                                    )}
-                                    {question.option4 && (
-                                      <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                        <FormControl>
-                                          <RadioGroupItem
-                                            value={question.option4}
-                                          />
-                                        </FormControl>
-                                        <FormLabel>
-                                          {question.option4}
-                                        </FormLabel>
-                                      </FormItem>
-                                    )}
-                                  </RadioGroup>
-                                </FormControl>
                               ) : (
                                 <FormControl>
                                   <RadioGroup
@@ -291,26 +246,29 @@ const ExamPage = ({
                                     onValueChange={field.onChange}
                                     disabled={!!exam.submittedAt}
                                   >
-                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                      <FormControl>
-                                        <RadioGroupItem
-                                          value={question.textForTrue!}
-                                        />
-                                      </FormControl>
-                                      <FormLabel>
-                                        {question.textForTrue}
-                                      </FormLabel>
-                                    </FormItem>
-                                    <FormItem className='flex items-center space-x-3 space-y-0 space-x-reverse'>
-                                      <FormControl>
-                                        <RadioGroupItem
-                                          value={question.textForFalse!}
-                                        />
-                                      </FormControl>
-                                      <FormLabel>
-                                        {question.textForFalse}
-                                      </FormLabel>
-                                    </FormItem>
+                                    {question.choicesColumns?.map((column) => (
+                                      <FormItem
+                                        key={column}
+                                        className='flex items-center space-x-3 space-y-0 space-x-reverse'
+                                      >
+                                        <FormControl>
+                                          <RadioGroupItem
+                                            value={
+                                              question[
+                                                column as keyof typeof question
+                                              ] as string
+                                            }
+                                          />
+                                        </FormControl>
+                                        <FormLabel>
+                                          {
+                                            question[
+                                              column as keyof typeof question
+                                            ]
+                                          }
+                                        </FormLabel>
+                                      </FormItem>
+                                    ))}
                                   </RadioGroup>
                                 </FormControl>
                               )}
@@ -376,6 +334,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             'Question.textForFalse',
             'Question.textForTrue',
             'QuestionStyle.name as style',
+            'QuestionStyle.choicesColumns',
             'Question.type',
             'Question.answer as correctAnswer',
             jsonObjectFrom(
@@ -393,6 +352,13 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
     .executeTakeFirst()
 
   if (!quiz) return { notFound: true }
+
+  if (
+    quiz.examineeId &&
+    session?.user.id !== quiz.examineeId &&
+    session?.user.role !== 'ADMIN'
+  )
+    return { notFound: true }
 
   if (quiz.submittedAt)
     return {

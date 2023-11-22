@@ -25,7 +25,7 @@ type Props = {
   setDialogOpen: (state: boolean) => void
 }
 
-const AddSingleUserTab = ({ setDialogOpen }: Props) => {
+const NewSingleUserTab = ({ setDialogOpen }: Props) => {
   const { toast } = useToast()
   const queryClient = useQueryClient()
 
@@ -104,7 +104,7 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
   )
 }
 
-export const AddUsersDialog = ({ setDialogOpen }: Props) => {
+export const NewUsersDialog = ({ setDialogOpen }: Props) => {
   return (
     <>
       <DialogHeader className='mb-2 text-lg font-bold'>
@@ -122,7 +122,7 @@ export const AddUsersDialog = ({ setDialogOpen }: Props) => {
           </TabsTrigger>
         </TabsList>
         <TabsContent value='single'>
-          <AddSingleUserTab setDialogOpen={setDialogOpen} />
+          <NewSingleUserTab setDialogOpen={setDialogOpen} />
         </TabsContent>
         <TabsContent value='sheet'>
           <ImportStudentsTab setDialogOpen={setDialogOpen} />

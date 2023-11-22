@@ -21,18 +21,6 @@ enum QuestionType {
   MCQ
 }
 
-// enum QuestionStyle {
-//   TRUE_OR_FALSE
-//   CHOOSE
-//   RAWI
-//   ANSWER
-//   MENTION
-//   COMPLETE
-//   NUMBER
-//   EVIDENCE
-//   WHO_SAID
-// }
-
 model QuestionStyle {
   id             String       @id() @default(dbgenerated("gen_random_uuid()"))
   name           String       @unique

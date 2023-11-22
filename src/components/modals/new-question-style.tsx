@@ -6,17 +6,17 @@ import { useQueryClient } from '@tanstack/react-query'
 import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
 import { api } from '~/utils/api'
 import {
-  AddQuestionStyleFieldValues,
+  NewQuestionStyleFieldValues,
   QuestionStyleForm,
 } from '../forms/question-style'
 import { DialogHeader } from '../ui/dialog'
 
-export const AddQuestionStyleDialog = ({
+export const NewQuestionStyleDialog = ({
   setDialogOpen,
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
-  const form = useForm<AddQuestionStyleFieldValues>({
+  const form = useForm<NewQuestionStyleFieldValues>({
     resolver: zodResolver(newQuestionStyleSchema),
     defaultValues: { choicesColumns: [] },
   })
@@ -26,7 +26,7 @@ export const AddQuestionStyleDialog = ({
 
   const mutation = api.questionStyle.create.useMutation()
 
-  const onSubmit = (data: AddQuestionStyleFieldValues) => {
+  const onSubmit = (data: NewQuestionStyleFieldValues) => {
     const t = toast({ title: 'جاري إضافة نوع السؤال' })
     mutation
       .mutateAsync(data as z.infer<typeof newQuestionStyleSchema>)

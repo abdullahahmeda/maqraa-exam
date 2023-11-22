@@ -38,38 +38,35 @@ export const ReportErrorDialog = ({
     resolver: zodResolver(reportErrorSchema),
   })
 
-  // TODO: fix this
-  // const {
-  //   data: question,
-  //   isLoading,
-  //   error,
-  // } = api.question.findFirst.useQuery({
-  //   where: { id: questionId },
-  // })
+  const {
+    data: question,
+    isLoading,
+    error,
+  } = api.question.get.useQuery({ id: questionId })
 
-  // const errorReport = api.reportError.useMutation()
+  const errorReport = api.errorReport.create.useMutation()
 
   const { toast } = useToast()
 
   const onSubmit = (data: FieldValues) => {
     const t = toast({ title: 'جاري الإبلاغ عن الخطأ' })
-    // errorReport
-    //   .mutateAsync({
-    //     ...data,
-    //     questionId: questionId,
-    //   })
-    //   .then(() => {
-    //     t.dismiss()
-    //     toast({ title: 'تم الإبلاغ عن الخطأ بنجاح' })
-    //     closeDialog()
-    //   })
-    //   .catch((error) => {
-    //     t.dismiss()
-    //     toast({ title: error.message })
-    //   })
-    //   .finally(() => {
-    //     queryClient.invalidateQueries([['errorReport']])
-    //   })
+    errorReport
+      .mutateAsync({
+        ...data,
+        questionId: questionId,
+      })
+      .then(() => {
+        t.dismiss()
+        toast({ title: 'تم الإبلاغ عن الخطأ بنجاح' })
+        closeDialog()
+      })
+      .catch((error) => {
+        t.dismiss()
+        toast({ title: error.message })
+      })
+      .finally(() => {
+        queryClient.invalidateQueries([['errorReport']])
+      })
   }
 
   return (
@@ -77,7 +74,7 @@ export const ReportErrorDialog = ({
       <DialogHeader className='mb-2 text-lg font-bold'>
         الإبلاغ عن خطأ
       </DialogHeader>
-      {/* {isLoading && (
+      {isLoading && (
         <div className='flex justify-center'>
           <Loader2 className='animate-spin' />
         </div>
@@ -142,7 +139,7 @@ export const ReportErrorDialog = ({
             <Button>إبلاغ</Button>
           </form>
         </Form>
-      )} */}
+      )}
     </>
   )
 }

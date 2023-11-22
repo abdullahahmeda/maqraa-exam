@@ -29,7 +29,6 @@ import {
 } from './ui/select'
 import {
   difficultyMapping,
-  enStyleToAr,
   enTypeToAr,
   styleMapping,
   typeMapping,
@@ -38,7 +37,6 @@ import { CSS } from '@dnd-kit/utilities'
 import { Question } from '~/kysely/types'
 import {
   QuestionDifficulty,
-  QuestionStyle,
   QuestionType,
   QuestionsGroupType,
   QuizType,
@@ -50,7 +48,7 @@ import AutoSizer from 'react-virtualized-auto-sizer'
 import { cn } from '~/lib/utils'
 import { Checkbox } from './ui/checkbox'
 import { Label } from './ui/label'
-import { useState } from 'react'
+import { Key, useState } from 'react'
 import { Badge } from './ui/badge'
 import sampleSize from 'lodash.samplesize'
 
@@ -64,7 +62,7 @@ type AutomaticGroup = {
   questionsNumber: number
   gradePerQuestion: number
   difficulty: QuestionDifficulty | string | undefined
-  styleOrType: QuestionStyle | QuestionType | string | undefined
+  styleOrType: QuestionType | string | undefined
   questions: { id: string; weight: number }[]
 }
 
@@ -85,14 +83,14 @@ const ListRow = ({
   index: number
   style: any
   data: {
-    rows: Question[]
+    rows: (Question & { style: string })[]
     groupIndex: number
     form: UseFormReturn<FieldValues>
     filteredIndexes: number[]
   }
 }) => {
   const originalIndex = `x${data.filteredIndexes[index]}`
-  const question = data.rows[index] as Question
+  const question = data.rows[index] as Question & { style: string }
   return (
     <div
       style={style}
@@ -108,10 +106,14 @@ const ListRow = ({
           <FormItem>
             <FormControl>
               <Checkbox
+                // @ts-ignore
                 checked={!!field.value?.[originalIndex]}
                 onCheckedChange={(checked) => {
+                  // @ts-ignore
                   const newObj = { ...field.value }
+                  // @ts-ignore
                   if (!checked) delete newObj[originalIndex]
+                  // @ts-ignore
                   else newObj[originalIndex] = { id: question.id, weight: 1 }
                   field.onChange(newObj)
                 }}
@@ -125,8 +127,7 @@ const ListRow = ({
         الصفحة: {question.pageNumber}، رقم الحديث: {question.hadithNumber}
       </p>
       <div>
-        نوع السؤال: {enTypeToAr(question.type)}{' '}
-        <Badge>{enStyleToAr(question.style)}</Badge>
+        نوع السؤال: {enTypeToAr(question.type)} <Badge>{question.style}</Badge>
       </div>
       <p>السؤال: {question.text}</p>
     </div>
@@ -189,6 +190,22 @@ export const QuestionGroup = ({
     name: `groups.${groupIndex}.questions`,
   })
 
+  const { data: questionStyles } = api.questionStyle.list.useQuery(
+    {},
+    {
+      select: (styles) =>
+        styles.reduce((acc, s) => ({ ...acc, [s.id]: s }), {}) as Record<
+          string,
+          {
+            id: string
+            name: string
+            type: QuestionType
+            columnChoices: string[]
+          }
+        >,
+    }
+  )
+
   const {
     data: questions,
     isLoading: isManualQuestionsLoading,
@@ -200,7 +217,7 @@ export const QuestionGroup = ({
       },
     },
     {
-      enabled: !!curriculumId && !!courseId && !!examType,
+      enabled: !!curriculumId && !!courseId && !!examType && !!questionStyles,
       staleTime: Infinity,
     }
   )
@@ -222,9 +239,13 @@ export const QuestionGroup = ({
     if (conditions.every((c) => c === true)) manualFilteredIndexes.push(index)
   }
 
-  const manualFilteredQuestions = manualFilteredIndexes.map(
-    (i) => questions?.[i] as Question
-  )
+  const manualFilteredQuestions = manualFilteredIndexes.map((i) => {
+    const q = questions?.[i]
+    return {
+      ...q,
+      style: questionStyles?.[q!.styleId]?.name,
+    } as unknown as Question & { style: string }
+  })
 
   const [automaticFilteredQuestions, setAutomaticFilteredQuestions] = useState<
     Question[]
@@ -243,14 +264,14 @@ export const QuestionGroup = ({
         if (styleOrType) {
           if (styleOrType === 'MCQ' || styleOrType === 'WRITTEN')
             conditions.push(q.type === styleOrType)
-          else conditions.push(q.style === styleOrType)
+          else conditions.push(q.styleId === styleOrType)
         }
 
         return conditions.every((c) => c === true)
       }),
       questionsNumber
     )
-    setAutomaticFilteredQuestions(newQuestions)
+    setAutomaticFilteredQuestions(newQuestions as unknown as Question[])
 
     form.setValue(
       `groups.${groupIndex}.questions`,
@@ -352,7 +373,7 @@ export const QuestionGroup = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value=''>عشوائي</SelectItem>
+                          <SelectItem value=''>كل المستويات</SelectItem>
                           {Object.entries(difficultyMapping).map(
                             ([label, value]) => (
                               <SelectItem key={value} value={value}>
@@ -382,19 +403,12 @@ export const QuestionGroup = ({
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value=''>عشوائي</SelectItem>
+                          <SelectItem value=''>موضوعي ومقالي</SelectItem>
                           {Object.entries(typeMapping).map(([label, value]) => (
                             <SelectItem key={value} value={value}>
                               {label}
                             </SelectItem>
                           ))}
-                          {Object.entries(styleMapping).map(
-                            ([label, value]) => (
-                              <SelectItem key={value} value={value}>
-                                {label}
-                              </SelectItem>
-                            )
-                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -414,15 +428,19 @@ export const QuestionGroup = ({
               </h4>
               <div className='space-y-2'>
                 {automaticFilteredQuestions.map((question, index) => (
-                  <div key={question.id} className='rounded-md bg-gray-200 p-4'>
+                  <div
+                    key={question.id as unknown as Key}
+                    className='rounded-md bg-gray-200 p-4'
+                  >
                     <input
                       type='hidden'
                       {...form.register(
                         `groups.${groupIndex}.questions.${index}.id`,
-                        { value: question.id }
+                        { value: question.id as unknown as string }
                       )}
                     />
-                    <Badge>{enStyleToAr(question.style)}</Badge> {question.text}
+                    <Badge>{questionStyles?.[question.styleId]?.name}</Badge>{' '}
+                    {question.text}
                     <FormField
                       control={form.control}
                       name={`groups.${groupIndex}.questions.${index}.weight`}
@@ -518,6 +536,7 @@ export const QuestionGroup = ({
                   </div>
                   <div className='h-[400px]'>
                     <AutoSizer>
+                      {/* @ts-ignore */}
                       {({ width }) => {
                         return (
                           <FixedSizeList
@@ -549,13 +568,17 @@ export const QuestionGroup = ({
                       {Object.keys({ ...selectedQuestions }).map(
                         (key, listIndex) => {
                           const qIndex = +key.substring(1) as number
-                          const question = questions?.[qIndex] as Question
+                          const question = questions?.[
+                            qIndex
+                          ] as unknown as Question
                           return (
                             <div
                               key={key}
                               className='rounded-md bg-gray-200 p-4'
                             >
-                              <Badge>{enStyleToAr(question.style)}</Badge>{' '}
+                              <Badge>
+                                {questionStyles?.[question.styleId]?.name}
+                              </Badge>{' '}
                               {question.text}
                               <FormField
                                 control={form.control}

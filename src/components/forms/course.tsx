@@ -11,13 +11,13 @@ import {
 } from '../ui/form'
 import { Input } from '../ui/input'
 
-export type AddCourseFieldValues = { name: string }
-export type EditCourseFieldValues = AddCourseFieldValues & { id: string }
+export type NewCourseFieldValues = { name: string }
+export type EditCourseFieldValues = NewCourseFieldValues & { id: string }
 // type FieldValues = CreateFieldValues | UpdateFieldValues
 
 type FormProps = {
-  form: UseFormReturn<AddCourseFieldValues | EditCourseFieldValues>
-  onSubmit: (data: AddCourseFieldValues | EditCourseFieldValues) => void
+  form: UseFormReturn<NewCourseFieldValues | EditCourseFieldValues>
+  onSubmit: (data: NewCourseFieldValues | EditCourseFieldValues) => void
   isLoading?: boolean
   submitText: string
 }

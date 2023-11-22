@@ -13,7 +13,7 @@ import { Download, Eye, Filter, Plus, Trash } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
-import { AddQuestionsDialog } from '~/components/modals/add-questions'
+import { NewQuestionsDialog } from '~/components/modals/new-questions'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -60,10 +60,12 @@ import { QuestionDifficulty, QuestionType } from '~/kysely/enums'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 import { Question } from '~/kysely/types'
 import { Textarea } from '~/components/ui/textarea'
+import { QuestionInfoModal } from '~/components/modals/question-info'
 
 const columnHelper = createColumnHelper<Question & { courseName: string }>()
 
 const columnFiltersValidators = {
+  id: z.string(),
   number: z.preprocess(
     (v) => Number(v),
     z.number().min(0).int().safe().finite()
@@ -207,13 +209,13 @@ const QuestionsPage = () => {
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('partNumber', {
         header: 'رقم الجزء',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('pageNumber', {
@@ -246,7 +248,7 @@ const QuestionsPage = () => {
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('hadithNumber', {
@@ -279,7 +281,7 @@ const QuestionsPage = () => {
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('text', {
@@ -309,6 +311,9 @@ const QuestionsPage = () => {
               </Popover>
             </div>
           )
+        },
+        meta: {
+          tdClassName: 'truncate max-w-[200px]',
         },
       }),
       columnHelper.accessor('courseName', {
@@ -347,7 +352,7 @@ const QuestionsPage = () => {
           )
         },
         meta: {
-          className: 'text-center min-w-[150px]',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('type', {
@@ -396,7 +401,7 @@ const QuestionsPage = () => {
           </Badge>
         ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('styleId', {
@@ -440,7 +445,7 @@ const QuestionsPage = () => {
           <Badge>{questionStyles?.[info.getValue()]?.name}</Badge>
         ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('difficulty', {
@@ -490,13 +495,13 @@ const QuestionsPage = () => {
           </Badge>
         ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('answer', {
         header: 'الإجابة',
         meta: {
-          className: 'min-w-[300px]',
+          tdClassName: 'truncate max-w-[300px]',
         },
       }),
       columnHelper.accessor('anotherAnswer', {
@@ -511,22 +516,45 @@ const QuestionsPage = () => {
       }),
       columnHelper.display({
         id: 'actions',
-        cell: ({ row }) => (
-          <div className='flex justify-center'>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button size='icon' variant='ghost' className='hover:bg-red-50'>
-                  <Trash className='h-4 w-4 text-red-600' />
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <DeleteQuestionDialog
-                  id={row.original.id as unknown as string}
-                />
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        ),
+        cell: function Cell({ row }) {
+          const [dialogOpen, setDialogOpen] = useState(false)
+          return (
+            <div className='flex justify-center'>
+              <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant='ghost'
+                    size='icon'
+                    className='hover:bg-blue-50'
+                  >
+                    <Eye className='h-4 w-4 text-blue-500' />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <QuestionInfoModal
+                    id={row.original.id as unknown as string}
+                  />
+                </DialogContent>
+              </Dialog>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    size='icon'
+                    variant='ghost'
+                    className='hover:bg-red-50'
+                  >
+                    <Trash className='h-4 w-4 text-red-600' />
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <DeleteQuestionDialog
+                    id={row.original.id as unknown as string}
+                  />
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
+          )
+        },
       }),
     ],
     [questionStyles]
@@ -618,7 +646,7 @@ const QuestionsPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <AddQuestionsDialog setDialogOpen={setDialogOpen} />
+            <NewQuestionsDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>

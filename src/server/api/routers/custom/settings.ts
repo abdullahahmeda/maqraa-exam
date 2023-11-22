@@ -6,7 +6,6 @@
 
 import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../../trpc'
-import { SettingInputSchema } from '@zenstackhq/runtime/zod/input'
 
 export const UNUSED = true
 

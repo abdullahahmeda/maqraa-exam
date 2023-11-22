@@ -45,3 +45,21 @@ export const correctQuestion = (
     return Math.ceil(0.85 * question.weight)
   return question.weight
 }
+
+export function formatNumber(
+  n: number,
+  obj: {
+    zero: string
+    one: string
+    two: string
+    few: string
+    many: string
+    other: string
+  }
+) {
+  const arCardinalRules = new Intl.PluralRules('ar-EG')
+  const type = arCardinalRules.select(n)
+  const word = obj[type]
+  if (type === 'zero' || type === 'one' || type === 'two') return word
+  return `${n} ${word}`
+}

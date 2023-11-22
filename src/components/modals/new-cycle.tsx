@@ -4,15 +4,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
 import { newCycleSchema } from '~/validation/newCycleSchema'
 import { api } from '~/utils/api'
-import { AddCycleFieldValues, CycleForm } from '../forms/cycle'
+import { NewCycleFieldValues, CycleForm } from '../forms/cycle'
 import { DialogHeader } from '../ui/dialog'
 
-export const AddCycleDialog = ({
+export const NewCycleDialog = ({
   setDialogOpen,
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
-  const form = useForm<AddCycleFieldValues>({
+  const form = useForm<NewCycleFieldValues>({
     resolver: zodResolver(newCycleSchema),
   })
 
@@ -21,7 +21,7 @@ export const AddCycleDialog = ({
 
   const cycleCreate = api.cycle.create.useMutation()
 
-  const onSubmit = (data: AddCycleFieldValues) => {
+  const onSubmit = (data: NewCycleFieldValues) => {
     const t = toast({ title: 'جاري إضافة الدورة' })
     cycleCreate
       .mutateAsync(data)

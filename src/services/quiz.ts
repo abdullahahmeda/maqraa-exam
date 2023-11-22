@@ -134,7 +134,6 @@ export const UNUSED = true
 //       0
 //     )
 
-//     // TODO: validate that `grade` is in range [0, weight]
 //     const percentage = (grade / quiz.total!) * 100
 
 //     return await this.db.quiz.update({
@@ -253,7 +252,6 @@ export const UNUSED = true
 //     curriculumId: string
 //     repeatFromSameHadith: boolean
 //   }) {
-//     // TODO: questions order is not the same as in groups.order (so the question from last group may come first)
 //     const curriculumService = new CurriculumService(this.db)
 //     const allCurriculumQuestions = await curriculumService.getAllQuestions(
 //       curriculumId

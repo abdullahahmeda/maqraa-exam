@@ -4,16 +4,16 @@ import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { api } from '~/utils/api'
 import { newTrackSchema } from '~/validation/newTrackSchema'
-import { AddTrackFieldValues, TrackForm } from '../forms/track'
+import { NewTrackFieldValues, TrackForm } from '../forms/track'
 import { DialogHeader } from '../ui/dialog'
 import { useToast } from '../ui/use-toast'
 
-export const AddTrackDialog = ({
+export const NewTrackDialog = ({
   setDialogOpen,
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
-  const form = useForm<AddTrackFieldValues>({
+  const form = useForm<NewTrackFieldValues>({
     resolver: zodResolver(newTrackSchema),
   })
 
@@ -22,7 +22,7 @@ export const AddTrackDialog = ({
 
   const trackCreate = api.track.create.useMutation()
 
-  const onSubmit = (data: AddTrackFieldValues) => {
+  const onSubmit = (data: NewTrackFieldValues) => {
     const t = toast({ title: 'جاري إضافة المسار' })
     trackCreate
       .mutateAsync(data as z.infer<typeof newTrackSchema>)

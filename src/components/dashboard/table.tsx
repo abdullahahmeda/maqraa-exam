@@ -61,7 +61,7 @@ export default function DashboardTable({
             key={cell.id}
             className={clsx(
               'px-6 py-4 text-sm',
-              cell.column.columnDef.meta?.className
+              cell.column.columnDef.meta?.tdClassName
             )}
           >
             {flexRender(cell.column.columnDef.cell, cell.getContext())}

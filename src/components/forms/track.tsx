@@ -19,11 +19,11 @@ import { Button } from '../ui/button'
 import { UseFormReturn } from 'react-hook-form'
 import { api } from '~/utils/api'
 
-export type AddTrackFieldValues = { name: string; courseId: string }
+export type NewTrackFieldValues = { name: string; courseId: string }
 
 type FormProps = {
-  form: UseFormReturn<AddTrackFieldValues>
-  onSubmit: (data: AddTrackFieldValues) => void
+  form: UseFormReturn<NewTrackFieldValues>
+  onSubmit: (data: NewTrackFieldValues) => void
   isLoading?: boolean
 }
 

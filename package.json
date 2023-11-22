@@ -105,7 +105,6 @@
     "@types/ws": "^8.5.8",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
     "@typescript-eslint/parser": "^5.62.0",
-    "@zenstackhq/trpc": "^1.1.0",
     "autoprefixer": "^10.4.15",
     "eslint": "^8.47.0",
     "eslint-config-next": "13.1.6",

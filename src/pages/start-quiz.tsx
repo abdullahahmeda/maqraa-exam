@@ -34,178 +34,23 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { CheckedState } from '@radix-ui/react-checkbox'
 import { QuestionType, QuestionDifficulty } from '~/kysely/enums'
 import { Input } from '~/components/ui/input'
-import { difficultyMapping, styleMapping, typeMapping } from '~/utils/questions'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '~/components/ui/accordion'
-import {
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  closestCenter,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core'
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  useSortable,
-} from '@dnd-kit/sortable'
-import { CSS } from '@dnd-kit/utilities'
-import { Trash } from 'lucide-react'
+import { difficultyMapping, typeMapping } from '~/utils/questions'
 import { z } from 'zod'
 import { useState } from 'react'
 import { handleFormError } from '~/utils/errors'
 
-type Group = {
-  questionsNumber: number
-  gradePerQuestion: number
-  difficulty: QuestionDifficulty | string | undefined
-  styleOrType: QuestionType | string | undefined
-}
+type Group = {}
 
 type FieldValues = {
   courseId: any
   trackId: string
   curriculumId: string
   repeatFromSameHadith: CheckedState
-  groups: Group[]
+  questionsNumber: number
+  gradePerQuestion: number
+  difficulty: QuestionDifficulty | string | undefined
+  type: QuestionType | string | undefined
 }
-
-const QuestionGroup = ({
-  id,
-  index,
-  form,
-  remove,
-}: {
-  id: string
-  index: number
-  form: UseFormReturn<FieldValues>
-  remove: UseFieldArrayRemove
-}) => {
-  const {
-    attributes: { role, ...attributes },
-    listeners,
-    setNodeRef,
-    transform,
-  } = useSortable({ id })
-
-  const style = { transform: CSS.Transform.toString(transform) }
-
-  return (
-    <AccordionItem
-      value={id}
-      ref={setNodeRef}
-      {...attributes}
-      style={style}
-      className='transition-transform last-of-type:border-b-0'
-    >
-      <AccordionTrigger {...listeners} className='bg-gray-50 p-3'>
-        المجموعة {index + 1}
-      </AccordionTrigger>
-      <AccordionContent className='bg-gray-50/50'>
-        <div className='space-y-4 p-3'>
-          <div className='flex justify-end'>
-            <Button
-              size='icon'
-              variant='destructive'
-              onClick={() => remove(index)}
-            >
-              <Trash className='h-4 w-4' />
-            </Button>
-          </div>
-          <div className='flex gap-2'>
-            <FormField
-              control={form.control}
-              name={`groups.${index}.questionsNumber`}
-              render={({ field }) => (
-                <FormItem className='flex-grow'>
-                  <FormLabel>عدد الأسئلة</FormLabel>
-                  <FormControl>
-                    <Input type='number' min={1} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name={`groups.${index}.gradePerQuestion`}
-              render={({ field }) => (
-                <FormItem className='flex-grow'>
-                  <FormLabel>الدرجة للسؤال</FormLabel>
-                  <FormControl>
-                    <Input min={1} {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          <FormField
-            control={form.control}
-            name={`groups.${index}.difficulty`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>المستوى</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='اختر المستوى' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value=''>عشوائي</SelectItem>
-                    {Object.entries(difficultyMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name={`groups.${index}.styleOrType`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>طريقة الأسئلة</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder='اختر طريقة الأسئلة' />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value=''>عشوائي</SelectItem>
-                    {Object.entries(typeMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                    {Object.entries(styleMapping).map(([label, value]) => (
-                      <SelectItem key={value} value={value}>
-                        {label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-      </AccordionContent>
-    </AccordionItem>
-  )
-}
-
 const HomePage = () => {
   const { toast } = useToast()
 
@@ -215,32 +60,17 @@ const HomePage = () => {
     resolver: zodResolver(newQuizSchema),
     defaultValues: {
       repeatFromSameHadith: false,
-      groups: [
-        {
-          questionsNumber: 25,
-          gradePerQuestion: 1,
-          difficulty: '',
-          styleOrType: '',
-        },
-      ],
+      questionsNumber: 25,
+      gradePerQuestion: 1,
+      difficulty: '',
+      type: '',
     },
   })
 
-  // TODO: fix this
-  // const quizCreate = api.quiz.create.useMutation()
+  const quizCreate = api.quiz.create.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
-
-  const {
-    fields: groups,
-    append,
-    remove,
-    swap,
-  } = useFieldArray({
-    control: form.control,
-    name: 'groups',
-  })
 
   const { data: courses, isLoading: isCoursesLoading } =
     api.course.list.useQuery({})
@@ -271,46 +101,21 @@ const HomePage = () => {
   const router = useRouter()
 
   const onSubmit = (data: FieldValues) => {
-    // setSubmitting(true)
-    // quizCreate
-    //   .mutateAsync(data as z.infer<typeof newQuizSchema>)
-    //   .then((quiz) => {
-    //     if (quiz) router.push(`/quizzes/${quiz.id}`)
-    //   })
-    //   .catch((error) => {
-    //     setSubmitting(false)
-    //     handleFormError(error, {
-    //       fields: (key, message) =>
-    //         form.setError(key as keyof FieldValues, { message }),
-    //       form: (message) => form.setError('root.form', { message }),
-    //       default: (message) => toast({ title: message }),
-    //     })
-    //   })
-  }
-
-  const appendGroup = () => {
-    append({
-      questionsNumber: 25,
-      gradePerQuestion: 1,
-      difficulty: '',
-      styleOrType: '',
-    })
-  }
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: { distance: 10 },
-    })
-  )
-
-  const onDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-
-    if (over !== null && active.id !== over.id) {
-      const oldIndex = groups.findIndex((g) => g.id === active.id)
-      const newIndex = groups.findIndex((g) => g.id === over.id)
-      swap(oldIndex, newIndex)
-    }
+    setSubmitting(true)
+    quizCreate
+      .mutateAsync(data as z.infer<typeof newQuizSchema>)
+      .then((quiz) => {
+        if (quiz) router.push(`/quizzes/${quiz.id}`)
+      })
+      .catch((error) => {
+        setSubmitting(false)
+        handleFormError(error, {
+          fields: (key, message) =>
+            form.setError(key as keyof FieldValues, { message }),
+          form: (message) => form.setError('root.form', { message }),
+          default: (message) => toast({ title: message }),
+        })
+      })
   }
 
   return (
@@ -423,46 +228,91 @@ const HomePage = () => {
               <p>
                 أقصى عدد للأسئلة في الإختبار: 25، مجموع الدرجات يجب أن يساوي 100
               </p>
-              <div>
-                <h3>تقسيمة الأسئلة</h3>
-                <DndContext
-                  sensors={sensors}
-                  collisionDetection={closestCenter}
-                  onDragEnd={onDragEnd}
-                >
-                  <SortableContext
-                    items={groups}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <Accordion
-                      type='single'
-                      collapsible
-                      className='overflow-hidden rounded-md shadow'
-                    >
-                      {groups.map(({ id }, index) => (
-                        <QuestionGroup
-                          id={id}
-                          index={index}
-                          form={form}
-                          remove={remove}
-                          key={id}
-                        />
-                      ))}
-                    </Accordion>
-                  </SortableContext>
-                </DndContext>
+              <div className='grid grid-cols-2 gap-x-2 gap-y-4'>
                 <FormField
                   control={form.control}
-                  name='groups'
-                  render={() => (
-                    <FormItem>
-                      <FormMessage className='mt-2' />
+                  name={`questionsNumber`}
+                  render={({ field }) => (
+                    <FormItem className='flex-grow'>
+                      <FormLabel>عدد الأسئلة</FormLabel>
+                      <FormControl>
+                        <Input type='number' min={1} max={25} {...field} />
+                      </FormControl>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type='button' className='mt-2' onClick={appendGroup}>
-                  إضافة مجموعة أخرى
-                </Button>
+                <FormField
+                  control={form.control}
+                  name={`gradePerQuestion`}
+                  render={({ field }) => (
+                    <FormItem className='flex-grow'>
+                      <FormLabel>الدرجة للسؤال</FormLabel>
+                      <FormControl>
+                        <Input min={1} max={4} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`difficulty`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>المستوى</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder='اختر المستوى' />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value=''>كل المستويات</SelectItem>
+                          {Object.entries(difficultyMapping).map(
+                            ([label, value]) => (
+                              <SelectItem key={value} value={value}>
+                                {label}
+                              </SelectItem>
+                            )
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name={`type`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>طريقة الأسئلة</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder='اختر طريقة الأسئلة' />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value=''>موضوعي و مقالي</SelectItem>
+                          {Object.entries(typeMapping).map(([label, value]) => (
+                            <SelectItem key={value} value={value}>
+                              {label} فقط
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
               <Button loading={submitting}>بدأ الاختبار</Button>
             </form>

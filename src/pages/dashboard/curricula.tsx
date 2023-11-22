@@ -15,7 +15,7 @@ import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { z } from 'zod'
-import { AddCurriculumDialog } from '~/components/modals/add-curriculum'
+import { NewCurriculumDialog } from '~/components/modals/new-curriculum'
 import { EditCurriculumDialog } from '~/components/modals/edit-curriculum'
 import {
   AlertDialog,
@@ -122,7 +122,7 @@ const columns = [
   columnHelper.accessor('name', {
     header: 'المنهج',
     meta: {
-      className: 'text-center',
+      textAlign: 'center',
     },
   }),
   columnHelper.accessor((row) => `${row.courseName}: ${row.trackName}`, {
@@ -166,7 +166,7 @@ const columns = [
       )
     },
     meta: {
-      className: 'text-center',
+      textAlign: 'center',
     },
   }),
   // columnHelper.accessor('parts', {
@@ -179,7 +179,7 @@ const columns = [
   //       </div>
   //     )),
   //   meta: {
-  //     className: 'text-center',
+  //     textAlign: 'center',
   //   },
   // }),
   columnHelper.display({
@@ -223,7 +223,7 @@ const columns = [
       )
     },
     meta: {
-      className: 'text-center',
+      textAlign: 'center',
     },
   }),
 ]
@@ -344,7 +344,7 @@ const CurriculaPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <AddCurriculumDialog setDialogOpen={setDialogOpen} />
+            <NewCurriculumDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>

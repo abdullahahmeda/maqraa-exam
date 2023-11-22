@@ -60,7 +60,7 @@ import {
 import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { AddSystemExamDialog } from '~/components/modals/add-system-exam'
+import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
 import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
@@ -192,7 +192,7 @@ const MyExamsPage = () => {
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor(
@@ -241,7 +241,7 @@ const MyExamsPage = () => {
             )
           },
           meta: {
-            className: 'text-center',
+            textAlign: 'center',
           },
         }
       ),
@@ -273,7 +273,7 @@ const MyExamsPage = () => {
             '-'
           ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('enteredAt', {
@@ -283,7 +283,7 @@ const MyExamsPage = () => {
             ? formatDate(info.getValue() as unknown as Date)
             : '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('submittedAt', {
@@ -293,7 +293,7 @@ const MyExamsPage = () => {
             ? formatDate(info.getValue() as unknown as Date)
             : '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('correctedAt', {
@@ -303,7 +303,7 @@ const MyExamsPage = () => {
             ? formatDate(info.getValue() as unknown as Date)
             : '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       ...(session?.user.role === 'STUDENT'
@@ -312,7 +312,7 @@ const MyExamsPage = () => {
               header: 'المصحح',
               cell: (info) => info.getValue() || '-',
               meta: {
-                className: 'text-center',
+                textAlign: 'center',
               },
             }),
           ]
@@ -371,7 +371,7 @@ const MyExamsPage = () => {
           </div>
         ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
     ],

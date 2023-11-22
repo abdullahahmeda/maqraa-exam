@@ -9,12 +9,12 @@ import {
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Pencil, Trash, Plus } from 'lucide-react'
+import { Pencil, Trash, Plus, Eye } from 'lucide-react'
 import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
-import { AddCourseDialog } from '~/components/modals/add-course'
+import { NewCourseDialog } from '~/components/modals/new-course'
 import { EditCourseDialog } from '~/components/modals/edit-course'
 import {
   AlertDialog,
@@ -27,36 +27,35 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import { Button } from '~/components/ui/button'
+import { Button, buttonVariants } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
 import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import { useToast } from '~/components/ui/use-toast'
 import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
+import Link from 'next/link'
+import { cn } from '~/lib/utils'
 
 const DeleteErrorReportDialog = ({ id }: { id: string }) => {
   const { toast } = useToast()
-  // TODO: fix this
-  // const errorReportDelete = api.errorReport.delete.useMutation()
+  const errorReportDelete = api.errorReport.delete.useMutation()
   const queryClient = useQueryClient()
 
   const deleteErrorReport = () => {
-    // const t = toast({ title: 'جاري حذف البلاغ' })
-    // errorReportDelete
-    //   .mutateAsync({
-    //     where: { id },
-    //   })
-    //   .then(() => {
-    //     t.dismiss()
-    //     toast({ title: 'تم حذف البلاغ بنجاح' })
-    //   })
-    //   .catch((error) => {
-    //     t.dismiss()
-    //     toast({ title: error.message, variant: 'destructive' })
-    //   })
-    //   .finally(() => {
-    //     queryClient.invalidateQueries([['errorReport']])
-    //   })
+    const t = toast({ title: 'جاري حذف البلاغ' })
+    errorReportDelete
+      .mutateAsync(id)
+      .then(() => {
+        t.dismiss()
+        toast({ title: 'تم حذف البلاغ بنجاح' })
+      })
+      .catch((error) => {
+        t.dismiss()
+        toast({ title: error.message, variant: 'destructive' })
+      })
+      .finally(() => {
+        queryClient.invalidateQueries([['errorReport']])
+      })
   }
 
   return (
@@ -114,41 +113,41 @@ const ErrorReportsPage = () => {
       columnHelper.accessor('name', {
         header: 'اسم المبلغ',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('email', {
         header: 'البريد الإلكتروني',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('questionNumber', {
         header: 'رقم السؤال',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('questionPartNumber', {
         header: 'رقم الجزء',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('questionPageNumber', {
         header: 'رقم الصفحة',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
         cell: (info) => info.getValue(),
       }),
       columnHelper.accessor('note', {
         header: 'الملاحظة',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
         cell: (info) => info.getValue(),
       }),
@@ -157,9 +156,22 @@ const ErrorReportsPage = () => {
         header: 'الإجراءات',
         cell: ({ row }) => (
           <div className='flex justify-center gap-2'>
+            <Link
+              href={`/dashboard/questions?id=${row.original.questionId}`}
+              className={cn(
+                buttonVariants({ size: 'icon', variant: 'ghost' }),
+                'hover:bg-blue-100'
+              )}
+            >
+              <Eye className='h-4 w-4 text-blue-600' />
+            </Link>
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant='ghost' size='icon' className='hover:bg-red-50'>
+                <Button
+                  variant='ghost'
+                  size='icon'
+                  className='hover:bg-red-100'
+                >
                   <Trash className='h-4 w-4 text-red-600' />
                 </Button>
               </AlertDialogTrigger>
@@ -172,7 +184,7 @@ const ErrorReportsPage = () => {
           </div>
         ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
     ],

@@ -34,7 +34,7 @@ import {
   SelectValue,
   SelectTrigger,
 } from '~/components/ui/select'
-import { AddUsersDialog } from '~/components/modals/add-user'
+import { NewUsersDialog } from '~/components/modals/new-user'
 import { UserInfoModal } from '~/components/modals/user-info'
 import {
   AlertDialog,
@@ -58,14 +58,13 @@ import { useToast } from '~/components/ui/use-toast'
 
 type Row = User & {
   student: { cycles: (UserCycle & { cycle: Cycle })[] }
-  corrector: {
-    cycle: Cycle
-  }
+  cycles: { cycleName: string }[]
 }
 
 const columnFiltersValidators = {
   email: z.string(),
   role: z.nativeEnum(UserRole),
+  cycleId: z.string(),
 }
 
 const columnHelper = createColumnHelper<Row>()
@@ -108,6 +107,7 @@ const UsersPage = () => {
     {
       pagination,
       filters,
+      include: { cycles: true },
     },
     { networkMode: 'always' }
   )
@@ -175,13 +175,13 @@ const UsersPage = () => {
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('name', {
         header: 'الاسم',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('role', {
@@ -229,49 +229,47 @@ const UsersPage = () => {
           </Badge>
         ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor(
-        (row) => row.student?.cycles.map((c) => c.cycle.name).join('، '),
+        (row) => row.cycles.map((c) => c.cycleName).join('، '),
         {
-          id: 'cycles',
-          header: 'الدورة',
-          // TODO: fix this
-          // header: ({ column }) => {
-          //   const { data: cycles, isLoading } = api.cycle.list.useQuery({})
-          //   const filterValue = column.getFilterValue() as string | undefined
-          //   return (
-          //     <div className='flex items-center'>
-          //       الدورة
-          //       <Popover>
-          //         <PopoverTrigger className='mr-4' asChild>
-          //           <Button
-          //             size='icon'
-          //             variant={filterValue ? 'secondary' : 'ghost'}
-          //           >
-          //             <Filter className='h-4 w-4' />
-          //           </Button>
-          //         </PopoverTrigger>
-          //         <PopoverContent>
-          //           <Combobox
-          //             items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
-          //             loading={isLoading}
-          //             labelKey='name'
-          //             valueKey='id'
-          //             onSelect={column.setFilterValue}
-          //             value={filterValue}
-          //             triggerText='الكل'
-          //             triggerClassName='w-full'
-          //           />
-          //         </PopoverContent>
-          //       </Popover>
-          //     </div>
-          //   )
-          // },
+          id: 'cycleId',
+          header: ({ column }) => {
+            const { data: cycles, isLoading } = api.cycle.list.useQuery({})
+            const filterValue = column.getFilterValue() as string | undefined
+            return (
+              <div className='flex items-center'>
+                الدورة
+                <Popover>
+                  <PopoverTrigger className='mr-4' asChild>
+                    <Button
+                      size='icon'
+                      variant={filterValue ? 'secondary' : 'ghost'}
+                    >
+                      <Filter className='h-4 w-4' />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent>
+                    <Combobox
+                      items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
+                      loading={isLoading}
+                      labelKey='name'
+                      valueKey='id'
+                      onSelect={column.setFilterValue}
+                      value={filterValue}
+                      triggerText='الكل'
+                      triggerClassName='w-full'
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )
+          },
           cell: (info) => info.getValue() || '-',
           meta: {
-            className: 'text-center',
+            textAlign: 'center',
           },
         }
       ),
@@ -403,7 +401,7 @@ const UsersPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <AddUsersDialog setDialogOpen={setDialogOpen} />
+            <NewUsersDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>

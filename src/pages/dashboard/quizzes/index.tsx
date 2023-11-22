@@ -33,7 +33,7 @@ import {
 import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { AddSystemExamDialog } from '~/components/modals/add-system-exam'
+import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
 import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
@@ -45,8 +45,9 @@ import { percentage } from '~/utils/percentage'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 
 type Row = Quiz & {
-  examinee: User
-  curriculum: Curriculum
+  examineeName: string
+  examineeEmail: string
+  curriculumName: string
 }
 
 const columnFiltersValidators = {
@@ -82,61 +83,62 @@ const ExamsPage = () => {
       header: 'الطالب',
       cell: (info) => info.getValue() || '-',
       meta: {
-        className: 'text-center',
+        textAlign: 'center',
       },
     }),
     columnHelper.accessor('examineeEmail', {
       header: 'الإيميل',
       cell: (info) => info.getValue() || '-',
       meta: {
-        className: 'text-center',
+        textAlign: 'center',
       },
     }),
     columnHelper.accessor('curriculumName', {
       id: 'curriculum',
-      header: ({ column, table }) => {
-        const { data: curricula, isLoading } = api.curriculum.findMany.useQuery(
-          {
-            where: {
-              track: {
-                courseId:
-                  table.getState().columnFilters.find((f) => f.id === 'course')
-                    ?.value || undefined,
-              },
-            },
-          }
-        )
-        const filterValue = column.getFilterValue() as string | undefined
-        return (
-          <div className='flex items-center'>
-            المنهج
-            <Popover>
-              <PopoverTrigger className='mr-4' asChild>
-                <Button
-                  size='icon'
-                  variant={filterValue ? 'secondary' : 'ghost'}
-                >
-                  <Filter className='h-4 w-4' />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent>
-                <Combobox
-                  items={[{ name: 'الكل', id: '' }, ...(curricula || [])]}
-                  loading={isLoading}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={column.setFilterValue}
-                  value={filterValue}
-                  triggerText='الكل'
-                  triggerClassName='w-full'
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-        )
-      },
+      header: 'المنهج',
+      // header: ({ column, table }) => {
+      //   const { data: curricula, isLoading } = api.curriculum.findMany.useQuery(
+      //     {
+      //       where: {
+      //         track: {
+      //           courseId:
+      //             table.getState().columnFilters.find((f) => f.id === 'course')
+      //               ?.value || undefined,
+      //         },
+      //       },
+      //     }
+      //   )
+      //   const filterValue = column.getFilterValue() as string | undefined
+      //   return (
+      //     <div className='flex items-center'>
+      //       المنهج
+      //       <Popover>
+      //         <PopoverTrigger className='mr-4' asChild>
+      //           <Button
+      //             size='icon'
+      //             variant={filterValue ? 'secondary' : 'ghost'}
+      //           >
+      //             <Filter className='h-4 w-4' />
+      //           </Button>
+      //         </PopoverTrigger>
+      //         <PopoverContent>
+      //           <Combobox
+      //             items={[{ name: 'الكل', id: '' }, ...(curricula || [])]}
+      //             loading={isLoading}
+      //             labelKey='name'
+      //             valueKey='id'
+      //             onSelect={column.setFilterValue}
+      //             value={filterValue}
+      //             triggerText='الكل'
+      //             triggerClassName='w-full'
+      //           />
+      //         </PopoverContent>
+      //       </Popover>
+      //     </div>
+      //   )
+      // },
       meta: {
-        className: 'text-center',
+        textAlign: 'center',
       },
     }),
     columnHelper.accessor('grade', {
@@ -151,17 +153,17 @@ const ExamsPage = () => {
     }),
     columnHelper.accessor('createdAt', {
       header: 'وقت الإنشاء',
-      cell: (info) => formatDate(info.getValue()),
+      cell: (info) => formatDate(info.getValue() as unknown as Date),
       meta: {
-        className: 'text-center',
+        textAlign: 'center',
       },
     }),
     columnHelper.accessor('submittedAt', {
       header: 'وقت التسليم',
       cell: (info) =>
-        info.getValue() ? formatDate(info.getValue() as Date) : '-',
+        info.getValue() ? formatDate(info.getValue() as unknown as Date) : '-',
       meta: {
-        className: 'text-center',
+        textAlign: 'center',
       },
     }),
     columnHelper.display({
@@ -202,14 +204,15 @@ const ExamsPage = () => {
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
-                  <DeleteQuizDialog id={row.original.id} />
+                  <DeleteQuizDialog id={row.original.id as unknown as string} />
                 </AlertDialogContent>
               </AlertDialog>
             </>
           ) : (
             <>
               {(!row.original.endsAt ||
-                (row.original.endsAt && row.original.endsAt > new Date())) &&
+                (row.original.endsAt &&
+                  (row.original.endsAt as unknown as Date) > new Date())) &&
                 !row.original.submittedAt && (
                   <TooltipProvider>
                     <Tooltip>
@@ -232,7 +235,7 @@ const ExamsPage = () => {
         </div>
       ),
       meta: {
-        className: 'text-center',
+        textAlign: 'center',
       },
     }),
   ]
@@ -262,7 +265,8 @@ const ExamsPage = () => {
       : -1
 
   const table = useReactTable({
-    data: (exams as Row[]) || [],
+    // @ts-ignore
+    data: exams || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,

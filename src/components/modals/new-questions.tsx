@@ -11,7 +11,7 @@ import {
 import { DialogHeader } from '../ui/dialog'
 import { useToast } from '../ui/use-toast'
 
-export const AddQuestionsDialog = ({
+export const NewQuestionsDialog = ({
   setDialogOpen,
 }: {
   setDialogOpen: (state: boolean) => void

@@ -1,6 +1,36 @@
-import { QuizType, QuestionsGroupType } from '~/kysely/enums'
+import {
+  QuizType,
+  QuestionsGroupType,
+  QuestionDifficulty,
+  QuestionType,
+} from '~/kysely/enums'
 import { z } from 'zod'
-import { groupSchema } from './newQuizSchema'
+
+const groupSchema = z.object({
+  questionsNumber: z.preprocess(
+    (v) => Number(v),
+    z.number().positive().int().finite().safe()
+  ),
+  gradePerQuestion: z.preprocess(
+    (v) => Number(v),
+    z.number().positive().int().finite().safe()
+  ),
+  difficulty: z.union([
+    z.nativeEnum(QuestionDifficulty, {
+      invalid_type_error: 'يجب اختيار المستوى',
+    }),
+    z.literal('').transform(() => null),
+    z.null(),
+  ]),
+  styleOrType: z.union([
+    z.nativeEnum(QuestionType, {
+      invalid_type_error: 'يجب اختيار طريقة الأسئلة',
+    }),
+    z.string().min(1),
+    z.literal('').transform(() => null),
+    z.null(),
+  ]),
+})
 
 const questionSchema = z.object({
   id: z.string().min(1),

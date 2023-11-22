@@ -16,7 +16,7 @@ import { DialogFooter } from '../ui/dialog'
 import { Trash } from 'lucide-react'
 import { Combobox } from '../ui/combobox'
 
-export type AddCurriculumFieldValues = {
+export type NewCurriculumFieldValues = {
   trackId: string
   name: string
   parts: {
@@ -27,13 +27,13 @@ export type AddCurriculumFieldValues = {
     mid: number | string
   }[]
 }
-export type EditCurriculumFieldValues = AddCurriculumFieldValues & {
+export type EditCurriculumFieldValues = NewCurriculumFieldValues & {
   id: string
 }
 
 type FormProps = {
-  form: UseFormReturn<AddCurriculumFieldValues | EditCurriculumFieldValues>
-  onSubmit: (data: AddCurriculumFieldValues | EditCurriculumFieldValues) => void
+  form: UseFormReturn<NewCurriculumFieldValues | EditCurriculumFieldValues>
+  onSubmit: (data: NewCurriculumFieldValues | EditCurriculumFieldValues) => void
   isLoading?: boolean
   submitText: string
 }

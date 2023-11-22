@@ -8,7 +8,6 @@ import { Button } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
 import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
-import { enStyleToAr } from '~/utils/questions'
 import { correctQuestion, normalizeText } from '~/utils/strings'
 import { Badge } from '~/components/ui/badge'
 import { QuestionType, UserRole } from '~/kysely/enums'
@@ -120,9 +119,7 @@ const CorrectQuizPage = ({
         const isEmailSent = false
         if (isEmailSent) {
           // toast({ title: 'تم حفظ الاختبار وارسال الدرجة بنجاح' })
-        }
-        // TODO: fix this toast
-        else 'nothing'
+        } else 'nothing'
         toast({ title: 'تم حفظ الاختبار' })
         // router.push('/dashboard/exams')
       })
@@ -194,7 +191,8 @@ const CorrectQuizPage = ({
                           key={id}
                           className={clsx('mb-3 rounded-md px-4 py-3', {
                             'bg-green-200': grade === weight,
-                            'bg-orange-200': 0 < grade && grade < weight,
+                            'bg-orange-200':
+                              grade !== null && 0 < grade && grade < weight!,
                             'bg-red-200':
                               grade === 0 &&
                               (quiz?.grade !== null ||
@@ -208,7 +206,7 @@ const CorrectQuizPage = ({
                           <div className='flex items-center'>
                             {order}.
                             <Badge className='ml-2 mr-1'>
-                              {enStyleToAr(question.style)}
+                              {question.style}
                             </Badge>
                             <p>{question.text}</p>
                           </div>
@@ -230,7 +228,7 @@ const CorrectQuizPage = ({
                               نسبة التطابق مع الإجابة الصحيحة:{' '}
                               {(
                                 compareTwoStrings(
-                                  normalizeText(question.examineeAnswer),
+                                  normalizeText(question.examineeAnswer ?? ''),
                                   normalizeText('' + correctAnswer)
                                 ) * 100
                               ).toFixed(2)}
@@ -280,7 +278,6 @@ const CorrectQuizPage = ({
 }
 
 export async function getServerSideProps(ctx: GetServerSidePropsContext) {
-  // TODO: auth check
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
 
   if (
@@ -305,6 +302,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             'ModelQuestion.id'
           )
           .leftJoin('Question', 'ModelQuestion.questionId', 'Question.id')
+          .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
           .whereRef('Answer.quizId', '=', 'Quiz.id')
           .whereRef('ModelQuestion.modelId', '=', 'Quiz.modelId')
           .select([
@@ -320,7 +318,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             'Question.option4',
             'Question.textForFalse',
             'Question.textForTrue',
-            'Question.style',
+            'QuestionStyle.name as style',
             'Question.type',
             'Question.answer as correctAnswer',
           ])

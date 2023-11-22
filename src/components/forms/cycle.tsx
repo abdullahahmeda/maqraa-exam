@@ -11,12 +11,12 @@ import { Input } from '../ui/input'
 import { DialogFooter } from '../ui/dialog'
 import { Button } from '../ui/button'
 
-export type AddCycleFieldValues = { name: string }
-export type EditCycleFieldValues = { id: string } & AddCycleFieldValues
+export type NewCycleFieldValues = { name: string }
+export type EditCycleFieldValues = { id: string } & NewCycleFieldValues
 
 type FormProps = {
-  form: UseFormReturn<AddCycleFieldValues | EditCycleFieldValues>
-  onSubmit: (data: AddCycleFieldValues | EditCycleFieldValues) => void
+  form: UseFormReturn<NewCycleFieldValues | EditCycleFieldValues>
+  onSubmit: (data: NewCycleFieldValues | EditCycleFieldValues) => void
   isLoading?: boolean
   submitText: string
 }

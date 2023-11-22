@@ -15,7 +15,7 @@ import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { z } from 'zod'
-import { AddCycleDialog } from '~/components/modals/add-cycle'
+import { NewCycleDialog } from '~/components/modals/new-cycle'
 import { DeleteCycleDialog } from '~/components/modals/delete-cycle'
 import { EditCycleDialog } from '~/components/modals/edit-cycle'
 import {
@@ -192,7 +192,7 @@ const CyclesPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <AddCycleDialog setDialogOpen={setDialogOpen} />
+            <NewCycleDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>

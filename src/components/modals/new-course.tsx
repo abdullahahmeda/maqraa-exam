@@ -1,5 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { AddCourseFieldValues, CourseForm } from '../forms/course'
+import { NewCourseFieldValues, CourseForm } from '../forms/course'
 import { useToast } from '../ui/use-toast'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -7,19 +7,19 @@ import { api } from '~/utils/api'
 import { newCourseSchema } from '~/validation/newCourseSchema'
 import { DialogHeader } from '../ui/dialog'
 
-export const AddCourseDialog = ({
+export const NewCourseDialog = ({
   setDialogOpen,
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
   const queryClient = useQueryClient()
   const { toast } = useToast()
-  const form = useForm<AddCourseFieldValues>({
+  const form = useForm<NewCourseFieldValues>({
     resolver: zodResolver(newCourseSchema),
   })
   const courseCreate = api.course.create.useMutation()
 
-  const onSubmit = (data: AddCourseFieldValues) => {
+  const onSubmit = (data: NewCourseFieldValues) => {
     const t = toast({ title: 'جاري إضافة المقرر' })
     courseCreate
       .mutateAsync(data)

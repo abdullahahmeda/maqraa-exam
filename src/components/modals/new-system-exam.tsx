@@ -52,7 +52,7 @@ type FieldValues = {
   cycleId: string
 }
 
-export const AddSystemExamDialog = ({
+export const NewSystemExamDialog = ({
   setDialogOpen,
 }: {
   setDialogOpen: (state: boolean) => void
@@ -145,7 +145,6 @@ export const AddSystemExamDialog = ({
   }
 
   const onSubmit = (data: FieldValues) => {
-    // console.log(data)
     setSubmitting(true)
     examCreate
       .mutateAsync(data as z.infer<typeof newSystemExamSchema>)

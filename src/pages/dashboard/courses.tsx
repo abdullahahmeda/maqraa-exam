@@ -14,7 +14,7 @@ import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
-import { AddCourseDialog } from '~/components/modals/add-course'
+import { NewCourseDialog } from '~/components/modals/new-course'
 import { EditCourseDialog } from '~/components/modals/edit-course'
 import {
   AlertDialog,
@@ -145,13 +145,13 @@ const CoursesPage = () => {
       columnHelper.accessor('name', {
         header: 'المقرر',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       // columnHelper.accessor('questions', {
       //   header: 'عدد الأسئلة',
       //   meta: {
-      //     className: 'text-center',
+      //     textAlign: 'center',
       //   },
       //   cell: (info) => info.getValue().length,
       // }),
@@ -196,7 +196,7 @@ const CoursesPage = () => {
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
     ],
@@ -258,7 +258,7 @@ const CoursesPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <AddCourseDialog setDialogOpen={setDialogOpen} />
+            <NewCourseDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>

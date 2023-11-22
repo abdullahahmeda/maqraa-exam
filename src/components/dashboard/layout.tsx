@@ -89,8 +89,6 @@ const menuLinks = {
       label: 'إختبارات النظام',
       href: '/dashboard/my-exams',
     },
-    // TODO: review this
-
     // {
     //   icon: <Construction className='ml-2 h-4 w-4' />,
     //   label: 'الإختبارات المفتوحة',

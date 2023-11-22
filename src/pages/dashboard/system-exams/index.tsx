@@ -65,7 +65,7 @@ import {
 import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { AddSystemExamDialog } from '~/components/modals/add-system-exam'
+import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
 import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
@@ -152,7 +152,7 @@ const SystemExamsPage = () => {
       columnHelper.accessor('name', {
         header: 'الإختبار',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor(
@@ -203,7 +203,7 @@ const SystemExamsPage = () => {
             )
           },
           meta: {
-            className: 'text-center',
+            textAlign: 'center',
           },
         }
       ),
@@ -284,14 +284,14 @@ const SystemExamsPage = () => {
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('createdAt', {
         header: 'وقت الإنشاء',
         cell: (info) => formatDate(info.getValue() as unknown as Date),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('endsAt', {
@@ -310,14 +310,14 @@ const SystemExamsPage = () => {
             '-'
           ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('quizzesCount', {
         header: 'الطلاب المستحقين للإختبار',
         cell: (info) => Number(info.getValue()),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.display({
@@ -357,7 +357,7 @@ const SystemExamsPage = () => {
           </div>
         ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
     ],
@@ -461,7 +461,7 @@ const SystemExamsPage = () => {
               </DialogTrigger>
               <DialogContent>
                 <DialogHeader>إضافة إختبار نظام</DialogHeader>
-                <AddSystemExamDialog setDialogOpen={setCreateDialogOpen} />
+                <NewSystemExamDialog setDialogOpen={setCreateDialogOpen} />
               </DialogContent>
             </Dialog>
           )}

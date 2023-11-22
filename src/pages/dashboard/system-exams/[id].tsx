@@ -67,7 +67,7 @@ import {
 import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { AddSystemExamDialog } from '~/components/modals/add-system-exam'
+import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
 import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
@@ -170,14 +170,14 @@ const ExamsPage = ({
         },
         cell: (info) => info.getValue() || '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('examineeEmail', {
         header: 'الإيميل',
         cell: (info) => info.getValue() || '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('grade', {
@@ -208,7 +208,7 @@ const ExamsPage = ({
             '-'
           ),
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('enteredAt', {
@@ -216,7 +216,7 @@ const ExamsPage = ({
         cell: (info) =>
           info.getValue() ? formatDate(info.getValue() as Date) : '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('submittedAt', {
@@ -224,7 +224,7 @@ const ExamsPage = ({
         cell: (info) =>
           info.getValue() ? formatDate(info.getValue() as Date) : '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('correctedAt', {
@@ -232,14 +232,14 @@ const ExamsPage = ({
         cell: (info) =>
           info.getValue() ? formatDate(info.getValue() as Date) : '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.accessor('correctorName', {
         header: 'المصحح',
         cell: (info) => info.getValue() || '-',
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
       columnHelper.display({
@@ -353,7 +353,7 @@ const ExamsPage = ({
           )
         },
         meta: {
-          className: 'text-center',
+          textAlign: 'center',
         },
       }),
     ],
@@ -518,6 +518,8 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
   const id = ctx.params!.id as string
 
+  console.log(id)
+
   const systemExam = await db
     .selectFrom('SystemExam')
     .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
@@ -530,6 +532,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       'Curriculum.name as curriculumName',
       'Cycle.name as cycleName',
     ])
+    .where('SystemExam.id', '=', id)
     .executeTakeFirst()
 
   if (!systemExam) return { notFound: true }
@@ -539,6 +542,7 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
       await db
         .selectFrom('Quiz')
         .select(({ fn }) => [fn.count('id').as('total')])
+        .where('systemExamId', '=', id)
         .executeTakeFirst()
     )?.total
   )

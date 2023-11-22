@@ -16,6 +16,7 @@ import { DB } from '~/kysely/types'
 import { SelectQueryBuilder } from 'kysely'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
 import { correctQuestion } from '~/utils/strings'
+import sampleSize from 'lodash.samplesize'
 
 const quizFilterSchema = z.object({
   systemExamId: z.string().nullable().optional(),
@@ -45,18 +46,88 @@ function applyQuizFilters<O>(
 }
 
 export const quizRouter = createTRPCRouter({
-  // create: publicProcedure
-  //   .input(newQuizSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     const { groups: _groups, courseId, trackId, ...data } = input
+  create: publicProcedure
+    .input(newQuizSchema)
+    .mutation(async ({ ctx, input }) => {
+      const {
+        courseId,
+        trackId,
+        repeatFromSameHadith,
+        questionsNumber,
+        gradePerQuestion,
+        curriculumId,
+        difficulty,
+        type,
+      } = input
 
-  //     const quizService = new QuizService(db(ctx))
+      const parts = await ctx.db
+        .selectFrom('CurriculumPart')
+        .where('curriculumId', '=', curriculumId)
+        .select(['from', 'mid', 'to', 'number'])
+        .execute()
 
-  //     return await quizService.create({
-  //       ...input,
-  //       examineeId: ctx.session?.user.id,
-  //     })
-  //   }),
+      const query = ctx.db
+        .selectFrom('Question')
+        .selectAll()
+        .where((eb) =>
+          eb.or(
+            parts.map((part) => {
+              return eb.and([
+                eb('hadithNumber', '>=', part.from),
+                eb('hadithNumber', '<=', part.to),
+                eb('partNumber', '=', part.number),
+                eb('courseId', '=', courseId),
+              ])
+            })
+          )
+        )
+        .limit(questionsNumber)
+
+      if (difficulty) query.where('difficulty', '=', difficulty)
+      if (type) query.where('type', '=', type)
+      if (!repeatFromSameHadith) query.distinctOn('hadithNumber')
+
+      const questions = await query.execute()
+
+      if (questions.length < questionsNumber)
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `أقصى عدد مسموح به للأسئلة ${questions.length}`,
+        })
+
+      const total = gradePerQuestion * questionsNumber
+
+      const quiz = await ctx.db.transaction().execute(async (trx) => {
+        const { id: modelId } = await trx
+          .insertInto('Model')
+          .values({ systemExamId: null })
+          .returning('id')
+          .executeTakeFirstOrThrow()
+        await trx
+          .insertInto('ModelQuestion')
+          .values(
+            sampleSize(questions, questionsNumber).map((q, i) => ({
+              modelId,
+              order: i + 1,
+              questionId: q.id,
+              weight: gradePerQuestion,
+            }))
+          )
+          .execute()
+
+        return await trx
+          .insertInto('Quiz')
+          .values({
+            curriculumId,
+            examineeId: ctx.session?.user.id ?? null,
+            modelId,
+            total,
+          })
+          .returning('id')
+          .executeTakeFirstOrThrow()
+      })
+      return quiz
+    }),
 
   get: protectedProcedure
     .input(z.string())

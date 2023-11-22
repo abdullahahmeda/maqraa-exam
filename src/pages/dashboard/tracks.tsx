@@ -15,7 +15,7 @@ import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { z } from 'zod'
-import { AddTrackDialog } from '~/components/modals/add-track'
+import { NewTrackDialog } from '~/components/modals/new-track'
 import { DeleteTrackDialog } from '~/components/modals/delete-track'
 import {
   AlertDialog,
@@ -249,7 +249,7 @@ const TracksPage = () => {
             </Button>
           </DialogTrigger>
           <DialogContent>
-            <AddTrackDialog setDialogOpen={setDialogOpen} />
+            <NewTrackDialog setDialogOpen={setDialogOpen} />
           </DialogContent>
         </Dialog>
       </div>

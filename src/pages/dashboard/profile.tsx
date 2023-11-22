@@ -13,7 +13,6 @@ import {
 } from '~/components/ui/form'
 import { useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { enhance } from '@zenstackhq/runtime'
 import { Input } from '~/components/ui/input'
 import { useEffect } from 'react'
 import { Button } from '~/components/ui/button'
@@ -23,6 +22,7 @@ import { Switch } from '~/components/ui/switch'
 import { useSession } from 'next-auth/react'
 import { useToast } from '~/components/ui/use-toast'
 import { TRPCClientError } from '@trpc/client'
+import { db } from '~/server/db'
 
 type FieldValues = {
   name: string
@@ -51,31 +51,30 @@ const ProfilePage = ({ user }: Props) => {
     name: 'changePassword',
   })
 
-  // TODO: fix this
-  // const profileUpdate = api.updateUserProfile.useMutation()
+  const profileUpdate = api.user.updateProfile.useMutation()
 
   useEffect(() => {
     form.reset(user as any)
   }, [form, user])
 
   const onSubmit = (data: FieldValues) => {
-    // profileUpdate
-    //   .mutateAsync(data)
-    //   .then((newData) => {
-    //     toast({
-    //       title:
-    //         'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات',
-    //     })
-    //     update({ name: newData?.name, phone: newData?.phone })
-    //   })
-    //   .catch((error) => {
-    //     toast({
-    //       title:
-    //         error instanceof TRPCClientError
-    //           ? error.message
-    //           : 'حدث خطأ أثناء حفظ البيانات',
-    //     })
-    //   })
+    profileUpdate
+      .mutateAsync(data)
+      .then((newData) => {
+        toast({
+          title:
+            'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات',
+        })
+        update({ name: newData?.name, phone: newData?.phone })
+      })
+      .catch((error) => {
+        toast({
+          title:
+            error instanceof TRPCClientError
+              ? error.message
+              : 'حدث خطأ أثناء حفظ البيانات',
+        })
+      })
   }
 
   return (
@@ -174,14 +173,7 @@ const ProfilePage = ({ user }: Props) => {
                 />
               </>
             )}
-            <Button
-              loading={
-                false
-                // profileUpdate.isLoading
-              }
-            >
-              حفظ
-            </Button>
+            <Button loading={profileUpdate.isLoading}>حفظ</Button>
           </form>
         </Form>
       </div>
@@ -197,20 +189,18 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
   if (!session?.user)
     return { redirect: { destination: '/', permanent: false } }
 
-  // const user = await prisma.user.findFirst({
-  //   where: { id: session.user.id },
-  //   select: {
-  //     name: true,
-  //     phone: true,
-  //   },
-  // })
+  const user = await db
+    .selectFrom('User')
+    .select(['name', 'phone'])
+    .where('id', '=', session.user.id)
+    .executeTakeFirst()
 
-  // if (!user) return { notFound: true }
+  if (!user) return { notFound: true }
 
   return {
     props: {
       session,
-      // user,
+      user,
     },
   }
 }

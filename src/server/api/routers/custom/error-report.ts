@@ -31,7 +31,7 @@ function applyErrorReportIncludes<O>(
 }
 
 export const errorReportRouter = createTRPCRouter({
-  reportError: publicProcedure
+  create: publicProcedure
     .input(reportErrorSchema)
     .mutation(async ({ ctx, input }) => {
       await db.insertInto('ErrorReport').values(input).execute()
@@ -48,13 +48,7 @@ export const errorReportRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const query = applyErrorReportIncludes(
         applyPagination(
-          ctx.db
-            .selectFrom('ErrorReport')
-            .select([
-              'ErrorReport.name',
-              'ErrorReport.email',
-              'ErrorReport.note',
-            ]),
+          ctx.db.selectFrom('ErrorReport').selectAll('ErrorReport'),
           input.pagination
         ),
         input.include
@@ -69,4 +63,11 @@ export const errorReportRouter = createTRPCRouter({
     const total = Number((await query.executeTakeFirst())?.total)
     return total
   }),
+
+  delete: protectedProcedure
+    .input(z.string())
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.deleteFrom('ErrorReport').where('id', '=', input).execute()
+      return true
+    }),
 })

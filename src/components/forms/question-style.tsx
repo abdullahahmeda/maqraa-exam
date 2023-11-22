@@ -22,21 +22,21 @@ import {
 import { columnMapping, typeMapping } from '~/utils/questions'
 import { Checkbox } from '~/components/ui/checkbox'
 
-export type AddQuestionStyleFieldValues = {
+export type NewQuestionStyleFieldValues = {
   name: string
   type: QuestionType
   choicesColumns: string[]
 }
 export type EditQuestionStyleFieldValues = {
   id: string
-} & AddQuestionStyleFieldValues
+} & NewQuestionStyleFieldValues
 
 type FormProps = {
   form: UseFormReturn<
-    AddQuestionStyleFieldValues | EditQuestionStyleFieldValues
+    NewQuestionStyleFieldValues | EditQuestionStyleFieldValues
   >
   onSubmit: (
-    data: AddQuestionStyleFieldValues | EditQuestionStyleFieldValues
+    data: NewQuestionStyleFieldValues | EditQuestionStyleFieldValues
   ) => void
   isLoading?: boolean
   submitText: string

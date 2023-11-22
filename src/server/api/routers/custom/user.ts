@@ -14,14 +14,13 @@ import { studentSchema } from '~/validation/studentSchema'
 import { sendMail, sendPasswordChangedEmail } from '~/utils/email'
 import { getBaseUrl } from '~/utils/api'
 import { updateProfileSchema } from '~/validation/updateProfileSchema'
-import { compareSync } from 'bcryptjs'
+import { compareSync, hashSync } from 'bcryptjs'
 import { forgotPasswordSchema } from '~/validation/forgotPasswordSchema'
 import { add } from 'date-fns'
 import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
-import { withPassword } from '@zenstackhq/runtime'
 import { UserRole } from '~/kysely/enums'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
-import { SelectQueryBuilder } from 'kysely'
+import { ExpressionBuilder, SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
 import bcrypt from 'bcryptjs'
 import { importFromGoogleSheet } from '~/services/sheet'
@@ -33,6 +32,7 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres'
 const userFiltersSchema = z.object({
   email: z.string().optional(),
   role: z.nativeEnum(UserRole).optional(),
+  cycleId: z.string().optional(),
 })
 
 function restrictUsersRows<O>(
@@ -44,26 +44,33 @@ function restrictUsersRows<O>(
   return query // admins
 }
 
-const userIncludeSchema = z.record(z.literal('cycles'), z.boolean().optional())
+const userIncludeSchema = z.object({
+  cycles: z.boolean().optional(),
+})
 
-function applyUserIncludes<O>(
+function withCycles(eb: ExpressionBuilder<DB, 'User'>) {
+  return jsonArrayFrom(
+    eb
+      .selectFrom('UserCycle')
+      .leftJoin('Cycle', 'UserCycle.cycleId', 'Cycle.id')
+      .leftJoin('Curriculum', 'UserCycle.curriculumId', 'Curriculum.id')
+      .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
+      .leftJoin('Course', 'Track.courseId', 'Course.id')
+      .selectAll('UserCycle')
+      .select([
+        'Course.id as courseId',
+        'Track.id as trackId',
+        'Cycle.name as cycleName',
+      ])
+      .whereRef('UserCycle.userId', '=', 'User.id')
+  ).as('cycles')
+}
+
+function applyInclude<O>(
   query: SelectQueryBuilder<DB, 'User', O>,
   includes: z.infer<typeof userIncludeSchema> | undefined
 ) {
-  return query.$if(!!includes?.cycles, (qb) =>
-    qb.select((eb) => [
-      jsonArrayFrom(
-        eb
-          .selectFrom('UserCycle')
-          .leftJoin('Curriculum', 'UserCycle.curriculumId', 'Curriculum.id')
-          .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-          .leftJoin('Course', 'Track.courseId', 'Course.id')
-          .selectAll('UserCycle')
-          .select(['Course.id as courseId', 'Track.id as trackId'])
-          .whereRef('UserCycle.userId', '=', 'User.id')
-      ).as('cycles'),
-    ])
-  )
+  return query.$if(!!includes?.cycles, (qb) => qb.select(withCycles))
 }
 
 function applyUserFilters<O>(
@@ -71,8 +78,16 @@ function applyUserFilters<O>(
   filters: z.infer<typeof userFiltersSchema>
 ) {
   return applyFilters(query, filters, {
-    email: (query, value) =>
-      query.where('email', 'like', `${value as string}%`),
+    email: (query, email) =>
+      query.where('email', 'like', `${email as string}%`),
+    cycleId: (query, cycleId) =>
+      query.where(({ selectFrom, exists }) =>
+        exists(
+          selectFrom('UserCycle')
+            .whereRef('UserCycle.userId', '=', 'User.id')
+            .where('UserCycle.cycleId', '=', cycleId)
+        )
+      ),
   })
 }
 
@@ -80,7 +95,7 @@ export const userRouter = createTRPCRouter({
   get: protectedProcedure
     .input(z.object({ id: z.string(), include: userIncludeSchema.optional() }))
     .query(async ({ ctx, input }) => {
-      const user = applyUserIncludes(
+      const user = applyInclude(
         ctx.db
           .selectFrom('User')
           .select([
@@ -101,16 +116,20 @@ export const userRouter = createTRPCRouter({
       z.object({
         filters: userFiltersSchema,
         pagination: paginationSchema.optional(),
+        include: userIncludeSchema.optional(),
       })
     )
     .query(async ({ ctx, input }) => {
       const query = restrictUsersRows(
-        applyPagination(
-          applyUserFilters(
-            ctx.db.selectFrom('User').select(['id', 'email', 'name', 'role']),
-            input.filters
+        applyInclude(
+          applyPagination(
+            applyUserFilters(
+              ctx.db.selectFrom('User').select(['id', 'email', 'name', 'role']),
+              input.filters
+            ),
+            input.pagination
           ),
-          input.pagination
+          input.include
         ),
         ctx.session?.user
       )
@@ -377,93 +396,109 @@ export const userRouter = createTRPCRouter({
       // }
     }),
 
-  // updateProfile: protectedProcedure
-  //   .input(updateProfileSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     let password: string | undefined = undefined
-  //     if (input.changePassword) {
-  //       const user = await prisma.user.findFirstOrThrow({
-  //         where: { id: ctx.session.user.id },
-  //       })
-  //       const isPasswordCorrect = compareSync(
-  //         input.currentPassword,
-  //         user.password
-  //       )
-  //       if (!isPasswordCorrect)
-  //         throw new TRPCError({
-  //           code: 'BAD_REQUEST',
-  //           message: 'حقل كلمة المرور الحالية غير صحيح',
-  //           cause: new z.ZodError([
-  //             {
-  //               code: 'custom',
-  //               message: 'كلمة المرور هذه غير صحيحة',
-  //               path: ['currentPassword'],
-  //             },
-  //           ]),
-  //         })
-  //       password = input.newPassword
-  //     }
+  updateProfile: protectedProcedure
+    .input(updateProfileSchema)
+    .mutation(async ({ ctx, input }) => {
+      let password: string | undefined = undefined
+      if (input.changePassword) {
+        const user = await ctx.db
+          .selectFrom('User')
+          .selectAll()
+          .where('id', '=', ctx.session.user.id)
+          .executeTakeFirstOrThrow()
 
-  //     return ctx.db.user.update({
-  //       where: { id: ctx.session.user.id },
-  //       data: {
-  //         name: input.name,
-  //         phone: input.phone,
-  //         ...(password ? { password } : {}),
-  //       },
-  //     })
-  //   }),
+        const isPasswordCorrect = compareSync(
+          input.currentPassword,
+          user.password
+        )
 
-  // forgotPassword: publicProcedure
-  //   .input(forgotPasswordSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     const user = await prisma.user.findFirst({
-  //       where: { email: input.email },
-  //     })
-  //     if (!user)
-  //       throw new TRPCError({
-  //         code: 'BAD_REQUEST',
-  //         message: 'هذا الحساب غير موجود',
-  //       })
-  //     const expires = add(new Date(), { hours: 24 })
-  //     const { token } = await prisma.resetPasswordToken.create({
-  //       data: { user: { connect: { email: input.email } }, expires },
-  //     })
-  //     await sendMail({
-  //       subject: 'طلب تغيير كلمة المرور',
-  //       to: [{ email: input.email }],
-  //       textContent: `قم بتغيير كلمة المرور الخاصة بك من خلال الرابط: ${
-  //         getBaseUrl() + '/reset-password/' + token
-  //       }`,
-  //     })
-  //     return true
-  //   }),
+        if (!isPasswordCorrect)
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'حقل كلمة المرور الحالية غير صحيح',
+            cause: new z.ZodError([
+              {
+                code: 'custom',
+                message: 'كلمة المرور هذه غير صحيحة',
+                path: ['currentPassword'],
+              },
+            ]),
+          })
+        password = input.newPassword
+      }
 
-  // resetPassword: publicProcedure
-  //   .input(resetPasswordSchema)
-  //   .mutation(async ({ ctx, input }) => {
-  //     const { token, password } = input
-  //     const passwordToken = await prisma.resetPasswordToken.findFirst({
-  //       where: { token },
-  //     })
-  //     if (!passwordToken)
-  //       throw new TRPCError({
-  //         code: 'BAD_REQUEST',
-  //         message: 'هذا التوكين غير موجود',
-  //       })
+      return await ctx.db
+        .updateTable('User')
+        .set({
+          name: input.name,
+          phone: input.phone,
+          ...(password ? { password: hashSync(password, 12) } : {}),
+        })
+        .returning(['name', 'phone'])
+        .executeTakeFirst()
+    }),
 
-  //     // This prisma object will handle hashing passwords
-  //     const prismaWithPasswordUtility = withPassword(prisma)
-  //     await prismaWithPasswordUtility.$transaction(async (tx) => {
-  //       await tx.user.update({
-  //         where: { id: passwordToken.userId },
-  //         data: { password },
-  //       })
-  //       await tx.resetPasswordToken.delete({ where: { token } })
-  //     })
+  forgotPassword: publicProcedure
+    .input(forgotPasswordSchema)
+    .mutation(async ({ ctx, input }) => {
+      const user = await ctx.db
+        .selectFrom('User')
+        .selectAll()
+        .where('email', '=', input.email)
+        .executeTakeFirst()
+      if (!user)
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'هذا الحساب غير موجود',
+        })
+      const expires = add(new Date(), { hours: 24 })
+      const { token } = await ctx.db
+        .insertInto('ResetPasswordToken')
+        .values({ expires, userId: user.id })
+        .returning('token')
+        .executeTakeFirstOrThrow()
 
-  //     return true
-  //   }),
+      await sendMail({
+        subject: 'طلب تغيير كلمة المرور',
+        to: [{ email: input.email }],
+        textContent: `قم بتغيير كلمة المرور الخاصة بك من خلال الرابط: ${
+          getBaseUrl() + '/reset-password/' + token
+        }`,
+      })
+      return true
+    }),
+
+  resetPassword: publicProcedure
+    .input(resetPasswordSchema)
+    .mutation(async ({ ctx, input }) => {
+      const { token, password } = input
+      const passwordToken = await ctx.db
+        .selectFrom('ResetPasswordToken')
+        .selectAll()
+        .where('token', '=', token)
+        .where('expires', '>', new Date())
+        .executeTakeFirst()
+
+      if (!passwordToken)
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'هذا التوكين غير موجود',
+        })
+
+      await ctx.db.transaction().execute(async (trx) => {
+        await trx
+          .updateTable('User')
+          .set({ password: hashSync(password, 12) })
+          .where('id', '=', passwordToken.userId)
+          .execute()
+        await trx
+          .deleteFrom('ResetPasswordToken')
+          .where('token', '=', token)
+          .execute()
+      })
+
+      return true
+    }),
 
   delete: protectedProcedure
     .input(z.string())
