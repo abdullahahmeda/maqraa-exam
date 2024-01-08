@@ -20,7 +20,7 @@ import { Button } from '~/components/ui/button'
 import { Loader2 } from 'lucide-react'
 
 type FieldValues = {
-  questionId: string
+  modelQuestionId: string
   name: string
   email: string
   note: string
@@ -28,7 +28,7 @@ type FieldValues = {
 
 export const ReportErrorDialog = ({
   closeDialog,
-  questionId,
+  questionId: modelQuestionId,
 }: {
   closeDialog: () => void
   questionId: string
@@ -39,10 +39,13 @@ export const ReportErrorDialog = ({
   })
 
   const {
-    data: question,
+    data: modelQuestion,
     isLoading,
     error,
-  } = api.question.get.useQuery({ id: questionId })
+  } = api.modelQuestion.get.useQuery({
+    id: modelQuestionId,
+    include: { question: true },
+  })
 
   const errorReport = api.errorReport.create.useMutation()
 
@@ -53,7 +56,7 @@ export const ReportErrorDialog = ({
     errorReport
       .mutateAsync({
         ...data,
-        questionId: questionId,
+        modelQuestionId: modelQuestionId,
       })
       .then(() => {
         t.dismiss()
@@ -82,13 +85,13 @@ export const ReportErrorDialog = ({
       {!!error && (
         <p className='text-center text-red-600'>{error.message || 'حدث خطأ'}</p>
       )}
-      {!!question && (
+      {!!modelQuestion && (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
             <input
               type='hidden'
-              {...form.register('questionId')}
-              value={questionId}
+              {...form.register('modelQuestionId')}
+              value={modelQuestionId}
             />
             <FormField
               control={form.control}
@@ -119,7 +122,7 @@ export const ReportErrorDialog = ({
             <FormItem>
               <FormLabel>السؤال</FormLabel>
               <FormControl>
-                <Textarea disabled value={question?.text} />
+                <Textarea disabled value={modelQuestion?.question.text} />
               </FormControl>
               <FormMessage />
             </FormItem>

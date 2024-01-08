@@ -129,6 +129,8 @@ const CorrectQuizPage = ({
       })
   }
 
+  const isOfficiallyCorrected = !!quiz.correctorId
+
   return (
     <>
       <Head>
@@ -190,17 +192,27 @@ const CorrectQuizPage = ({
                         <div
                           key={id}
                           className={clsx('mb-3 rounded-md px-4 py-3', {
-                            'bg-green-200': grade === weight,
-                            'bg-orange-200':
-                              grade !== null && 0 < grade && grade < weight!,
+                            'bg-green-200':
+                              grade === weight &&
+                              (question.type === 'MCQ' ||
+                                isOfficiallyCorrected),
                             'bg-red-200':
                               grade === 0 &&
-                              (quiz?.grade !== null ||
-                                question.type === QuestionType.MCQ),
-                            'bg-gray-300':
-                              grade === 0 &&
-                              quiz?.grade === null &&
-                              question.type === QuestionType.WRITTEN,
+                              (question.type === 'MCQ' ||
+                                isOfficiallyCorrected),
+                            'bg-slate-200':
+                              !isOfficiallyCorrected &&
+                              question.type === 'WRITTEN',
+                            // 'bg-orange-200':
+                            //   grade !== null && 0 < grade && grade < weight!,
+                            // 'bg-red-200':
+                            //   grade === 0 &&
+                            //   (quiz?.grade !== null ||
+                            //     question.type === QuestionType.MCQ),
+                            // 'bg-gray-300':
+                            //   grade === 0 &&
+                            //   quiz?.grade === null &&
+                            //   question.type === QuestionType.WRITTEN,
                           })}
                         >
                           <div className='flex items-center'>

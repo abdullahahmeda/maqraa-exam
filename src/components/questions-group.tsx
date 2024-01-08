@@ -70,6 +70,7 @@ export type Group = AutomaticGroup | ManualGroup
 
 type FieldValues = {
   type: string
+  shaded: string
   courseId: string
   curriculumId: string
   groups: Group[]
@@ -165,6 +166,8 @@ export const QuestionGroup = ({
     name: 'courseId',
   })
 
+  const shaded = useWatch({ control: form.control, name: 'shaded' })
+
   const curriculumId = useWatch({
     control: form.control,
     name: 'curriculumId',
@@ -214,6 +217,8 @@ export const QuestionGroup = ({
     {
       filters: {
         curriculum: { id: curriculumId, type: examType as QuizType },
+        isInsideShaded:
+          shaded !== 'ALL' ? (shaded === 'INSIDE' ? true : false) : undefined,
       },
     },
     {

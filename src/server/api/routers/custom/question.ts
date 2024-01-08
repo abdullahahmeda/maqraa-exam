@@ -35,6 +35,7 @@ const questionFilterSchema = z.object({
     .optional(),
   type: z.nativeEnum(QuestionType).optional(),
   styleId: z.string().optional(),
+  isInsideShaded: z.boolean().optional(),
   difficulty: z.nativeEnum(QuestionDifficulty).optional(),
 })
 

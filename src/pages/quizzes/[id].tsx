@@ -102,6 +102,10 @@ const ExamPage = ({
 
   const totalGrade = exam.total
 
+  const isOfficiallyCorrected =
+    (!!exam.systemExamId && exam.correctorId) ||
+    (!exam.systemExamId && exam.correctedAt)
+
   return (
     <>
       <Head>
@@ -141,9 +145,18 @@ const ExamPage = ({
           {exam.grade !== null && (
             <div className='sticky top-3 z-10 float-left'>
               <Badge className='shadow'>
-                الدرجة: {exam.grade} من {totalGrade}
+                الدرجة{!isOfficiallyCorrected && ' التقريبية'}: {exam.grade} من{' '}
+                {totalGrade}
               </Badge>
             </div>
+          )}
+          {!isOfficiallyCorrected && exam.submittedAt && (
+            <Alert className='mb-2 border-orange-300 bg-orange-300'>
+              <AlertTitle>
+                هذه النتيجة تقريبية وليست النتيجة النهائية. سيتم اعتماد النتيجة
+                النهائية بعد التصحيح اليدوي
+              </AlertTitle>
+            </Alert>
           )}
           <Dialog
             open={selectedQuestion !== null}
@@ -201,9 +214,7 @@ const ExamPage = ({
                                 size='icon'
                                 variant='ghost'
                                 className='mr-2'
-                                onClick={() =>
-                                  setSelectedQuestion(question.questionId)
-                                }
+                                onClick={() => setSelectedQuestion(id)}
                                 type='button'
                               >
                                 <AlertTriangleIcon className='h-4 w-4 text-orange-600' />

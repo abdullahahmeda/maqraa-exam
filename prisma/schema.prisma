@@ -147,12 +147,12 @@ model Question {
   course         Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
   style          QuestionStyle      @relation(fields: [styleId], references: [id], onDelete: Cascade)
   systemExams    ModelQuestion[]
-  errorReports   ErrorReport[]
 
   @@index([partNumber])
   @@index([pageNumber])
   @@index([hadithNumber])
   @@index([difficulty])
+  @@index([isInsideShaded])
   // @@index([text])
   @@index([type])
   @@index([styleId])
@@ -168,14 +168,15 @@ model Model {
 }
 
 model ModelQuestion {
-  id         String   @id() @default(dbgenerated("gen_random_uuid()"))
-  modelId    String
-  questionId String
-  weight     Int
-  order      Int
-  model      Model    @relation(fields: [modelId], references: [id], onDelete: Cascade)
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  answers    Answer[]
+  id           String        @id() @default(dbgenerated("gen_random_uuid()"))
+  modelId      String
+  questionId   String
+  weight       Int
+  order        Int
+  model        Model         @relation(fields: [modelId], references: [id], onDelete: Cascade)
+  question     Question      @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answers      Answer[]
+  errorReports ErrorReport[]
 
   @@index([modelId])
   @@index([questionId])
@@ -331,16 +332,23 @@ model CurriculumPart {
 }
 
 model ErrorReport {
-  id         String   @id() @default(dbgenerated("gen_random_uuid()"))
-  name       String
-  email      String
-  note       String   @db.Text()
-  createdAt  DateTime @default(now())
-  questionId String
-  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id              String        @id() @default(dbgenerated("gen_random_uuid()"))
+  name            String
+  email           String
+  note            String        @db.Text()
+  createdAt       DateTime      @default(now())
+  modelQuestionId String
+  modelQuestion   ModelQuestion @relation(fields: [modelQuestionId], references: [id], onDelete: Cascade)
 
-  @@index([questionId])
+  @@index([modelQuestionId])
   @@index([createdAt])
+}
+
+model MenuItem {
+  key   String  @id @db.VarChar(255)
+  label String
+  order Int     @default(99)
+  icon  String?
 }
 
 model Setting {

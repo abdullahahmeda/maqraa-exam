@@ -7,9 +7,9 @@ import { useSession } from 'next-auth/react'
 import { Avatar, AvatarFallback } from './avatar'
 
 type MenuLink = {
-  icon: ReactNode
+  icon: string
   label: ReactNode
-  href: string
+  key: string
 }
 
 interface SidebarProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -27,11 +27,11 @@ export function Sidebar({ className, links, setIsSidebarOpen }: SidebarProps) {
         <div className='space-y-1'>
           {links.map((link) => (
             <Link
-              key={link.href}
-              href={link.href}
+              key={link.key}
+              href={link.key}
               className={cn(
                 buttonVariants({
-                  variant: router.pathname === link.href ? 'default' : 'ghost',
+                  variant: router.pathname === link.key ? 'ghost' : 'ghost',
                 }),
                 'w-full justify-start'
               )}
@@ -39,7 +39,10 @@ export function Sidebar({ className, links, setIsSidebarOpen }: SidebarProps) {
                 if (window.innerWidth < 768) setIsSidebarOpen(false)
               }}
             >
-              {link.icon}
+              <div
+                className='ml-2 inline-block'
+                dangerouslySetInnerHTML={{ __html: link.icon }}
+              />
               {link.label}
             </Link>
           ))}

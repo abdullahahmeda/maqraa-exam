@@ -10,6 +10,7 @@ import { QuizType } from '~/kysely/enums'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
 import { SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
+import { User } from 'next-auth'
 
 const systemExamFilterSchema = z.object({
   type: z.nativeEnum(QuizType).optional(),
@@ -22,6 +23,25 @@ function applySystemExamFilters<O>(
   filters: z.infer<typeof systemExamFilterSchema>
 ) {
   return applyFilters(query, filters)
+}
+
+function applyAccessControl<O>(
+  query: SelectQueryBuilder<DB, 'SystemExam', O>,
+  user: User
+) {
+  if (user.role !== 'ADMIN')
+    return query
+      .whereRef('SystemExam.curriculumId', 'in', ({ selectFrom }) =>
+        selectFrom('UserCycle')
+          .select('UserCycle.curriculumId')
+          .where('UserCycle.userId', '=', user.id)
+      )
+      .whereRef('SystemExam.cycleId', 'in', ({ selectFrom }) =>
+        selectFrom('UserCycle')
+          .select('UserCycle.cycleId')
+          .where('UserCycle.userId', '=', user.id)
+      )
+  return query
 }
 
 export const systemExamRouter = createTRPCRouter({
@@ -122,41 +142,46 @@ export const systemExamRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const query = applyPagination(
-        applySystemExamFilters(
-          ctx.db
-            .selectFrom('SystemExam')
-            .selectAll('SystemExam')
-            .$if(!!input.include?.curriculum, (qb) =>
-              qb
-                .leftJoin(
-                  'Curriculum',
-                  'SystemExam.curriculumId',
-                  'Curriculum.id'
-                )
-                .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-                .leftJoin('Course', 'Track.courseId', 'Course.id')
-                .select([
-                  'Course.name as courseName',
-                  'Curriculum.name as curriculumName',
+      const query = applyAccessControl(
+        applyPagination(
+          applySystemExamFilters(
+            ctx.db
+              .selectFrom('SystemExam')
+              .selectAll('SystemExam')
+              .$if(!!input.include?.curriculum, (qb) =>
+                qb
+                  .leftJoin(
+                    'Curriculum',
+                    'SystemExam.curriculumId',
+                    'Curriculum.id'
+                  )
+                  .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
+                  .leftJoin('Course', 'Track.courseId', 'Course.id')
+                  .select([
+                    'Course.name as courseName',
+                    'Curriculum.name as curriculumName',
+                  ])
+              )
+              .$if(!!input.include?.cycle, (qb) =>
+                qb
+                  .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
+                  .select('Cycle.name as cycleName')
+              )
+              .$if(!!input.include?.quizzesCount, (qb) =>
+                qb.select(({ selectFrom }) => [
+                  selectFrom('Quiz')
+                    .whereRef('SystemExam.id', '=', 'Quiz.systemExamId')
+                    .select(({ fn }) => [
+                      fn.count('Quiz.id').as('quizzesCount'),
+                    ])
+                    .as('quizzesCount'),
                 ])
-            )
-            .$if(!!input.include?.cycle, (qb) =>
-              qb
-                .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
-                .select('Cycle.name as cycleName')
-            )
-            .$if(!!input.include?.quizzesCount, (qb) =>
-              qb.select(({ selectFrom }) => [
-                selectFrom('Quiz')
-                  .whereRef('SystemExam.id', '=', 'Quiz.systemExamId')
-                  .select(({ fn }) => [fn.count('Quiz.id').as('quizzesCount')])
-                  .as('quizzesCount'),
-              ])
-            ),
-          input.filters || {}
+              ),
+            input.filters || {}
+          ),
+          input.pagination
         ),
-        input.pagination
+        ctx.session.user
       )
       return await query.execute()
     }),

@@ -43,6 +43,7 @@ import { DatePicker } from '~/components/ui/date-picker'
 type FieldValues = {
   name: string
   type: string
+  shaded: string
   endsAt: Date | null | undefined
   courseId: any
   trackId: string
@@ -207,6 +208,28 @@ export const NewSystemExamDialog = ({
                   <SelectItem value={QuizType.SECOND_MEHWARY}>
                     الإختبار المحوري الثاني
                   </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='shaded'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>المظلل</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder='اختر' />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value='ALL'>داخل وخارج المظلل</SelectItem>
+                  <SelectItem value='INSIDE'>بداخل المظلل فقط</SelectItem>
+                  <SelectItem value='OUTSIDE'>خارج المظلل فقط</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />

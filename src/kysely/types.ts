@@ -66,7 +66,13 @@ export type ErrorReport = {
   email: string
   note: string
   createdAt: Generated<Timestamp>
-  questionId: string
+  modelQuestionId: string
+}
+export type MenuItem = {
+  key: string
+  label: string
+  order: Generated<number>
+  icon: string | null
 }
 export type Model = {
   id: Generated<string>
@@ -194,6 +200,7 @@ export type DB = {
   Cycle: Cycle
   CycleCourse: CycleCourse
   ErrorReport: ErrorReport
+  MenuItem: MenuItem
   Model: Model
   ModelQuestion: ModelQuestion
   Question: Question

@@ -21,7 +21,12 @@ function applyErrorReportIncludes<O>(
 ) {
   return query.$if(!!includes?.question, (qb) =>
     qb
-      .leftJoin('Question', 'ErrorReport.questionId', 'Question.id')
+      .leftJoin(
+        'ModelQuestion',
+        'ErrorReport.modelQuestionId',
+        'ModelQuestion.id'
+      )
+      .leftJoin('Question', 'ModelQuestion.questionId', 'Question.id')
       .select([
         'Question.number as questionNumber',
         'Question.partNumber as questionPartNumber',
