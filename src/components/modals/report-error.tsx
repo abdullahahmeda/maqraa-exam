@@ -122,6 +122,7 @@ export const ReportErrorDialog = ({
             <FormItem>
               <FormLabel>السؤال</FormLabel>
               <FormControl>
+                {/* @ts-expect-error TODO: fix this type */}
                 <Textarea disabled value={modelQuestion?.question.text} />
               </FormControl>
               <FormMessage />
