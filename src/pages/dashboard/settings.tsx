@@ -1,10 +1,8 @@
 import Head from 'next/head'
 import DashboardLayout, { menuLinks } from '~/components/dashboard/layout'
-import { api } from '~/utils/api'
 
-import { Control, useForm, UseFormRegister } from 'react-hook-form'
+import { Control, useForm } from 'react-hook-form'
 import { Button, buttonVariants } from '~/components/ui/button'
-import { zodResolver } from '@hookform/resolvers/zod'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
 import {
   Form,
@@ -32,15 +30,11 @@ import {
   DragOverEvent,
   DragOverlay,
   DragStartEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
 } from '@dnd-kit/core'
 import { Textarea } from '~/components/ui/textarea'
 import Link from 'next/link'
 import { cn } from '~/lib/utils'
 import { useState } from 'react'
-import { get } from 'lodash'
 
 function getKeyAr(key: string) {
   return {
@@ -67,7 +61,7 @@ const MenuItem = ({
   control,
   index,
 }: {
-  item: { key: string; order: number; icon: string | null; label: string }
+  item: { key: string; order: number; icon: string | undefined; label: string }
   index: number
   control: Control<FieldValues>
 }) => {
@@ -147,6 +141,7 @@ const SettingsPage = ({
   menuItems: defaultMenuItems,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   const form = useForm<FieldValues>({
+    // @ts-expect-error Can't type this
     defaultValues: { menuItems: defaultMenuItems },
   })
 
@@ -154,7 +149,7 @@ const SettingsPage = ({
 
   const menuItems = watch('menuItems')
 
-  const [activeData, setActiveData] = useState(null)
+  const [activeData, setActiveData] = useState<any>(null)
 
   const onDragStart = (event: DragStartEvent) => {
     const items = getValues('menuItems')
@@ -167,9 +162,8 @@ const SettingsPage = ({
     const { active, over } = event
     const items = getValues('menuItems')
     const oldIndex = items.findIndex((item) => item.key === active.id)
-    const newIndex = items.findIndex((item) => item.key === over.id)
+    const newIndex = items.findIndex((item) => item.key === over?.id)
     const newArray = arrayMove(items, oldIndex, newIndex)
-    console.log(newArray)
     setValue('menuItems', newArray)
   }
 
@@ -219,6 +213,7 @@ const SettingsPage = ({
             onDragEnd={onDragEnd}
           >
             <SortableContext
+              // @ts-expect-error Can't type this
               items={menuItems}
               strategy={verticalListSortingStrategy}
             >

@@ -10,6 +10,7 @@ import { arSA } from 'date-fns/locale'
 import setDefaultOptions from 'date-fns/setDefaultOptions'
 import { api } from '../utils/api'
 import { Toaster } from '~/components/ui/toaster'
+import { SpeedInsights } from '@vercel/speed-insights/next'
 
 const fontFamily = Rubik({
   subsets: ['arabic', 'latin'],
@@ -48,6 +49,7 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
                 `}
               </style>
               <Component {...pageProps} />
+              <SpeedInsights />
               <Toaster />
             </>
           )}
