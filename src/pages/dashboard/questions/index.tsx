@@ -70,6 +70,10 @@ const columnFiltersValidators = {
     (v) => Number(v),
     z.number().min(0).int().safe().finite()
   ),
+  partNumber: z.preprocess(
+    (v) => Number(v),
+    z.number().min(0).int().safe().finite()
+  ),
   pageNumber: z.preprocess(
     (v) => Number(v),
     z.number().min(0).int().safe().finite()
@@ -213,7 +217,34 @@ const QuestionsPage = () => {
         },
       }),
       columnHelper.accessor('partNumber', {
-        header: 'رقم الجزء',
+        header: ({ column }) => {
+          const filterValue = column.getFilterValue() as number | undefined
+          return (
+            <div className='flex items-center'>
+              رقم الجزء
+              <Popover>
+                <PopoverTrigger className='mr-4' asChild>
+                  <Button
+                    size='icon'
+                    variant={filterValue ? 'secondary' : 'ghost'}
+                  >
+                    <Filter className='h-4 w-4' />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  <Input
+                    type='number'
+                    value={filterValue === undefined ? '' : filterValue}
+                    min={0}
+                    onChange={(e) => {
+                      column.setFilterValue(e.target.value)
+                    }}
+                  />
+                </PopoverContent>
+              </Popover>
+            </div>
+          )
+        },
         meta: {
           textAlign: 'center',
         },

@@ -1,4 +1,4 @@
-import { QuestionType, QuestionDifficulty } from '~/kysely/enums'
+import { QuestionDifficulty } from '~/kysely/enums'
 import { z } from 'zod'
 
 export const newQuizSchema = z

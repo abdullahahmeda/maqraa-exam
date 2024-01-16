@@ -127,7 +127,9 @@ export const ImportStudentsForm = ({
               <FormLabel>الدورة</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger loading={isCyclesLoading}>
+                  <SelectTrigger
+                  // loading={isCyclesLoading}
+                  >
                     <SelectValue placeholder='اختر الدورة' />
                   </SelectTrigger>
                 </FormControl>

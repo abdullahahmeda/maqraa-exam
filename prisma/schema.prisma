@@ -148,6 +148,7 @@ model Question {
   style          QuestionStyle      @relation(fields: [styleId], references: [id], onDelete: Cascade)
   systemExams    ModelQuestion[]
 
+  @@index([number])
   @@index([partNumber])
   @@index([pageNumber])
   @@index([hadithNumber])

@@ -55,7 +55,9 @@ export const TrackForm = ({ form, onSubmit, isLoading }: FormProps) => {
               <FormLabel>المقرر</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger loading={isCoursesLoading}>
+                  <SelectTrigger
+                  // loading={isCoursesLoading}
+                  >
                     <SelectValue placeholder='اختر المقرر' />
                   </SelectTrigger>
                 </FormControl>

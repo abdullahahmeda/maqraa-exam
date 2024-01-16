@@ -19,6 +19,9 @@ const questionFilterSchema = z.object({
   number: z
     .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
     .optional(),
+  partNumber: z
+    .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
+    .optional(),
   pageNumber: z
     .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
     .optional(),

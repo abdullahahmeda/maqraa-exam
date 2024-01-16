@@ -266,7 +266,9 @@ export const NewSystemExamDialog = ({
               <FormLabel>المقرر</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger loading={isCoursesLoading}>
+                  <SelectTrigger
+                  // loading={isCoursesLoading}
+                  >
                     <SelectValue placeholder='اختر المقرر' />
                   </SelectTrigger>
                 </FormControl>
@@ -297,9 +299,9 @@ export const NewSystemExamDialog = ({
                 >
                   <FormControl>
                     <SelectTrigger
-                      loading={
-                        tracksFetchStatus === 'fetching' && isTracksLoading
-                      }
+                    // loading={
+                    //   tracksFetchStatus === 'fetching' && isTracksLoading
+                    // }
                     >
                       <SelectValue placeholder='اختر المسار' />
                     </SelectTrigger>
@@ -335,10 +337,10 @@ export const NewSystemExamDialog = ({
                 >
                   <FormControl>
                     <SelectTrigger
-                      loading={
-                        curriculaFetchStatus === 'fetching' &&
-                        isCurriculaLoading
-                      }
+                    // loading={
+                    //   curriculaFetchStatus === 'fetching' &&
+                    //   isCurriculaLoading
+                    // }
                     >
                       <SelectValue placeholder='اختر المنهج' />
                     </SelectTrigger>
@@ -429,7 +431,9 @@ export const NewSystemExamDialog = ({
               <FormLabel>الدورة</FormLabel>
               <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
-                  <SelectTrigger loading={isCyclesLoading}>
+                  <SelectTrigger
+                  // loading={isCyclesLoading}
+                  >
                     <SelectValue placeholder='اختر الدورة' />
                   </SelectTrigger>
                 </FormControl>

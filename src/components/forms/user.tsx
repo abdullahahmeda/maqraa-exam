@@ -140,7 +140,9 @@ const StudentCycleForm = ({
             <FormLabel>المقرر</FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
-                <SelectTrigger loading={isCoursesLoading}>
+                <SelectTrigger
+                // loading={isCoursesLoading}
+                >
                   <SelectValue placeholder='اختر المقرر' />
                 </SelectTrigger>
               </FormControl>
@@ -166,7 +168,7 @@ const StudentCycleForm = ({
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger
-                  loading={tracksFetchStatus === 'fetching' && isTracksLoading}
+                // loading={tracksFetchStatus === 'fetching' && isTracksLoading}
                 >
                   <SelectValue placeholder='اختر المسار' />
                 </SelectTrigger>
@@ -193,9 +195,9 @@ const StudentCycleForm = ({
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
                 <SelectTrigger
-                  loading={
-                    curriculaFetchStatus === 'fetching' && isCurriculaLoading
-                  }
+                // loading={
+                //   curriculaFetchStatus === 'fetching' && isCurriculaLoading
+                // }
                 >
                   <SelectValue placeholder='اختر المنهج' />
                 </SelectTrigger>
