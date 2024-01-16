@@ -134,7 +134,7 @@ export type Quiz = {
   submittedAt: Timestamp | null
   correctedAt: Timestamp | null
   endsAt: Timestamp | null
-  curriculumId: string
+  curriculumId: string | null
   examineeId: string | null
   correctorId: string | null
   systemExamId: string | null

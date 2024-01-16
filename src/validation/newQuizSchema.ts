@@ -1,31 +1,62 @@
 import { QuestionType, QuestionDifficulty } from '~/kysely/enums'
 import { z } from 'zod'
 
-export const newQuizSchema = z.object({
-  courseId: z.string().min(1),
-  trackId: z.string().min(1),
-  curriculumId: z.string().min(1),
-  repeatFromSameHadith: z.boolean(),
-  questionsNumber: z.preprocess(
-    (v) => Number(v),
-    z.number().positive().int().finite().safe().max(25)
-  ),
-  gradePerQuestion: z.preprocess(
-    (v) => Number(v),
-    z.number().positive().int().finite().safe().max(4)
-  ),
-  difficulty: z.union([
-    z.nativeEnum(QuestionDifficulty, {
-      invalid_type_error: 'يجب اختيار المستوى',
+export const newQuizSchema = z
+  .object({
+    courseId: z.string().min(1),
+    from: z.object({
+      part: z.preprocess(
+        (v) => (v !== '' ? Number(v) : v),
+        z.number().int().safe().finite()
+      ),
+      page: z.preprocess(
+        (v) => (v !== '' ? Number(v) : v),
+        z.number().int().safe().finite()
+      ),
+      hadith: z.preprocess(
+        (v) => (v !== '' ? Number(v) : v),
+        z.number().int().safe().finite()
+      ),
     }),
-    z.literal('').transform(() => null),
-    z.null(),
-  ]),
-  type: z.union([
-    z.nativeEnum(QuestionType, {
-      invalid_type_error: 'يجب اختيار طريقة الأسئلة',
+    to: z.object({
+      part: z.preprocess(
+        (v) => (v !== '' ? Number(v) : v),
+        z.number().int().safe().finite()
+      ),
+      page: z.preprocess(
+        (v) => (v !== '' ? Number(v) : v),
+        z.number().int().safe().finite()
+      ),
+      hadith: z.preprocess(
+        (v) => (v !== '' ? Number(v) : v),
+        z.number().int().safe().finite()
+      ),
     }),
-    z.literal('').transform(() => null),
-    z.null(),
-  ]),
-})
+    repeatFromSameHadith: z.boolean(),
+    difficulty: z.union([
+      z.nativeEnum(QuestionDifficulty, {
+        invalid_type_error: 'يجب اختيار المستوى',
+      }),
+      z.literal('').transform(() => null),
+      z.null(),
+    ]),
+    questionsNumber: z.preprocess(
+      (v) => Number(v),
+      z.number().positive().int().finite().safe().max(25)
+    ),
+  })
+  .refine(
+    ({ from, to }) => {
+      return (
+        to.part > from.part ||
+        (to.part === from.part && to.page > from.page) ||
+        (to.part === from.part &&
+          to.page === from.page &&
+          to.hadith >= from.hadith)
+      )
+    },
+    {
+      path: ['from.part'],
+      message: 'نطاق غير صالح',
+    }
+  )

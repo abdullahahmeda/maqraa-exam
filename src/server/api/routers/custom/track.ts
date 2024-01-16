@@ -29,7 +29,7 @@ export const trackRouter = createTRPCRouter({
       return true
     }),
 
-  list: protectedProcedure
+  list: publicProcedure
     .input(
       z.object({
         filters: trackFilterSchema.optional().default({}),

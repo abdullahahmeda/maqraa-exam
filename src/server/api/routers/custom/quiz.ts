@@ -17,6 +17,8 @@ import { SelectQueryBuilder } from 'kysely'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
 import { correctQuestion } from '~/utils/strings'
 import sampleSize from 'lodash.samplesize'
+import { QuestionDifficulty } from '~/kysely/enums'
+import { getQuestions } from '~/services/quiz'
 
 const quizFilterSchema = z.object({
   systemExamId: z.string().nullable().optional(),
@@ -51,43 +53,28 @@ export const quizRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const {
         courseId,
-        trackId,
         repeatFromSameHadith,
         questionsNumber,
-        gradePerQuestion,
-        curriculumId,
         difficulty,
-        type,
+        from,
+        to,
       } = input
 
-      const parts = await ctx.db
-        .selectFrom('CurriculumPart')
-        .where('curriculumId', '=', curriculumId)
-        .select(['from', 'mid', 'to', 'number'])
-        .execute()
+      const allEligibleQuestions = await getQuestions({
+        courseId,
+        fromPart: from.part,
+        toPart: to.part,
+        fromPage: from.page,
+        toPage: to.page,
+        fromHadith: from.hadith,
+        toHadith: to.hadith,
+        repeatFromSameHadith,
+        difficulty,
+      })
 
-      const query = ctx.db
-        .selectFrom('Question')
-        .selectAll()
-        .where((eb) =>
-          eb.or(
-            parts.map((part) => {
-              return eb.and([
-                eb('hadithNumber', '>=', part.from),
-                eb('hadithNumber', '<=', part.to),
-                eb('partNumber', '=', part.number),
-                eb('courseId', '=', courseId),
-              ])
-            })
-          )
-        )
-        .limit(questionsNumber)
+      console.log(allEligibleQuestions)
 
-      if (difficulty) query.where('difficulty', '=', difficulty)
-      if (type) query.where('type', '=', type)
-      if (!repeatFromSameHadith) query.distinctOn('hadithNumber')
-
-      const questions = await query.execute()
+      const questions = sampleSize(allEligibleQuestions, questionsNumber)
 
       if (questions.length < questionsNumber)
         throw new TRPCError({
@@ -95,7 +82,7 @@ export const quizRouter = createTRPCRouter({
           message: `أقصى عدد مسموح به للأسئلة ${questions.length}`,
         })
 
-      const total = gradePerQuestion * questionsNumber
+      const total = questionsNumber
 
       const quiz = await ctx.db.transaction().execute(async (trx) => {
         const { id: modelId } = await trx
@@ -106,11 +93,11 @@ export const quizRouter = createTRPCRouter({
         await trx
           .insertInto('ModelQuestion')
           .values(
-            sampleSize(questions, questionsNumber).map((q, i) => ({
+            questions.map((q, i) => ({
               modelId,
               order: i + 1,
               questionId: q.id,
-              weight: gradePerQuestion,
+              weight: 1,
             }))
           )
           .execute()
@@ -118,7 +105,6 @@ export const quizRouter = createTRPCRouter({
         return await trx
           .insertInto('Quiz')
           .values({
-            curriculumId,
             examineeId: ctx.session?.user.id ?? null,
             modelId,
             total,
@@ -127,6 +113,159 @@ export const quizRouter = createTRPCRouter({
           .executeTakeFirstOrThrow()
       })
       return quiz
+    }),
+
+  getQuestionsInfo: publicProcedure
+    .input(
+      z.object({
+        courseId: z.string(),
+        fromPart: z
+          .preprocess(
+            (v) => (v !== '' ? Number(v) : v),
+            z.number().int().safe().finite()
+          )
+          .optional(),
+        toPart: z
+          .preprocess(
+            (v) => (v !== '' ? Number(v) : v),
+            z.number().int().safe().finite()
+          )
+          .optional(),
+        fromPage: z
+          .preprocess(
+            (v) => (v !== '' ? Number(v) : v),
+            z.number().int().safe().finite()
+          )
+          .optional(),
+        toPage: z
+          .preprocess(
+            (v) => (v !== '' ? Number(v) : v),
+            z.number().int().safe().finite()
+          )
+          .optional(),
+        fromHadith: z
+          .preprocess(
+            (v) => (v !== '' ? Number(v) : v),
+            z.number().int().safe().finite()
+          )
+          .optional(),
+        toHadith: z
+          .preprocess(
+            (v) => (v !== '' ? Number(v) : v),
+            z.number().int().safe().finite()
+          )
+          .optional(),
+        difficulty: z
+          .union([
+            z.nativeEnum(QuestionDifficulty, {
+              invalid_type_error: 'يجب اختيار المستوى',
+            }),
+            z.literal('').transform(() => null),
+            z.null(),
+          ])
+          .optional(),
+        repeatFromSameHadith: z.boolean().optional(),
+      })
+    )
+    .query(async ({ input, ctx }) => {
+      const parts = (
+        await ctx.db
+          .selectFrom('Question')
+          .select('partNumber')
+          .distinct()
+          .where('courseId', '=', input.courseId)
+          .orderBy('partNumber')
+          .execute()
+      ).map(({ partNumber }) => partNumber)
+
+      let fromPages: number[] | undefined = undefined
+      let fromHadiths: number[] | undefined = undefined
+      if (input.fromPart) {
+        fromPages = (
+          await ctx.db
+            .selectFrom('Question')
+            .select('pageNumber')
+            .distinct()
+            .where('courseId', '=', input.courseId)
+            .where('partNumber', '=', input.fromPart)
+            .orderBy('pageNumber')
+            .execute()
+        ).map(({ pageNumber }) => pageNumber)
+        if (input.fromPage)
+          fromHadiths = (
+            await ctx.db
+              .selectFrom('Question')
+              .select('hadithNumber')
+              .distinct()
+              .where('courseId', '=', input.courseId)
+              .where('partNumber', '=', input.fromPart)
+              .where('pageNumber', '=', input.fromPage)
+              .orderBy('hadithNumber')
+              .execute()
+          ).map(({ hadithNumber }) => hadithNumber)
+      }
+
+      let toPages: number[] | undefined = undefined
+      let toHadiths: number[] | undefined = undefined
+      if (input.toPart) {
+        toPages = (
+          await ctx.db
+            .selectFrom('Question')
+            .select('pageNumber')
+            .distinct()
+            .where('courseId', '=', input.courseId)
+            .where('partNumber', '=', input.toPart)
+            .orderBy('pageNumber')
+            .execute()
+        ).map(({ pageNumber }) => pageNumber)
+
+        if (input.toPage)
+          toHadiths = (
+            await ctx.db
+              .selectFrom('Question')
+              .select('hadithNumber')
+              .distinct()
+              .where('courseId', '=', input.courseId)
+              .where('partNumber', '=', input.toPart)
+              .where('pageNumber', '=', input.toPage)
+              .orderBy('hadithNumber')
+              .execute()
+          ).map(({ hadithNumber }) => hadithNumber)
+      }
+
+      let questions: number | undefined = undefined
+      if (
+        input.courseId &&
+        input.fromPart &&
+        input.fromPage &&
+        input.fromHadith &&
+        input.toPart &&
+        input.toPage &&
+        input.toHadith
+      ) {
+        questions = (
+          await getQuestions({
+            courseId: input.courseId,
+            fromPart: input.fromPart,
+            toPart: input.toPart,
+            fromPage: input.fromPage,
+            toPage: input.toPage,
+            fromHadith: input.fromHadith,
+            toHadith: input.toHadith,
+            repeatFromSameHadith: input.repeatFromSameHadith,
+            difficulty: input.difficulty,
+          })
+        ).length
+      }
+
+      return {
+        parts,
+        fromPages,
+        toPages,
+        fromHadiths,
+        toHadiths,
+        questions,
+      }
     }),
 
   get: protectedProcedure

@@ -213,14 +213,14 @@ model Quiz {
   submittedAt  DateTime?
   correctedAt  DateTime?
   endsAt       DateTime?
-  curriculumId String
+  curriculumId String?
   examineeId   String?
   correctorId  String?
   systemExamId String?
   modelId      String
   corrector    User?       @relation("Quiz_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
   examinee     User?       @relation("Quiz_examinee", fields: [examineeId], references: [id], onDelete: Cascade)
-  curriculum   Curriculum  @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  curriculum   Curriculum? @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   systemExam   SystemExam? @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
   model        Model       @relation(fields: [modelId], references: [id], onDelete: Cascade)
   answers      Answer[]

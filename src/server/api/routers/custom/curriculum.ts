@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { createTRPCRouter, protectedProcedure } from '../../trpc'
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from '../../trpc'
 import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
 import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
@@ -86,7 +90,7 @@ export const curriculumRouter = createTRPCRouter({
       ).executeTakeFirst()
     }),
 
-  list: protectedProcedure
+  list: publicProcedure
     .input(
       z.object({
         filters: curriculumFilterSchema.optional().default({}),

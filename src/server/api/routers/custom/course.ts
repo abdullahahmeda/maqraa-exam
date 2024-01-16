@@ -1,4 +1,8 @@
-import { createTRPCRouter, protectedProcedure } from '../../trpc'
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from '../../trpc'
 import { newCourseSchema } from '~/validation/newCourseSchema'
 import { editCourseSchema } from '~/validation/editCourseSchema'
 import { applyPagination, paginationSchema } from '~/utils/db'
@@ -23,7 +27,7 @@ export const courseRouter = createTRPCRouter({
         .executeTakeFirst()
     ),
 
-  list: protectedProcedure
+  list: publicProcedure
     .input(
       z.object({
         pagination: paginationSchema.optional(),
