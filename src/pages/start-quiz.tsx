@@ -98,8 +98,8 @@ const HomePage = () => {
       toPage,
       fromHadith,
       toHadith,
-      difficulty,
-      repeatFromSameHadith,
+      difficulty: difficulty as QuestionDifficulty | '',
+      repeatFromSameHadith: repeatFromSameHadith as boolean | undefined,
     },
     { enabled: !!courseId }
   )
@@ -163,7 +163,7 @@ const HomePage = () => {
   const onSubmit = (data: FieldValues) => {
     setSubmitting(true)
     quizCreate
-      .mutateAsync(data as z.infer<typeof newQuizSchema>)
+      .mutateAsync(data as any)
       .then((quiz) => {
         if (quiz) router.push(`/quizzes/${quiz.id}`)
       })
