@@ -294,13 +294,16 @@ export const quizRouter = createTRPCRouter({
     }),
 
   get: protectedProcedure.input(z.string()).query(async ({ input, ctx }) => {
-    const result = ctx.db
+    const result = await ctx.db
       .selectFrom('Quiz')
       .selectAll()
       .where('id', '=', input)
       .executeTakeFirst()
 
-    const isAbleToRead = await canUserRead(ctx.session.user, result)
+    const isAbleToRead = await canUserRead(
+      ctx.session.user as any,
+      result as Selectable<Quiz>
+    )
     isAbleToRead ? result : null
   }),
 
