@@ -44,11 +44,7 @@ export const CycleForm = ({
           )}
         />
         <DialogFooter>
-          <Button
-            type='submit'
-            // variant='success'
-            loading={isLoading}
-          >
+          <Button type='submit' loading={isLoading}>
             {submitText}
           </Button>
         </DialogFooter>

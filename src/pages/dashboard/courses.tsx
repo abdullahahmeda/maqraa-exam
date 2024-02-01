@@ -1,8 +1,6 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '~/pages/_app'
 import { Course } from '~/kysely/types'
-import { useQueryClient } from '@tanstack/react-query'
 import {
   PaginationState,
   createColumnHelper,
@@ -10,7 +8,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Pencil, Trash, Plus } from 'lucide-react'
-import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
@@ -30,31 +27,26 @@ import {
 import { Button } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
 import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
-import { useToast } from '~/components/ui/use-toast'
-import { getServerAuthSession } from '~/server/auth'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import { Checkbox } from '~/components/ui/checkbox'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { DataTableActions } from '~/components/ui/data-table-actions'
+import { Selectable } from 'kysely'
 
 const DeleteCourseDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const courseDelete = api.course.delete.useMutation()
-  const queryClient = useQueryClient()
+  const deleteMutation = api.course.delete.useMutation()
+  const utils = api.useUtils()
 
   const deleteCourse = () => {
-    const t = toast({ title: 'جاري حذف المقرر' })
-    courseDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف المقرر بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['course']])
-      })
+    const promise = deleteMutation.mutateAsync(id).finally(() => {
+      utils.course.invalidate()
+    })
+    toast.promise(promise, {
+      loading: 'جاري حذف المقرر...',
+      success: 'تم حذف المقرر بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -73,14 +65,13 @@ const DeleteCourseDialog = ({ id }: { id: string }) => {
   )
 }
 
-const columnHelper = createColumnHelper<Course>()
+const columnHelper = createColumnHelper<Selectable<Course>>()
 
 const PAGE_SIZE = 25
 
 const CoursesPage = () => {
   const router = useRouter()
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -97,13 +88,12 @@ const CoursesPage = () => {
     pageSize,
   }
 
-  const bulkDelete = api.course.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.course.bulkDelete.useMutation()
+  const deleteAllMutation = api.course.deleteAll.useMutation()
+  const invalidate = utils.course.invalidate
 
-  const {
-    data: courses,
-    isFetching: isFetchingCourses,
-    refetch,
-  } = api.course.list.useQuery({ pagination }, { networkMode: 'always' })
+  const { data: courses, isFetching: isFetchingCourses } =
+    api.course.list.useQuery({ pagination }, { networkMode: 'always' })
 
   const { data: count, isLoading: isCountLoading } = api.course.count.useQuery(
     undefined,
@@ -226,21 +216,19 @@ const CoursesPage = () => {
     .flatRows.map((item) => item.original)
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف المقررات المختارة...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['course']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
   }
 
   return (
@@ -262,37 +250,13 @@ const CoursesPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <div className='mb-4'>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant='destructive'
-              className='flex items-center gap-2'
-              disabled={selectedRows.length === 0}
-            >
-              <Trash size={16} />
-              حذف{' '}
-              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                هل تريد حقاً حذف المقررات المختارة؟
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <AlertDialogDescription>
-              سيتم حذف {selectedRows.length} من المقررات
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleBulkDelete}>
-                تأكيد
-              </AlertDialogAction>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <DataTableActions
+        deleteAll={{
+          handle: handleDeleteAll,
+          data: { disabled: !courses || courses?.length === 0 },
+        }}
+        bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+      />
       <DataTable table={table} fetching={isFetchingCourses} />
     </>
   )

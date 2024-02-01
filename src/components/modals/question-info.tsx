@@ -2,7 +2,6 @@ import { Loader2 } from 'lucide-react'
 import { api } from '~/utils/api'
 import { enDifficultyToAr, enTypeToAr } from '~/utils/questions'
 import { DialogHeader } from '../ui/dialog'
-import { Separator } from '../ui/separator'
 
 export const QuestionInfoModal = ({ id }: { id: string }) => {
   const {

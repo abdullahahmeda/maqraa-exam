@@ -73,4 +73,9 @@ export const cycleRouter = createTRPCRouter({
       await ctx.db.deleteFrom('Cycle').where('id', 'in', input).execute()
       return true
     }),
+
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.deleteFrom('Cycle').execute()
+    return true
+  }),
 })

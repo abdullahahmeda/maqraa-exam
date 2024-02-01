@@ -1,12 +1,11 @@
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { api } from '~/utils/api'
 import { newTrackSchema } from '~/validation/newTrackSchema'
 import { NewTrackFieldValues, TrackForm } from '../forms/track'
 import { DialogHeader } from '../ui/dialog'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 
 export const NewTrackDialog = ({
   setDialogOpen,
@@ -17,27 +16,24 @@ export const NewTrackDialog = ({
     resolver: zodResolver(newTrackSchema),
   })
 
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
 
-  const trackCreate = api.track.create.useMutation()
+  const mutation = api.track.create.useMutation()
 
   const onSubmit = (data: NewTrackFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المسار' })
-    trackCreate
+    const promise = mutation
       .mutateAsync(data as z.infer<typeof newTrackSchema>)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المسار بنجاح' })
         setDialogOpen(false)
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['track']])
+        utils.track.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري إضافة المسار',
+      success: 'تم إضافة المسار بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -45,7 +41,7 @@ export const NewTrackDialog = ({
       <DialogHeader className='mb-2 text-lg font-bold'>إضافة مسار</DialogHeader>
       <TrackForm
         form={form}
-        isLoading={trackCreate.isLoading}
+        isLoading={mutation.isPending}
         onSubmit={onSubmit}
       />
     </>

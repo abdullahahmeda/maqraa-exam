@@ -2,9 +2,8 @@ import { useEffect } from 'react'
 import { CurriculumForm, EditCurriculumFieldValues } from '../forms/curriculum'
 import { DialogHeader } from '../ui/dialog'
 import { api } from '~/utils/api'
-import { Loader2 } from 'lucide-react'
-import { useToast } from '../ui/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
+import { Loader2Icon } from 'lucide-react'
+import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
@@ -17,30 +16,25 @@ export const EditCurriculumDialog = ({
   id: string
   setDialogOpen: (state: boolean) => void
 }) => {
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
   const form = useForm<EditCurriculumFieldValues>({
     resolver: zodResolver(editCurriculumSchema),
   })
 
-  const curriculumUpdate = api.curriculum.update.useMutation()
-
-  const { toast } = useToast()
+  const mutation = api.curriculum.update.useMutation()
 
   const onSubmit = (data: EditCurriculumFieldValues) => {
-    const t = toast({ title: 'جاري تعديل المنهج' })
-    curriculumUpdate
+    mutation
       .mutateAsync(data as z.infer<typeof editCurriculumSchema>)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم تعديل المنهج بنجاح' })
         setDialogOpen(false)
+        toast.success('تم تعديل المنهج بنجاح')
       })
       .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
+        toast.error(error.message)
       })
       .finally(() => {
-        queryClient.invalidateQueries([['curriculum']])
+        utils.curriculum.invalidate()
       })
   }
 
@@ -60,7 +54,7 @@ export const EditCurriculumDialog = ({
   if (isLoading)
     return (
       <div className='flex justify-center'>
-        <Loader2 className='h-4 w-4 animate-spin' />
+        <Loader2Icon className='h-4 w-4 animate-spin' />
       </div>
     )
 
@@ -79,7 +73,7 @@ export const EditCurriculumDialog = ({
       <CurriculumForm
         form={form as any}
         onSubmit={onSubmit as any}
-        isLoading={curriculumUpdate.isLoading}
+        isLoading={mutation.isPending}
         submitText='تعديل'
       />
     </>

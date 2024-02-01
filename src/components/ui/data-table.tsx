@@ -14,11 +14,11 @@ import {
 } from '~/components/ui/table'
 import { Button } from './button'
 import {
-  ChevronLeft,
-  ChevronRight,
-  ChevronsLeft,
-  ChevronsRight,
-  Loader2,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ChevronsLeftIcon,
+  ChevronsRightIcon,
+  Loader2Icon,
 } from 'lucide-react'
 import { Input } from './input'
 import { cn } from '~/lib/utils'
@@ -77,7 +77,7 @@ const Pagination = ({
         disabled={defaultPageIndex === 0}
         title='الصفحة الأولى'
       >
-        <ChevronsRight className='h-4 w-4' />
+        <ChevronsRightIcon className='h-4 w-4' />
       </Button>
       <Button
         variant='outline'
@@ -86,7 +86,7 @@ const Pagination = ({
         disabled={!canPreviousPage}
         title='الصفحة السابقة'
       >
-        <ChevronRight className='h-4 w-4' />
+        <ChevronRightIcon className='h-4 w-4' />
       </Button>
       {previousPages.map((p) => (
         <Button
@@ -118,7 +118,7 @@ const Pagination = ({
         disabled={!canNextPage}
         title='الصفحة التالية'
       >
-        <ChevronLeft className='h-4 w-4' />
+        <ChevronLeftIcon className='h-4 w-4' />
       </Button>
       <Button
         variant='outline'
@@ -127,7 +127,7 @@ const Pagination = ({
         disabled={defaultPageIndex >= pageCount - 1}
         title='الصفحة الأخيرة'
       >
-        <ChevronsLeft className='h-4 w-4' />
+        <ChevronsLeftIcon className='h-4 w-4' />
       </Button>
     </div>
   )
@@ -152,7 +152,7 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
                     <TableHead
                       key={header.id}
                       className={cn(
-                        'p-4',
+                        'bg-muted px-4 py-2',
                         {
                           'text-right': meta?.textAlign === 'right',
                           'text-left': meta?.textAlign === 'left',
@@ -181,7 +181,7 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
                   className='h-24 text-center'
                 >
                   <div className='flex items-center justify-center gap-2'>
-                    <Loader2 className='animate-spin' />
+                    <Loader2Icon className='animate-spin' />
                     جاري تحميل البيانات
                   </div>
                 </TableCell>
@@ -198,7 +198,7 @@ export function DataTable<T>({ table, fetching = false }: DataTableProps<T>) {
                       <TableCell
                         key={cell.id}
                         className={cn(
-                          'p-4',
+                          'px-4 py-1',
                           {
                             'text-right': meta?.textAlign === 'right',
                             'text-left': meta?.textAlign === 'left',

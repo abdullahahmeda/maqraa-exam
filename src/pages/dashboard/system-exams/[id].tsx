@@ -1,11 +1,4 @@
-import {
-  Course,
-  Curriculum,
-  Cycle,
-  Quiz,
-  SystemExam,
-  User,
-} from '~/kysely/types'
+import { Quiz, User } from '~/kysely/types'
 import {
   ColumnFiltersState,
   createColumnHelper,
@@ -31,43 +24,23 @@ import {
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
 import {
-  FileCheck2,
-  Filter,
-  Trash,
+  FileCheck2Icon,
+  FilterIcon,
+  TrashIcon,
   Link as LinkIcon,
-  Plus,
   LogIn,
   Pencil,
-  Download,
 } from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select'
-import {
-  typeMapping as examTypeMapping,
-  enTypeToAr as enExamTypeToAr,
-  enTypeToAr,
-} from '~/utils/exams'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTrigger,
-} from '~/components/ui/dialog'
+import { enTypeToAr } from '~/utils/exams'
+import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
 import {
   Popover,
   PopoverTrigger,
   PopoverContent,
 } from '~/components/ui/popover'
-import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
 import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
@@ -78,11 +51,12 @@ import {
 import { db } from '~/server/db'
 import { EditQuizDialog } from '~/components/modals/edit-quiz'
 import { percentage } from '~/utils/percentage'
-import { useToast } from '~/components/ui/use-toast'
+import { toast } from 'sonner'
 import { saveAs } from 'file-saver'
 import { CircularProgress } from '~/components/ui/circular-progress'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 import { Input } from '~/components/ui/input'
+import { DataTableActions } from '~/components/ui/data-table-actions'
 
 type Row = Quiz & {
   examinee: User
@@ -94,7 +68,6 @@ const columnFiltersValidators = {
 }
 
 const columnHelper = createColumnHelper<any>()
-// Row
 
 const PAGE_SIZE = 50
 
@@ -118,8 +91,6 @@ const ExamsPage = ({
 }) => {
   const router = useRouter()
   const { data: session } = useSession()
-  const { toast } = useToast()
-  const [dialogOpen, setDialogOpen] = useState(false)
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -153,7 +124,7 @@ const ExamsPage = ({
                     size='icon'
                     variant={filterValue ? 'secondary' : 'ghost'}
                   >
-                    <Filter className='h-4 w-4' />
+                    <FilterIcon className='h-4 w-4' />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent>
@@ -261,7 +232,7 @@ const ExamsPage = ({
                             )}
                             href={`/dashboard/quizzes/${row.original.id}`}
                           >
-                            <FileCheck2 className='h-4 w-4 text-success' />
+                            <FileCheck2Icon className='h-4 w-4 text-success' />
                           </Link>
                         </TooltipTrigger>
                         <TooltipContent>
@@ -314,7 +285,7 @@ const ExamsPage = ({
                         size='icon'
                         className='hover:bg-red-50'
                       >
-                        <Trash className='h-4 w-4 text-red-600' />
+                        <TrashIcon className='h-4 w-4 text-red-600' />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
@@ -411,20 +382,17 @@ const ExamsPage = ({
   })
 
   const handleDownload = async () => {
-    const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
-    quizzesExport
+    const promise = quizzesExport
       .mutateAsync({ systemExamId: systemExam.id as unknown as string })
       .then((arrayBuffer) => {
         const content = new Blob([arrayBuffer])
         saveAs(content, `الإختبار ${systemExam.name}.xlsx`)
-        toast({ title: 'تم بدأ تحميل الملف' })
       })
-      .catch(() => {
-        toast({ title: 'حدث خطأ أثناء تحميل الملف' })
-      })
-      .finally(() => {
-        t.dismiss()
-      })
+    toast.promise(promise, {
+      loading: 'يتم تجهيز الملف للتحميل...',
+      success: 'تم بدأ تحميل الملف',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -491,15 +459,12 @@ const ExamsPage = ({
             </div>
           </div>
         </div>
-        <Button
-          disabled={!quizzes || quizzes.length === 0}
-          variant='success'
-          className='mb-4 flex gap-2'
-          onClick={handleDownload}
-        >
-          <Download className='h-4 w-4' />
-          تصدير
-        </Button>
+        <DataTableActions
+          excelExport={{
+            handle: handleDownload,
+            data: { disabled: !quizzes || quizzes.length === 0 },
+          }}
+        />
         <DataTable table={table} fetching={isFetching} />
       </div>
     </>
@@ -517,8 +482,6 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
     return { notFound: true }
 
   const id = ctx.params!.id as string
-
-  console.log(id)
 
   const systemExam = await db
     .selectFrom('SystemExam')

@@ -23,22 +23,8 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
-  AlertDialogCancel,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogAction,
-  AlertDialogTitle,
-  AlertDialogDescription,
 } from '~/components/ui/alert-dialog'
-import {
-  Filter,
-  Trash,
-  Link as LinkIcon,
-  Plus,
-  LogIn,
-  EyeIcon,
-  Download,
-} from 'lucide-react'
+import { FilterIcon, TrashIcon, PlusIcon, EyeIcon } from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
 import {
   Select,
@@ -66,7 +52,6 @@ import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
 import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
-import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
   TooltipTrigger,
@@ -74,14 +59,13 @@ import {
   TooltipProvider,
 } from '~/components/ui/tooltip'
 import { DeleteSystemExamDialog } from '~/components/modals/delete-system-exam'
-import { useToast } from '~/components/ui/use-toast'
-import { saveAs } from 'file-saver'
-import { ExportSystemExamsDialog } from '~/components/modals/export-system-exams'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 import { Checkbox } from '~/components/ui/checkbox'
-import { useQueryClient } from '@tanstack/react-query'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { DataTableActions } from '~/components/ui/data-table-actions'
+import { Selectable } from 'kysely'
 
-type Row = SystemExam & {
+type Row = Selectable<SystemExam> & {
   cycle: Cycle
   curriculum: Curriculum & { track: Track & { course: Course } }
   quizzes: { id: any }[]
@@ -94,16 +78,14 @@ const columnFiltersValidators = {
 }
 
 const columnHelper = createColumnHelper<any>()
-// Row
 
 const PAGE_SIZE = 50
 
 const SystemExamsPage = () => {
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
   const router = useRouter()
   const [rowSelection, setRowSelection] = useState({})
   const { data: session } = useSession()
-  const { toast } = useToast()
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [exportDialogOpen, setExportDialogOpen] = useState(false)
 
@@ -113,7 +95,10 @@ const SystemExamsPage = () => {
     ? Number(router.query.page) - 1
     : 0
 
-  const bulkDelete = api.systemExam.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.systemExam.bulkDelete.useMutation()
+  const deleteAllMutation = api.systemExam.deleteAll.useMutation()
+
+  const invalidate = utils.systemExam.invalidate
 
   const pageSize = PAGE_SIZE
 
@@ -156,14 +141,10 @@ const SystemExamsPage = () => {
         },
       }),
       columnHelper.accessor(
-        (row) =>
-          `${
-            // row.curriculum.track.course.name
-            row.courseName
-          } :${row.curriculumName}`,
+        (row) => `${row.courseName} :${row.curriculumName}`,
         {
           id: 'curriculumId',
-          header: ({ column, table }) => {
+          header: ({ column }) => {
             const { data: curricula, isLoading } = api.curriculum.list.useQuery(
               { include: { track: true } }
             )
@@ -177,7 +158,7 @@ const SystemExamsPage = () => {
                       size='icon'
                       variant={filterValue ? 'secondary' : 'ghost'}
                     >
-                      <Filter className='h-4 w-4' />
+                      <FilterIcon className='h-4 w-4' />
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent>
@@ -220,7 +201,7 @@ const SystemExamsPage = () => {
                     size='icon'
                     variant={filterValue ? 'secondary' : 'ghost'}
                   >
-                    <Filter className='h-4 w-4' />
+                    <FilterIcon className='h-4 w-4' />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent>
@@ -264,7 +245,7 @@ const SystemExamsPage = () => {
                     size='icon'
                     variant={filterValue ? 'secondary' : 'ghost'}
                   >
-                    <Filter className='h-4 w-4' />
+                    <FilterIcon className='h-4 w-4' />
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent>
@@ -345,7 +326,7 @@ const SystemExamsPage = () => {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button variant='ghost' size='icon' className='hover:bg-red-50'>
-                  <Trash className='h-4 w-4 text-red-600' />
+                  <TrashIcon className='h-4 w-4 text-red-600' />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -426,21 +407,19 @@ const SystemExamsPage = () => {
     .flatRows.map((item) => item.original)
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف الإختبارات المختارة...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['systemExam']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
   }
 
   return (
@@ -455,7 +434,7 @@ const SystemExamsPage = () => {
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className='flex items-center gap-2'>
-                  <Plus className='h-4 w-4' />
+                  <PlusIcon className='h-4 w-4' />
                   إضافة إختبار نظام
                 </Button>
               </DialogTrigger>
@@ -466,54 +445,17 @@ const SystemExamsPage = () => {
             </Dialog>
           )}
         </div>
-        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              disabled={!exams || exams.length === 0}
-              variant='success'
-              className='mb-4 flex gap-2'
-            >
-              <Download className='h-4 w-4' />
-              تصدير
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <ExportSystemExamsDialog setDialogOpen={setExportDialogOpen} />
-          </DialogContent>
-        </Dialog>
-
-        <div className='mb-4'>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant='destructive'
-                className='flex items-center gap-2'
-                disabled={selectedRows.length === 0}
-              >
-                <Trash size={16} />
-                حذف{' '}
-                {selectedRows.length > 0 &&
-                  `(${selectedRows.length} من العناصر)`}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  هل تريد حقاً حذف الإختبارات المختارة؟
-                </AlertDialogTitle>
-              </AlertDialogHeader>
-              <AlertDialogDescription>
-                سيتم حذف {selectedRows.length} من الإختبارات
-              </AlertDialogDescription>
-              <AlertDialogFooter>
-                <AlertDialogAction onClick={handleBulkDelete}>
-                  تأكيد
-                </AlertDialogAction>
-                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        <DataTableActions
+          bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+          deleteAll={{
+            handle: handleDeleteAll,
+            data: { disabled: !exams || exams.length === 0 },
+          }}
+          excelExport={{
+            handle: () => setExportDialogOpen(true),
+            data: { disabled: !exams || exams.length === 0 },
+          }}
+        />
         <DataTable table={table} fetching={isFetching} />
       </div>
     </>

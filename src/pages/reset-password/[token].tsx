@@ -15,7 +15,7 @@ import { Button } from '~/components/ui/button'
 import { GetServerSideProps } from 'next'
 import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
 import { api } from '~/utils/api'
-import { useToast } from '~/components/ui/use-toast'
+import { toast } from 'sonner'
 import { useRouter } from 'next/router'
 import { db } from '~/server/db'
 
@@ -32,19 +32,17 @@ export const PasswordTokenPage = ({ token }: { token: string }) => {
 
   const router = useRouter()
 
-  const { toast } = useToast()
-
   const passwordReset = api.user.resetPassword.useMutation()
 
   const onSubmit = (data: FieldValues) => {
     passwordReset
       .mutateAsync(data)
       .then(() => {
-        toast({ title: 'تم تغيير كلمة المرور، قم بتسجيل الدخول' })
+        toast.success('تم تغيير كلمة المرور، قم بتسجيل الدخول')
         router.replace('/')
       })
       .catch((error) => {
-        toast({ title: (error as any).message, variant: 'destructive' })
+        toast.error((error as any).message)
       })
   }
 

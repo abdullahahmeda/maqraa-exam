@@ -18,40 +18,8 @@ import { api } from '~/utils/api'
 import { Badge } from '~/components/ui/badge'
 import { cn } from '~/lib/utils'
 import { DataTable } from '~/components/ui/data-table'
-import {
-  AlertDialog,
-  AlertDialogContent,
-  AlertDialogTrigger,
-} from '~/components/ui/alert-dialog'
-import {
-  FileCheck2,
-  Filter,
-  Trash,
-  Link as LinkIcon,
-  Plus,
-  LogIn,
-  Pencil,
-  Download,
-} from 'lucide-react'
+import { FileCheck2, Filter, LogIn } from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '~/components/ui/select'
-import {
-  typeMapping as examTypeMapping,
-  enTypeToAr as enExamTypeToAr,
-  enTypeToAr,
-} from '~/utils/exams'
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTrigger,
-} from '~/components/ui/dialog'
 import {
   Popover,
   PopoverTrigger,
@@ -60,20 +28,16 @@ import {
 import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
-import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
   TooltipProvider,
 } from '~/components/ui/tooltip'
-import { db } from '~/server/db'
-import { EditQuizDialog } from '~/components/modals/edit-quiz'
 import { percentage } from '~/utils/percentage'
-import { useToast } from '~/components/ui/use-toast'
+import { Selectable } from 'kysely'
 
-type Row = Quiz & {
+type Row = Selectable<Quiz> & {
   examinee: User
   corrector: User | null
   systemExam: { name: string; cycle: Cycle }
@@ -87,7 +51,6 @@ const PAGE_SIZE = 50
 const MyExamsPage = () => {
   const router = useRouter()
   const { data: session } = useSession()
-  const { toast } = useToast()
   const [dialogOpen, setDialogOpen] = useState(false)
 
   const pageIndex = z

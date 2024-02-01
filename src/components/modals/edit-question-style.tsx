@@ -1,8 +1,7 @@
 import { z } from 'zod'
 import { useForm } from 'react-hook-form'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
 import { editQuestionStyleSchema } from '~/validation/editQuestionStyleSchema'
 import { api } from '~/utils/api'
 import {
@@ -10,7 +9,7 @@ import {
   QuestionStyleForm,
 } from '../forms/question-style'
 import { DialogHeader } from '../ui/dialog'
-import { Loader2 } from 'lucide-react'
+import { Loader2Icon } from 'lucide-react'
 import { useEffect } from 'react'
 
 export const EditQuestionStyleDialog = ({
@@ -25,39 +24,35 @@ export const EditQuestionStyleDialog = ({
     defaultValues: { choicesColumns: [] },
   })
 
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
 
   const { data, isLoading, error } = api.questionStyle.get.useQuery(id)
+  const mutation = api.questionStyle.update.useMutation()
 
   useEffect(() => {
     if (data) form.reset(data as any)
   }, [data, form])
 
-  const mutation = api.questionStyle.update.useMutation()
-
   const onSubmit = (data: EditQuestionStyleFieldValues) => {
-    const t = toast({ title: 'جاري تعديل نوع السؤال' })
-    mutation
+    const promise = mutation
       .mutateAsync(data as z.infer<typeof editQuestionStyleSchema>)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم تعديل نوع السؤال بنجاح' })
         setDialogOpen(false)
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['questionStyle']])
+        utils.questionStyle.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري تعديل نوع السؤال...',
+      success: 'تم تعديل نوع السؤال بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   if (isLoading)
     return (
       <div className='flex justify-center'>
-        <Loader2 className='h-4 w-4 animate-spin' />
+        <Loader2Icon className='h-4 w-4 animate-spin' />
       </div>
     )
 
@@ -75,7 +70,7 @@ export const EditQuestionStyleDialog = ({
       </DialogHeader>
       <QuestionStyleForm
         form={form as any}
-        isLoading={mutation.isLoading}
+        isLoading={mutation.isPending}
         submitText='تعديل'
         onSubmit={onSubmit as any}
       />

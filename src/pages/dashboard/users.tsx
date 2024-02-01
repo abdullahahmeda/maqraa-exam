@@ -1,9 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '../../pages/_app'
 import { useMemo, useState } from 'react'
 import { api } from '~/utils/api'
-import { GetServerSideProps } from 'next'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
 import {
@@ -40,12 +38,6 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
-  AlertDialogTitle,
-  AlertDialogAction,
-  AlertDialogHeader,
-  AlertDialogCancel,
-  AlertDialogFooter,
-  AlertDialogDescription,
 } from '~/components/ui/alert-dialog'
 import { DeleteUserDialog } from '~/components/modals/delete-user'
 import { Input } from '~/components/ui/input'
@@ -53,10 +45,12 @@ import { getColumnFilters } from '~/utils/getColumnFilters'
 import { UserRole } from '~/kysely/enums'
 import { Cycle, UserCycle, User } from '~/kysely/types'
 import { Checkbox } from '~/components/ui/checkbox'
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '~/components/ui/use-toast'
+import { Selectable } from 'kysely'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { DataTableActions } from '~/components/ui/data-table-actions'
+import { RowActions } from '~/components/ui/row-actions'
 
-type Row = User & {
+type Row = Selectable<User> & {
   student: { cycles: (UserCycle & { cycle: Cycle })[] }
   cycles: { cycleName: string }[]
 }
@@ -73,8 +67,7 @@ const PAGE_SIZE = 25
 
 const UsersPage = () => {
   const router = useRouter()
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -91,7 +84,8 @@ const UsersPage = () => {
     pageSize,
   }
 
-  const bulkDelete = api.user.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.user.bulkDelete.useMutation()
+  const deleteAllMutation = api.user.deleteAll.useMutation()
 
   const columnFilters: ColumnFiltersState = getColumnFilters(
     router.query,
@@ -116,6 +110,8 @@ const UsersPage = () => {
     { filters },
     { networkMode: 'always' }
   )
+
+  const invalidate = utils.user.invalidate
 
   const pageCount =
     users !== undefined && typeof count === 'number'
@@ -153,7 +149,7 @@ const UsersPage = () => {
         header: ({ column }) => {
           const filterValue = column.getFilterValue() as string | undefined
           return (
-            <div className='flex items-center'>
+            <div className='flex items-center justify-center'>
               البريد الإلكتروني
               <Popover>
                 <PopoverTrigger className='mr-4' asChild>
@@ -188,7 +184,7 @@ const UsersPage = () => {
         header: ({ column }) => {
           const filterValue = column.getFilterValue() as string | undefined
           return (
-            <div className='flex items-center'>
+            <div className='flex items-center justify-center'>
               الصلاحيات
               <Popover>
                 <PopoverTrigger className='mr-4' asChild>
@@ -221,13 +217,7 @@ const UsersPage = () => {
             </div>
           )
         },
-        cell: (info) => (
-          <Badge
-          // variant={info.getValue() === UserRole.ADMIN ? 'success' : 'warning'}
-          >
-            {enUserRoleToAr(info.getValue() || '')}
-          </Badge>
-        ),
+        cell: (info) => <Badge>{enUserRoleToAr(info.getValue() || '')}</Badge>,
         meta: {
           textAlign: 'center',
         },
@@ -240,7 +230,7 @@ const UsersPage = () => {
             const { data: cycles, isLoading } = api.cycle.list.useQuery({})
             const filterValue = column.getFilterValue() as string | undefined
             return (
-              <div className='flex items-center'>
+              <div className='flex items-center justify-center'>
                 الدورة
                 <Popover>
                   <PopoverTrigger className='mr-4' asChild>
@@ -275,6 +265,7 @@ const UsersPage = () => {
       ),
       columnHelper.display({
         id: 'actions',
+        header: 'الإجراءات',
         cell: function Cell({ row }) {
           const [dialogOpen, setDialogOpen] = useState(false)
 
@@ -328,6 +319,9 @@ const UsersPage = () => {
             </div>
           )
         },
+        meta: {
+          textAlign: 'center',
+        },
       }),
     ],
     []
@@ -369,21 +363,19 @@ const UsersPage = () => {
     .flatRows.map((item) => item.original)
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف المستخدمين المختارين...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['user']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
   }
 
   return (
@@ -405,37 +397,13 @@ const UsersPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <div className='mb-4'>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant='destructive'
-              className='flex items-center gap-2'
-              disabled={selectedRows.length === 0}
-            >
-              <Trash size={16} />
-              حذف{' '}
-              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                هل تريد حقاً حذف المستخدمين المختارين؟
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <AlertDialogDescription>
-              سيتم حذف {selectedRows.length} من المستخدمين
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleBulkDelete}>
-                تأكيد
-              </AlertDialogAction>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <DataTableActions
+        deleteAll={{
+          handle: handleDeleteAll,
+          data: { disabled: !users || users?.length === 0 },
+        }}
+        bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+      />
       <DataTable table={table} fetching={isFetchingUsers} />
     </>
   )

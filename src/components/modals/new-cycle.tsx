@@ -1,11 +1,10 @@
 import { useForm } from 'react-hook-form'
-import { useToast } from '../ui/use-toast'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
 import { newCycleSchema } from '~/validation/newCycleSchema'
 import { api } from '~/utils/api'
 import { NewCycleFieldValues, CycleForm } from '../forms/cycle'
 import { DialogHeader } from '../ui/dialog'
+import { toast } from 'sonner'
 
 export const NewCycleDialog = ({
   setDialogOpen,
@@ -16,27 +15,23 @@ export const NewCycleDialog = ({
     resolver: zodResolver(newCycleSchema),
   })
 
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
-  const cycleCreate = api.cycle.create.useMutation()
+  const utils = api.useUtils()
+  const mutation = api.cycle.create.useMutation()
 
   const onSubmit = (data: NewCycleFieldValues) => {
-    const t = toast({ title: 'جاري إضافة الدورة' })
-    cycleCreate
+    const promise = mutation
       .mutateAsync(data)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة الدورة بنجاح' })
         setDialogOpen(false)
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['cycle']])
+        utils.cycle.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري إضافة الدورة...',
+      success: 'تم إضافة الدورة بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -44,7 +39,7 @@ export const NewCycleDialog = ({
       <DialogHeader className='mb-2 text-lg font-bold'>إضافة دورة</DialogHeader>
       <CycleForm
         form={form}
-        isLoading={cycleCreate.isLoading}
+        isLoading={mutation.isPending}
         submitText='إضافة'
         onSubmit={onSubmit}
       />

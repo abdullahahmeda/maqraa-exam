@@ -1,8 +1,6 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '~/pages/_app'
 import { Curriculum, CurriculumPart, Track } from '~/kysely/types'
-import { useQueryClient } from '@tanstack/react-query'
 import {
   ColumnFiltersState,
   PaginationState,
@@ -11,7 +9,6 @@ import {
   useReactTable,
 } from '@tanstack/react-table'
 import { Pencil, Filter, Trash, Plus } from 'lucide-react'
-import { GetServerSideProps } from 'next'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { z } from 'zod'
@@ -37,34 +34,28 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { useToast } from '~/components/ui/use-toast'
-import { getServerAuthSession } from '~/server/auth'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 import { Checkbox } from '~/components/ui/checkbox'
+import { Selectable } from 'kysely'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { DataTableActions } from '~/components/ui/data-table-actions'
 
 const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   const curriculumDelete = api.curriculum.delete.useMutation()
 
-  const { toast } = useToast()
-
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
 
   const deleteCurriculum = () => {
-    const t = toast({ title: 'جاري حذف المنهج' })
-    curriculumDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف المنهج بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['curriculum']])
-      })
+    const promise = curriculumDelete.mutateAsync(id).finally(() => {
+      utils.curriculum.invalidate()
+    })
+    toast.promise(promise, {
+      loading: 'جاري حذف المنهج...',
+      success: 'تم حذف المنهج بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -83,7 +74,7 @@ const DeleteCurriculumDialog = ({ id }: { id: string }) => {
   )
 }
 
-type RowType = Curriculum & {
+type RowType = Selectable<Curriculum> & {
   track: Track & { course: { name: string } }
   parts: CurriculumPart[]
 }
@@ -93,7 +84,6 @@ const columnFiltersValidators = {
 }
 
 const columnHelper = createColumnHelper<any>()
-// RowType
 
 const columns = [
   columnHelper.display({
@@ -169,19 +159,6 @@ const columns = [
       textAlign: 'center',
     },
   }),
-  // columnHelper.accessor('parts', {
-  //   header: 'المقدار',
-  //   cell: ({ row }) =>
-  //     row.original.parts.map((part) => (
-  //       <div key={part.id}>
-  //         {part.name}: من الحديث {part.from} إلى {part.to} ({part.from}-
-  //         {part.mid}، {Math.min(part.mid + 1, part.to)}-{part.to})
-  //       </div>
-  //     )),
-  //   meta: {
-  //     textAlign: 'center',
-  //   },
-  // }),
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
@@ -232,8 +209,7 @@ const PAGE_SIZE = 25
 
 const CurriculaPage = () => {
   const router = useRouter()
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -250,7 +226,10 @@ const CurriculaPage = () => {
     pageSize,
   }
 
-  const bulkDelete = api.curriculum.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.curriculum.bulkDelete.useMutation()
+  const deleteAllMutation = api.curriculum.deleteAll.useMutation()
+
+  const invalidate = utils.curriculum.invalidate
 
   const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
   const filters = columnFilters.reduce(
@@ -312,21 +291,19 @@ const CurriculaPage = () => {
     .flatRows.map((item) => item.original)
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف المناهج المختارة...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['curriculum']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
   }
 
   return (
@@ -348,38 +325,13 @@ const CurriculaPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-
-      <div className='mb-4'>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant='destructive'
-              className='flex items-center gap-2'
-              disabled={selectedRows.length === 0}
-            >
-              <Trash size={16} />
-              حذف{' '}
-              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                هل تريد حقاً حذف المناهج المختارة؟
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <AlertDialogDescription>
-              سيتم حذف {selectedRows.length} من المناهج
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleBulkDelete}>
-                تأكيد
-              </AlertDialogAction>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <DataTableActions
+        deleteAll={{
+          handle: handleDeleteAll,
+          data: { disabled: !curricula || curricula?.length === 0 },
+        }}
+        bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+      />
       <DataTable table={table} fetching={isFetchingCurricula} />
     </>
   )

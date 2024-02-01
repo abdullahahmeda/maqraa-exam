@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
 import {
   Form,
   FormItem,
@@ -10,14 +9,13 @@ import {
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { reportErrorSchema } from '~/validation/reportErrorSchema'
-import { z } from 'zod'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import { DialogHeader } from '../ui/dialog'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 import { Button } from '~/components/ui/button'
-import { Loader2 } from 'lucide-react'
+import { Loader2Icon } from 'lucide-react'
 
 type FieldValues = {
   modelQuestionId: string
@@ -33,7 +31,7 @@ export const ReportErrorDialog = ({
   closeDialog: () => void
   questionId: string
 }) => {
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
   const form = useForm<FieldValues>({
     resolver: zodResolver(reportErrorSchema),
   })
@@ -47,29 +45,25 @@ export const ReportErrorDialog = ({
     include: { question: true },
   })
 
-  const errorReport = api.errorReport.create.useMutation()
-
-  const { toast } = useToast()
+  const mutation = api.errorReport.create.useMutation()
 
   const onSubmit = (data: FieldValues) => {
-    const t = toast({ title: 'جاري الإبلاغ عن الخطأ' })
-    errorReport
+    const promise = mutation
       .mutateAsync({
         ...data,
         modelQuestionId: modelQuestionId,
       })
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم الإبلاغ عن الخطأ بنجاح' })
         closeDialog()
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['errorReport']])
+        utils.errorReport.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري الإبلاغ عن الخطأ...',
+      success: 'تم الإبلاغ عن الخطأ بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -79,7 +73,7 @@ export const ReportErrorDialog = ({
       </DialogHeader>
       {isLoading && (
         <div className='flex justify-center'>
-          <Loader2 className='animate-spin' />
+          <Loader2Icon className='animate-spin' />
         </div>
       )}
       {!!error && (
@@ -140,7 +134,7 @@ export const ReportErrorDialog = ({
                 </FormItem>
               )}
             />
-            <Button>إبلاغ</Button>
+            <Button loading={mutation.isPending}>إبلاغ</Button>
           </form>
         </Form>
       )}

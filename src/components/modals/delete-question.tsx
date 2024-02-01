@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -8,28 +7,21 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
 import { api } from '~/utils/api'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 
 export const DeleteQuestionDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const questionDelete = api.question.delete.useMutation()
-  const queryClient = useQueryClient()
+  const mutation = api.question.delete.useMutation()
+  const utils = api.useUtils()
 
   const deleteQuestion = () => {
-    const t = toast({ title: 'جاري حذف السؤال...' })
-    questionDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف السؤال بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['question']])
-      })
+    const promise = mutation.mutateAsync(id).finally(() => {
+      utils.question.invalidate()
+    })
+    toast.promise(promise, {
+      loading: 'جاري حذف السؤال...',
+      success: 'تم حذف السؤال بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (

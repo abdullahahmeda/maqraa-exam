@@ -10,6 +10,7 @@ import type {
   QuestionDifficulty,
   QuizType,
   QuestionsGroupType,
+  SettingKey,
 } from './enums'
 
 export type Account = {
@@ -73,6 +74,7 @@ export type MenuItem = {
   label: string
   order: Generated<number>
   icon: string | null
+  role: UserRole
 }
 export type Model = {
   id: Generated<string>
@@ -152,7 +154,7 @@ export type Session = {
   expires: Timestamp
 }
 export type Setting = {
-  key: string
+  key: SettingKey
   value: string
 }
 export type SystemExam = {

@@ -1,15 +1,14 @@
-import { z } from 'zod'
-import { useForm } from 'react-hook-form'
-import { useToast } from '../ui/use-toast'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
-import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
+import { toast } from 'sonner'
+import { DialogHeader } from '../ui/dialog'
 import { api } from '~/utils/api'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
 import {
   NewQuestionStyleFieldValues,
   QuestionStyleForm,
 } from '../forms/question-style'
-import { DialogHeader } from '../ui/dialog'
+import { z } from 'zod'
 
 export const NewQuestionStyleDialog = ({
   setDialogOpen,
@@ -21,27 +20,23 @@ export const NewQuestionStyleDialog = ({
     defaultValues: { choicesColumns: [] },
   })
 
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-
+  const utils = api.useUtils()
   const mutation = api.questionStyle.create.useMutation()
 
   const onSubmit = (data: NewQuestionStyleFieldValues) => {
-    const t = toast({ title: 'جاري إضافة نوع السؤال' })
-    mutation
+    const promise = mutation
       .mutateAsync(data as z.infer<typeof newQuestionStyleSchema>)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة نوع السؤال بنجاح' })
         setDialogOpen(false)
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['questionStyle']])
+        utils.questionStyle.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري إضافة نوع السؤال...',
+      success: 'تم إضافة نوع السؤال بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -51,7 +46,7 @@ export const NewQuestionStyleDialog = ({
       </DialogHeader>
       <QuestionStyleForm
         form={form}
-        isLoading={mutation.isLoading}
+        isLoading={mutation.isPending}
         submitText='إضافة'
         onSubmit={onSubmit}
       />

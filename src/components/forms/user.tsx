@@ -21,7 +21,6 @@ import { DialogFooter } from '../ui/dialog'
 import { generateRandomPassword, userRoleMapping } from '~/utils/users'
 import { Button } from '../ui/button'
 import { api } from '~/utils/api'
-import { Combobox } from '../ui/combobox'
 import { MultiSelect } from '../ui/multi-select'
 import {
   Accordion,

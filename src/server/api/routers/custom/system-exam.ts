@@ -267,4 +267,9 @@ export const systemExamRouter = createTRPCRouter({
       await ctx.db.deleteFrom('SystemExam').where('id', 'in', input).execute()
       return true
     }),
+
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.deleteFrom('SystemExam').execute()
+    return true
+  }),
 })

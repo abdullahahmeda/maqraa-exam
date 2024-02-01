@@ -1,21 +1,15 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '~/pages/_app'
-import { ErrorReport, Question } from '~/kysely/types'
-import { useQueryClient } from '@tanstack/react-query'
 import {
   PaginationState,
   createColumnHelper,
   getCoreRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Pencil, Trash, Plus, Eye } from 'lucide-react'
-import { GetServerSideProps } from 'next'
+import { TrashIcon, EyeIcon } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { useMemo, useState } from 'react'
 import { z } from 'zod'
-import { NewCourseDialog } from '~/components/modals/new-course'
-import { EditCourseDialog } from '~/components/modals/edit-course'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,33 +23,27 @@ import {
 } from '~/components/ui/alert-dialog'
 import { Button, buttonVariants } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
-import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
-import { useToast } from '~/components/ui/use-toast'
-import { getServerAuthSession } from '~/server/auth'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import Link from 'next/link'
 import { cn } from '~/lib/utils'
+import { Checkbox } from '~/components/ui/checkbox'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { DataTableActions } from '~/components/ui/data-table-actions'
 
 const DeleteErrorReportDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const errorReportDelete = api.errorReport.delete.useMutation()
-  const queryClient = useQueryClient()
+  const deleteMutation = api.errorReport.delete.useMutation()
+  const utils = api.useUtils()
 
   const deleteErrorReport = () => {
-    const t = toast({ title: 'جاري حذف البلاغ' })
-    errorReportDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف البلاغ بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['errorReport']])
-      })
+    const promise = deleteMutation.mutateAsync(id).finally(() => {
+      utils.errorReport.invalidate()
+    })
+    toast.promise(promise, {
+      loading: 'جاري حذف البلاغ...',
+      success: 'تم حذف البلاغ بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -80,6 +68,9 @@ const PAGE_SIZE = 25
 
 const ErrorReportsPage = () => {
   const router = useRouter()
+  const utils = api.useUtils()
+
+  const [rowSelection, setRowSelection] = useState({})
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -89,10 +80,12 @@ const ErrorReportsPage = () => {
 
   const pageSize = PAGE_SIZE
 
-  const pagination: PaginationState = {
-    pageIndex,
-    pageSize,
-  }
+  const pagination: PaginationState = { pageIndex, pageSize }
+
+  const bulkDeleteMutation = api.errorReport.bulkDelete.useMutation()
+  const deleteAllMutation = api.errorReport.deleteAll.useMutation()
+
+  const invalidate = utils.errorReport.invalidate
 
   const { data: errorReports, isFetching: isFetchingErrorReports } =
     api.errorReport.list.useQuery(
@@ -110,6 +103,31 @@ const ErrorReportsPage = () => {
 
   const columns = useMemo(
     () => [
+      columnHelper.display({
+        id: 'select',
+        header: ({ table }) => (
+          <Checkbox
+            checked={
+              table.getIsAllPageRowsSelected()
+                ? table.getIsAllPageRowsSelected()
+                : table.getIsSomePageRowsSelected()
+                ? 'indeterminate'
+                : false
+            }
+            onCheckedChange={(value) =>
+              table.toggleAllPageRowsSelected(!!value)
+            }
+            aria-label='تحديد الكل'
+          />
+        ),
+        cell: ({ row }) => (
+          <Checkbox
+            checked={row.getIsSelected()}
+            onCheckedChange={(value) => row.toggleSelected(!!value)}
+            aria-label='تحديد الصف'
+          />
+        ),
+      }),
       columnHelper.accessor('name', {
         header: 'اسم المبلغ',
         meta: {
@@ -163,7 +181,7 @@ const ErrorReportsPage = () => {
                 'hover:bg-blue-100'
               )}
             >
-              <Eye className='h-4 w-4 text-blue-600' />
+              <EyeIcon className='h-4 w-4 text-blue-600' />
             </Link>
             <AlertDialog>
               <AlertDialogTrigger asChild>
@@ -172,7 +190,7 @@ const ErrorReportsPage = () => {
                   size='icon'
                   className='hover:bg-red-100'
                 >
-                  <Trash className='h-4 w-4 text-red-600' />
+                  <TrashIcon className='h-4 w-4 text-red-600' />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -197,7 +215,9 @@ const ErrorReportsPage = () => {
     getCoreRowModel: getCoreRowModel(),
     pageCount,
     manualPagination: true,
-    state: { pagination },
+    state: { pagination, rowSelection },
+    enableRowSelection: true,
+    onRowSelectionChange: setRowSelection,
     onPaginationChange: (updater) => {
       const newPagination: PaginationState = (updater as CallableFunction)(
         pagination
@@ -207,6 +227,26 @@ const ErrorReportsPage = () => {
     },
   })
 
+  const selectedRows = table
+    .getSelectedRowModel()
+    .flatRows.map((item) => item.original)
+
+  const handleBulkDelete = () => {
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
+  }
+
   return (
     <>
       <Head>
@@ -215,6 +255,13 @@ const ErrorReportsPage = () => {
       <div className='mb-4 flex items-center'>
         <h2 className='ml-4 text-2xl font-bold'>تبليغات الأخطاء</h2>
       </div>
+      <DataTableActions
+        deleteAll={{
+          handle: handleDeleteAll,
+          data: { disabled: !errorReports || errorReports?.length === 0 },
+        }}
+        bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+      />
       <DataTable table={table} fetching={isFetchingErrorReports} />
     </>
   )

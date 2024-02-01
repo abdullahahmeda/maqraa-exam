@@ -1,10 +1,6 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
-import {
-  createTRPCRouter,
-  protectedProcedure,
-  publicProcedure,
-} from '~/server/api/trpc'
+import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
 import { db } from '~/server/db'
 import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
 import { editQuestionStyleSchema } from '~/validation/editQuestionStyleSchema'
@@ -103,4 +99,9 @@ export const questionStyleRouter = createTRPCRouter({
         .execute()
       return true
     }),
+
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.deleteFrom('QuestionStyle').execute()
+    return true
+  }),
 })

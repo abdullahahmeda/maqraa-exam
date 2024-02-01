@@ -165,4 +165,8 @@ export const curriculumRouter = createTRPCRouter({
       await ctx.db.deleteFrom('Curriculum').where('id', 'in', input).execute()
       return true
     }),
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.deleteFrom('Curriculum').execute()
+    return true
+  }),
 })

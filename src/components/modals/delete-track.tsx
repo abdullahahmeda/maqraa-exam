@@ -1,4 +1,3 @@
-import { useQueryClient } from '@tanstack/react-query'
 import {
   AlertDialogAction,
   AlertDialogCancel,
@@ -8,28 +7,21 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
 import { api } from '~/utils/api'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 
 export const DeleteTrackDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const trackDelete = api.track.delete.useMutation()
-  const queryClient = useQueryClient()
+  const mutation = api.track.delete.useMutation()
+  const utils = api.useUtils()
 
-  const deleteCourse = () => {
-    const t = toast({ title: 'جاري حذف المسار...' })
-    trackDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف المسار بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['track']])
-      })
+  const deleteTrack = () => {
+    const promise = mutation.mutateAsync(id).finally(() => {
+      utils.track.invalidate()
+    })
+    toast.promise(promise, {
+      loading: 'جاري حذف المسار...',
+      success: 'تم حذف المسار بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -41,7 +33,7 @@ export const DeleteTrackDialog = ({ id }: { id: string }) => {
         هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً
       </AlertDialogDescription>
       <AlertDialogFooter>
-        <AlertDialogAction onClick={deleteCourse}>تأكيد</AlertDialogAction>
+        <AlertDialogAction onClick={deleteTrack}>تأكيد</AlertDialogAction>
         <AlertDialogCancel>إلغاء</AlertDialogCancel>
       </AlertDialogFooter>
     </>

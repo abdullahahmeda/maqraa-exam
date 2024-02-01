@@ -10,8 +10,7 @@ import {
   FormLabel,
   FormMessage,
 } from '../ui/form'
-import { useToast } from '../ui/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import {
   DndContext,
   DragEndEvent,
@@ -58,9 +57,8 @@ export const NewSystemExamDialog = ({
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
   const [submitting, setSubmitting] = useState(false)
+  const utils = api.useUtils()
   const form = useForm<FieldValues>({
     resolver: zodResolver(newSystemExamSchema),
     defaultValues: {
@@ -78,7 +76,7 @@ export const NewSystemExamDialog = ({
     },
   })
 
-  const examCreate = api.systemExam.create.useMutation()
+  const mutation = api.systemExam.create.useMutation()
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const trackId = useWatch({ control: form.control, name: 'trackId' })
@@ -147,26 +145,18 @@ export const NewSystemExamDialog = ({
 
   const onSubmit = (data: FieldValues) => {
     setSubmitting(true)
-    examCreate
+    mutation
       .mutateAsync(data as z.infer<typeof newSystemExamSchema>)
       .then(() => {
-        toast({ title: 'تم إضافة الإختبار بنجاح لكل الطلاب' })
+        toast.success('تم إضافة الإختبار بنجاح لكل الطلاب')
         setDialogOpen(false)
       })
       .catch((error) => {
-        if (error.message) {
-          toast({
-            title: 'حدث خطأ',
-            description: error.message,
-          })
-        } else
-          toast({
-            title: 'حدث خطأ غير متوقع',
-          })
+        toast.error(error.message)
       })
       .finally(() => {
         setSubmitting(false)
-        queryClient.invalidateQueries([['systemExam']])
+        utils.systemExam.invalidate()
       })
   }
 

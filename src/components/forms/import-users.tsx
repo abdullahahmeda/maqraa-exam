@@ -18,6 +18,7 @@ import { DialogFooter } from '../ui/dialog'
 import { Button } from '../ui/button'
 import { UseFormReturn } from 'react-hook-form'
 import { api } from '~/utils/api'
+import { useEffect } from 'react'
 
 export type ImportStudentsFieldValues = {
   url: string
@@ -43,6 +44,7 @@ export const ImportStudentsForm = ({
   const {
     isFetching: isFetchingSheets,
     data: sheets,
+    error: sheetsError,
     refetch: refetchSheets,
   } = api.sheet.listNames.useQuery(
     { url: form.getValues('url') },
@@ -50,14 +52,14 @@ export const ImportStudentsForm = ({
       enabled: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-
-      onError: (error) => {
-        form.setError('url', {
-          message: error.message,
-        })
-      },
     }
   )
+
+  useEffect(() => {
+    form.setError('url', {
+      message: sheetsError?.message,
+    })
+  }, [form, sheetsError])
 
   const updateSpreadsheet = async () => {
     const isValidUrl = await form.trigger('url')

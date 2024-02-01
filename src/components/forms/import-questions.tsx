@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '../ui/select'
+import { useEffect } from 'react'
 
 export type ImportQuestionsFieldValues = {
   url: string
@@ -40,18 +41,21 @@ export const ImportQuestionsForm = ({
     isFetching: isFetchingSheets,
     data: sheets,
     refetch: refetchSheets,
+    error: sheetsError,
   } = api.sheet.listNames.useQuery(
     { url: form.getValues('url') },
     {
       enabled: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-
-      onError: (error) => {
-        form.setError('url', { message: error.message })
-      },
     }
   )
+
+  useEffect(() => {
+    form.setError('url', {
+      message: sheetsError?.message,
+    })
+  }, [form, sheetsError])
 
   const { data: courses, isLoading: isCoursesLoading } =
     api.course.list.useQuery({})

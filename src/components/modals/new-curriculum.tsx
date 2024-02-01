@@ -1,10 +1,9 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { NewCurriculumFieldValues, CurriculumForm } from '../forms/curriculum'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
 import { z } from 'zod'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import { DialogHeader } from '../ui/dialog'
 
@@ -13,7 +12,8 @@ export const NewCurriculumDialog = ({
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
+
   const form = useForm<NewCurriculumFieldValues>({
     resolver: zodResolver(newCurriculumSchema),
     defaultValues: {
@@ -21,26 +21,22 @@ export const NewCurriculumDialog = ({
     },
   })
 
-  const curriculumCreate = api.curriculum.create.useMutation()
-
-  const { toast } = useToast()
+  const mutation = api.curriculum.create.useMutation()
 
   const onSubmit = (data: NewCurriculumFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المنهج' })
-    curriculumCreate
+    const promise = mutation
       .mutateAsync(data as z.infer<typeof newCurriculumSchema>)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المنهج بنجاح' })
         setDialogOpen(false)
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['curriculum']])
+        utils.curriculum.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري إضافة المنهج...',
+      success: 'تم إضافة المنهج بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -49,7 +45,7 @@ export const NewCurriculumDialog = ({
       <CurriculumForm
         form={form}
         onSubmit={onSubmit}
-        isLoading={curriculumCreate.isLoading}
+        isLoading={mutation.isPending}
         submitText='إضافة'
       />
     </>

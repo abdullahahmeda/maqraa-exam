@@ -15,7 +15,6 @@ import { z } from 'zod'
 import { Button, buttonVariants } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
 import { api } from '~/utils/api'
-import { Badge } from '~/components/ui/badge'
 import { cn } from '~/lib/utils'
 import { DataTable } from '~/components/ui/data-table'
 import {
@@ -23,17 +22,10 @@ import {
   AlertDialogContent,
   AlertDialogTrigger,
 } from '~/components/ui/alert-dialog'
-import { Filter, Trash, Link as LinkIcon, Plus, LogIn } from 'lucide-react'
+import { TrashIcon, LinkIcon, LogInIcon } from 'lucide-react'
 import { formatDate } from '~/utils/formatDate'
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from '~/components/ui/popover'
-import { Combobox } from '~/components/ui/combobox'
 import { getServerAuthSession } from '~/server/auth'
 import { useSession } from 'next-auth/react'
-import { NewSystemExamDialog } from '~/components/modals/new-system-exam'
 import { DeleteQuizDialog } from '~/components/modals/delete-quiz'
 import {
   Tooltip,
@@ -62,8 +54,6 @@ const ExamsPage = () => {
   const router = useRouter()
 
   const { data: session } = useSession()
-
-  const [dialogOpen, setDialogOpen] = useState(false)
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -200,7 +190,7 @@ const ExamsPage = () => {
                     size='icon'
                     className='hover:bg-red-50'
                   >
-                    <Trash className='h-4 w-4 text-red-600' />
+                    <TrashIcon className='h-4 w-4 text-red-600' />
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -223,7 +213,7 @@ const ExamsPage = () => {
                           )}
                           href={`/quizzes/${row.original.id}`}
                         >
-                          <LogIn className='h-4 w-4' />
+                          <LogInIcon className='h-4 w-4' />
                         </Link>
                       </TooltipTrigger>
                       <TooltipContent>دخول الإختبار</TooltipContent>

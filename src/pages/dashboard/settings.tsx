@@ -1,7 +1,7 @@
 import Head from 'next/head'
 import DashboardLayout, { menuLinks } from '~/components/dashboard/layout'
-
-import { Control, useForm } from 'react-hook-form'
+import { toast } from 'sonner'
+import { Control, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { Button, buttonVariants } from '~/components/ui/button'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
 import {
@@ -17,10 +17,10 @@ import { getServerAuthSession } from '~/server/auth'
 import { db } from '~/server/db'
 import { GripVerticalIcon } from 'lucide-react'
 import {
-  arrayMove,
   SortableContext,
   useSortable,
   verticalListSortingStrategy,
+  arrayMove,
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import {
@@ -34,7 +34,10 @@ import {
 import { Textarea } from '~/components/ui/textarea'
 import Link from 'next/link'
 import { cn } from '~/lib/utils'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { SettingKey, UserRole } from '~/kysely/enums'
+import { api } from '~/utils/api'
+import { Tabs, TabsList, TabsContent, TabsTrigger } from '~/components/ui/tabs'
 
 function getKeyAr(key: string) {
   return {
@@ -54,16 +57,22 @@ function getKeyAr(key: string) {
 }
 
 type FieldValues = {
-  menuItems: { order: number; label: string; key: string; icon: string }[]
+  [SettingKey.SITE_NAME]: string
+  menuItems: Record<
+    UserRole,
+    { order: number; label: string; key: string; icon: string | null }[]
+  >
 }
 const MenuItem = ({
   item,
   control,
   index,
+  role,
 }: {
-  item: { key: string; order: number; icon: string | undefined; label: string }
+  item: { key: string; order: number; icon: string | null; label: string }
   index: number
   control: Control<FieldValues>
+  role: string
 }) => {
   const {
     attributes,
@@ -75,6 +84,11 @@ const MenuItem = ({
   } = useSortable({ id: item.key })
 
   const style = { transform: CSS.Transform.toString(transform), transition }
+
+  const icon = useWatch({
+    control,
+    name: `menuItems.${role as UserRole}.${index}.icon`,
+  })
 
   return (
     <div
@@ -105,7 +119,7 @@ const MenuItem = ({
           </Link>
         </p>
         <FormField
-          name={`menuItems.${index}.label`}
+          name={`menuItems.${role as UserRole}.${index}.label`}
           control={control}
           render={({ field }) => (
             <FormItem>
@@ -113,46 +127,73 @@ const MenuItem = ({
               <FormControl>
                 <Input {...field} />
               </FormControl>
-
               <FormMessage />
             </FormItem>
           )}
         />
         <FormField
-          name={`menuItems.${index}.icon`}
+          name={`menuItems.${role as UserRole}.${index}.icon`}
           control={control}
-          render={({ field }) => (
+          render={({ field: { value, ...field } }) => (
             <FormItem>
               <FormLabel>الأيكونة</FormLabel>
               <FormControl>
-                <Textarea {...field} />
+                <Textarea value={value ?? undefined} {...field} />
               </FormControl>
-
               <FormMessage />
             </FormItem>
           )}
         />
+        {icon && (
+          <div className='flex items-center gap-2'>
+            <p>صورة الأيكونة:</p>
+            <div dangerouslySetInnerHTML={{ __html: icon }} />
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
 const SettingsPage = ({
+  siteName,
   menuItems: defaultMenuItems,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
+}: InferGetServerSidePropsType<typeof getServerSideProps> & {
+  siteName: string
+}) => {
   const form = useForm<FieldValues>({
-    // @ts-expect-error Can't type this
-    defaultValues: { menuItems: defaultMenuItems },
+    defaultValues: {
+      menuItems: defaultMenuItems,
+      [SettingKey.SITE_NAME]: siteName,
+    },
   })
 
-  const { setValue, getValues, control, watch } = form
+  const utils = api.useUtils()
+  const [selectedMenu, setSelectedMenu] = useState<UserRole>(UserRole.ADMIN)
+  const { getValues, control, watch, setValue } = form
+
+  useEffect(() => {
+    setValue(SettingKey.SITE_NAME, siteName)
+  }, [setValue, siteName])
 
   const menuItems = watch('menuItems')
+  const { swap: swapAdmin } = useFieldArray({
+    control,
+    name: 'menuItems.ADMIN',
+  })
+  const { swap: swapCorrector } = useFieldArray({
+    control,
+    name: 'menuItems.CORRECTOR',
+  })
+  const { swap: swapStudent } = useFieldArray({
+    control,
+    name: 'menuItems.STUDENT',
+  })
 
   const [activeData, setActiveData] = useState<any>(null)
 
   const onDragStart = (event: DragStartEvent) => {
-    const items = getValues('menuItems')
+    const items = getValues('menuItems')[selectedMenu]
     const index = items.findIndex((item) => item.key === event.active.id)
     const item = items[index]
     setActiveData({ control, index, item })
@@ -160,40 +201,32 @@ const SettingsPage = ({
 
   const onDragOver = (event: DragOverEvent) => {
     const { active, over } = event
-    const items = getValues('menuItems')
+    const items = getValues('menuItems')[selectedMenu]
     const oldIndex = items.findIndex((item) => item.key === active.id)
     const newIndex = items.findIndex((item) => item.key === over?.id)
-    const newArray = arrayMove(items, oldIndex, newIndex)
-    setValue('menuItems', newArray)
+    if (selectedMenu === 'ADMIN') swapAdmin(oldIndex, newIndex)
+    else if (selectedMenu === 'CORRECTOR') swapCorrector(oldIndex, newIndex)
+    else if (selectedMenu === 'STUDENT') swapStudent(oldIndex, newIndex)
   }
 
   const onDragEnd = (event: DragEndEvent) => {
     setActiveData(null)
   }
 
-  // const settingsUpdate = api.settings.update.useMutation()
-
-  // useEffect(() => {
-  //   if (settings) {
-  //     const settingsObj = settings.reduce(
-  //       (obj, s) => ({ ...obj, [s.key]: s.value }),
-  //       {}
-  //     )
-  //     form.reset(settingsObj)
-  //   }
-  // }, [settings])
+  const settingsUpdate = api.setting.update.useMutation()
 
   const onSubmit = async (data: FieldValues) => {
-    console.log(data)
-    // settingsUpdate
-    //   .mutateAsync(data as any)
-    //   .then(() => {
-    //     toast.success('تم حفظ الإعدادات بنجاح')
-    //   })
-    //   .catch((error) => {
-    //     if (error.message) toast.error(error.message)
-    //     else toast.error('حدث خطأ غير متوقع')
-    //   })
+    settingsUpdate
+      .mutateAsync(data)
+      .then(() => {
+        toast.success('تم حفظ الإعدادات بنجاح')
+      })
+      .catch((error) => {
+        toast.error(error.message)
+      })
+      .finally(() => {
+        utils.setting.invalidate()
+      })
   }
 
   return (
@@ -205,32 +238,89 @@ const SettingsPage = ({
       <h2 className='text-center text-xl font-semibold'>الإعدادات</h2>
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-          <h3>القائمة</h3>
+          <FormField
+            control={control}
+            name={SettingKey.SITE_NAME}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>اسم الموقع</FormLabel>
+                <FormControl>
+                  <Input {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <h3 className='text-lg font-semibold'>القائمة</h3>
           <DndContext
             collisionDetection={closestCenter}
             onDragStart={onDragStart}
             onDragOver={onDragOver}
             onDragEnd={onDragEnd}
           >
-            <SortableContext
-              // @ts-expect-error Can't type this
-              items={menuItems}
-              strategy={verticalListSortingStrategy}
+            <Tabs
+              defaultValue={UserRole.ADMIN}
+              onValueChange={(value) => setSelectedMenu(value as UserRole)}
             >
-              {menuItems.map((item, index) => (
-                <MenuItem
-                  key={item.key}
-                  control={control}
-                  index={index}
-                  item={item}
-                />
-              ))}
-            </SortableContext>
+              <TabsList>
+                <TabsTrigger value={UserRole.ADMIN}>الأدمن</TabsTrigger>
+                <TabsTrigger value={UserRole.CORRECTOR}>المصحح</TabsTrigger>
+                <TabsTrigger value={UserRole.STUDENT}>الطالب</TabsTrigger>
+              </TabsList>
+              <TabsContent className='space-y-4' value={UserRole.ADMIN}>
+                <SortableContext
+                  items={menuItems.ADMIN as any}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {menuItems.ADMIN.map((item, index) => (
+                    <MenuItem
+                      key={item.key}
+                      control={control}
+                      index={index}
+                      item={item}
+                      role='ADMIN'
+                    />
+                  ))}
+                </SortableContext>
+              </TabsContent>
+              <TabsContent className='space-y-4' value={UserRole.CORRECTOR}>
+                <SortableContext
+                  items={menuItems.CORRECTOR as any}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {menuItems.CORRECTOR.map((item, index) => (
+                    <MenuItem
+                      key={item.key}
+                      control={control}
+                      index={index}
+                      item={item}
+                      role='CORRECTOR'
+                    />
+                  ))}
+                </SortableContext>
+              </TabsContent>
+              <TabsContent className='space-y-4' value={UserRole.STUDENT}>
+                <SortableContext
+                  items={menuItems.STUDENT as any}
+                  strategy={verticalListSortingStrategy}
+                >
+                  {menuItems.STUDENT.map((item, index) => (
+                    <MenuItem
+                      key={item.key}
+                      control={control}
+                      index={index}
+                      item={item}
+                      role='STUDENT'
+                    />
+                  ))}
+                </SortableContext>
+              </TabsContent>
+            </Tabs>
             <DragOverlay>
-              {activeData && <MenuItem {...activeData} />}
+              {activeData && <MenuItem {...activeData} role={selectedMenu} />}
             </DragOverlay>
           </DndContext>
-          <Button type='submit' loading={false}>
+          <Button type='submit' loading={settingsUpdate.isPending}>
             حفظ
           </Button>
         </form>
@@ -247,18 +337,30 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
   const session = await getServerAuthSession({ req: ctx.req, res: ctx.res })
   if (session?.user.role !== 'ADMIN') return { notFound: true }
 
-  let menuItems = await db
+  let allMenuItems = await db
     .selectFrom('MenuItem')
     .selectAll()
-    .orderBy('MenuItem.order asc')
+    .orderBy('MenuItem.order', 'asc')
     .execute()
 
-  menuItems = menuItems.length === 0 ? menuLinks.ADMIN : menuItems
+  const menuItems: any = {}
+  for (const item of allMenuItems) {
+    if (menuItems[item.role]) menuItems[item.role].push(item)
+    else menuItems[item.role] = [item]
+  }
 
   return {
     props: {
       session,
-      menuItems,
+      menuItems: menuItems as Record<
+        UserRole,
+        {
+          icon: string | null
+          label: string
+          key: string
+          order: number
+        }[]
+      >,
     },
   }
 }

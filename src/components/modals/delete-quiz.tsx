@@ -1,5 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import {
   AlertDialogHeader,
@@ -11,25 +10,18 @@ import {
 } from '../ui/alert-dialog'
 
 export const DeleteQuizDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const quizDelete = api.quiz.delete.useMutation()
-  const queryClient = useQueryClient()
+  const mutation = api.quiz.delete.useMutation()
+  const utils = api.useUtils()
 
-  const deletequiz = () => {
-    const t = toast({ title: 'جاري حذف الإمتحان' })
-    quizDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف الإمتحان بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['quiz']])
-      })
+  const deleteQuiz = () => {
+    const promise = mutation.mutateAsync(id).finally(() => {
+      utils.quiz.invalidate()
+    })
+    toast.promise(promise, {
+      loading: 'جاري حذف الإمتحان...',
+      success: 'تم حذف الإمتحان بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (
@@ -41,7 +33,7 @@ export const DeleteQuizDialog = ({ id }: { id: string }) => {
         </AlertDialogDescription>
       </AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogAction onClick={deletequiz}>تأكيد</AlertDialogAction>
+        <AlertDialogAction onClick={deleteQuiz}>تأكيد</AlertDialogAction>
         <AlertDialogCancel>إلغاء</AlertDialogCancel>
       </AlertDialogFooter>
     </>

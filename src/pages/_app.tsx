@@ -1,4 +1,4 @@
-import { type AppType } from 'next/app'
+import App, { type AppType, AppContext } from 'next/app'
 import { type Session } from 'next-auth'
 import type { NextPage } from 'next'
 import { ReactElement, ReactNode } from 'react'
@@ -9,8 +9,10 @@ import { errorMap } from '../validation/errorMap'
 import { arSA } from 'date-fns/locale'
 import setDefaultOptions from 'date-fns/setDefaultOptions'
 import { api } from '../utils/api'
-import { Toaster } from '~/components/ui/toaster'
+import { Toaster } from '~/components/ui/sonner'
 import { SpeedInsights } from '@vercel/speed-insights/next'
+import { SettingKey } from '~/kysely/enums'
+import { db } from '~/server/db'
 
 const fontFamily = Rubik({
   subsets: ['arabic', 'latin'],
@@ -35,6 +37,8 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
   const getLayout =
     (Component as NextPageWithLayout).getLayout || ((page) => page)
 
+  const { data: siteName } = api.setting.getSiteName.useQuery()
+
   return (
     <>
       <DirectionProvider dir='rtl'>
@@ -48,9 +52,10 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
                   }
                 `}
               </style>
-              <Component {...pageProps} />
+              {/* TODO: siteName is loaded at client side (not good for seo) */}
+              <Component {...pageProps} siteName={siteName} />
               <SpeedInsights />
-              <Toaster />
+              <Toaster richColors closeButton />
             </>
           )}
         </SessionProvider>

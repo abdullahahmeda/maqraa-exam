@@ -20,7 +20,7 @@ import { api } from '~/utils/api'
 import { updateProfileSchema } from '~/validation/updateProfileSchema'
 import { Switch } from '~/components/ui/switch'
 import { useSession } from 'next-auth/react'
-import { useToast } from '~/components/ui/use-toast'
+import { toast } from 'sonner'
 import { TRPCClientError } from '@trpc/client'
 import { db } from '~/server/db'
 
@@ -44,7 +44,6 @@ const ProfilePage = ({ user }: Props) => {
   })
 
   const { update } = useSession()
-  const { toast } = useToast()
 
   const changePassword = useWatch({
     control: form.control,
@@ -61,19 +60,13 @@ const ProfilePage = ({ user }: Props) => {
     profileUpdate
       .mutateAsync(data)
       .then((newData) => {
-        toast({
-          title:
-            'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات',
-        })
+        toast.success(
+          'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات'
+        )
         update({ name: newData?.name, phone: newData?.phone })
       })
       .catch((error) => {
-        toast({
-          title:
-            error instanceof TRPCClientError
-              ? error.message
-              : 'حدث خطأ أثناء حفظ البيانات',
-        })
+        toast.error(error.message)
       })
   }
 
@@ -173,7 +166,7 @@ const ProfilePage = ({ user }: Props) => {
                 />
               </>
             )}
-            <Button loading={profileUpdate.isLoading}>حفظ</Button>
+            <Button loading={profileUpdate.isPending}>حفظ</Button>
           </form>
         </Form>
       </div>

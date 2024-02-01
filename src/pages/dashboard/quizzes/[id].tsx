@@ -26,7 +26,7 @@ import { getServerAuthSession } from '~/server/auth'
 import { formatDate } from '~/utils/formatDate'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { correctQuizSchema } from '~/validation/correctQuizSchema'
-import { useToast } from '~/components/ui/use-toast'
+import { toast } from 'sonner'
 import { Input } from '~/components/ui/input'
 import { Separator } from '~/components/ui/separator'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -83,11 +83,9 @@ const MCQQuestionCorrector = ({ weight, field }: any) => {
 const CorrectQuizPage = ({
   quiz,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
-  const { toast } = useToast()
   const form = useForm<FieldValues>({
     resolver: zodResolver(correctQuizSchema),
   })
-  const router = useRouter()
 
   const examCorrect = api.quiz.correct.useMutation()
   // const gradeEmailSend = api.emails.sendGradeEmail.useMutation()
@@ -107,8 +105,6 @@ const CorrectQuizPage = ({
     }
   }, [quiz, form])
 
-  // const isLoading = _isLoading || isPaused
-
   const onSubmit = (data: FieldValues) => {
     examCorrect
       .mutateAsync({
@@ -116,16 +112,10 @@ const CorrectQuizPage = ({
         answers: form.getValues('answers') as any,
       })
       .then(() => {
-        const isEmailSent = false
-        if (isEmailSent) {
-          // toast({ title: 'تم حفظ الاختبار وارسال الدرجة بنجاح' })
-        } else 'nothing'
-        toast({ title: 'تم حفظ الاختبار' })
-        // router.push('/dashboard/exams')
+        toast.success('تم حفظ الاختبار')
       })
-      .catch((error: any) => {
-        if (error.message) toast({ title: error.message })
-        else toast({ title: 'حدث خطأ غير متوقع' })
+      .catch((error) => {
+        toast.error(error.message)
       })
   }
 
@@ -203,16 +193,6 @@ const CorrectQuizPage = ({
                             'bg-slate-200':
                               !isOfficiallyCorrected &&
                               question.type === 'WRITTEN',
-                            // 'bg-orange-200':
-                            //   grade !== null && 0 < grade && grade < weight!,
-                            // 'bg-red-200':
-                            //   grade === 0 &&
-                            //   (quiz?.grade !== null ||
-                            //     question.type === QuestionType.MCQ),
-                            // 'bg-gray-300':
-                            //   grade === 0 &&
-                            //   quiz?.grade === null &&
-                            //   question.type === QuestionType.WRITTEN,
                           })}
                         >
                           <div className='flex items-center'>
@@ -273,7 +253,7 @@ const CorrectQuizPage = ({
                     variant='success'
                     className='mt-2'
                     type='submit'
-                    loading={examCorrect.isLoading}
+                    loading={examCorrect.isPending}
                   >
                     حفظ
                   </Button>
@@ -334,7 +314,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             'Question.type',
             'Question.answer as correctAnswer',
           ])
-          .orderBy('ModelQuestion.order asc')
+          .orderBy('ModelQuestion.order', 'asc')
       ).as('answers'),
     ])
     .where('Quiz.id', '=', ctx.params!.id as string)

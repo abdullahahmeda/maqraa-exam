@@ -1,11 +1,10 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { EditUserFieldValues, UserForm } from '../forms/user'
 import { api } from '~/utils/api'
 import { editUserSchema } from '~/validation/editUserSchema'
-import { Loader2 } from 'lucide-react'
+import { Loader2Icon } from 'lucide-react'
 import { useEffect } from 'react'
 import { DialogHeader } from '../ui/dialog'
 import { useSession } from 'next-auth/react'
@@ -19,8 +18,7 @@ export const EditUserDialog = ({
   id: string
   setDialogOpen: (state: boolean) => void
 }) => {
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
   const form = useForm<EditUserFieldValues>({
     resolver: zodResolver(editUserSchema),
   })
@@ -35,7 +33,7 @@ export const EditUserDialog = ({
     },
     { enabled: id != null }
   )
-  const userUpdate = api.user.update.useMutation()
+  const mutation = api.user.update.useMutation()
 
   const { data: session } = useSession()
 
@@ -92,29 +90,26 @@ export const EditUserDialog = ({
   }, [user, form])
 
   const onSubmit = (data: EditUserFieldValues) => {
-    userUpdate
+    mutation
       .mutateAsync(data as z.infer<typeof editUserSchema>)
       .then(() => {
-        toast({ title: 'تم تعديل بيانات المستخدم بنجاح' })
+        toast.success('تم تعديل بيانات المستخدم بنجاح')
         if (id === session!.user.id)
-          toast({ title: 'قم بإعادة تسجيل الدخول لتفعيل الصلاحية الجديدة' })
+          toast.success('قم بإعادة تسجيل الدخول لتفعيل الصلاحية الجديدة')
         setDialogOpen(false)
       })
       .catch((error) => {
-        toast({ title: error.message || 'حدث خطأ غير متوقع' })
-        // form.setError('root.serverError', {
-        //   message: error.message || 'حدث خطأ غير متوقع',
-        // })
+        toast.error(error.message)
       })
       .finally(() => {
-        queryClient.invalidateQueries([['user']])
+        utils.user.invalidate()
       })
   }
 
   if (isLoading)
     return (
       <div className='flex items-center justify-center gap-2 text-center'>
-        <Loader2 className='h-4 w-4 animate-spin' />
+        <Loader2Icon className='h-4 w-4 animate-spin' />
         <p>جاري التحميل</p>
       </div>
     )
@@ -135,7 +130,7 @@ export const EditUserDialog = ({
         form={form as any}
         onSubmit={onSubmit as any}
         submitText='تعديل'
-        isLoading={userUpdate.isLoading}
+        isLoading={mutation.isPending}
       />
     </>
   )

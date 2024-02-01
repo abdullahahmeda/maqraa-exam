@@ -1,5 +1,6 @@
+import { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQueryClient } from '@tanstack/react-query'
+import { PlusIcon } from 'lucide-react'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { api } from '~/utils/api'
@@ -8,8 +9,17 @@ import {
   ImportQuestionsFieldValues,
   ImportQuestionsForm,
 } from '../forms/import-questions'
-import { DialogHeader } from '../ui/dialog'
-import { useToast } from '../ui/use-toast'
+import {
+  Dialog,
+  DialogTrigger,
+  DialogHeader,
+  DialogContent,
+} from '../ui/dialog'
+import { NewQuestionStyleDialog } from './new-question-style'
+import { Button } from '../ui/button'
+import { toast } from 'sonner'
+import { NewCourseDialog } from './new-course'
+import { Separator } from '../ui/separator'
 
 export const NewQuestionsDialog = ({
   setDialogOpen,
@@ -20,28 +30,28 @@ export const NewQuestionsDialog = ({
     resolver: zodResolver(importQuestionsSchema),
   })
 
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
 
   const questionsImport = api.question.import.useMutation()
 
   const onSubmit = (data: ImportQuestionsFieldValues) => {
-    const t = toast({ title: 'جاري إضافة الأسئلة' })
-    questionsImport
+    const promise = questionsImport
       .mutateAsync(data as z.infer<typeof importQuestionsSchema>)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة الأسئلة بنجاح' })
         setDialogOpen(false)
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['question']])
+        utils.question.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري إضافة الأسئلة...',
+      success: 'تم إضافة الأسئلة بنجاح',
+      error: (error) => error.message,
+    })
   }
+
+  const [newQStyleOpen, setNewQStyleOpen] = useState(false)
+  const [newCourseOpen, setNewCourseOpen] = useState(false)
 
   return (
     <>
@@ -50,9 +60,34 @@ export const NewQuestionsDialog = ({
       </DialogHeader>
       <ImportQuestionsForm
         form={form}
-        isLoading={questionsImport.isLoading}
+        isLoading={questionsImport.isPending}
         onSubmit={onSubmit}
       />
+      <Separator className='my-4' />
+      <div className='flex gap-4'>
+        <Dialog open={newQStyleOpen} onOpenChange={setNewQStyleOpen}>
+          <DialogTrigger asChild>
+            <Button variant='secondary'>
+              <PlusIcon className='ml-2' size={20} />
+              إضافة نوع سؤال جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <NewQuestionStyleDialog setDialogOpen={setNewQStyleOpen} />
+          </DialogContent>
+        </Dialog>
+        <Dialog open={newCourseOpen} onOpenChange={setNewCourseOpen}>
+          <DialogTrigger asChild>
+            <Button variant='secondary'>
+              <PlusIcon className='ml-2' size={20} />
+              إضافة نوع مقرر جديد
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <NewCourseDialog setDialogOpen={setNewCourseOpen} />
+          </DialogContent>
+        </Dialog>
+      </div>
     </>
   )
 }

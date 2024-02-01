@@ -1,17 +1,14 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '~/pages/_app'
 import { Cycle } from '~/kysely/types'
 import {
-  ColumnFiltersState,
   PaginationState,
   createColumnHelper,
   getCoreRowModel,
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Pencil, Eye, Trash } from 'lucide-react'
-import { GetServerSideProps } from 'next'
+import { PencilIcon, EyeIcon, TrashIcon } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { z } from 'zod'
@@ -22,24 +19,18 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
-  AlertDialogDescription,
-  AlertDialogTitle,
-  AlertDialogAction,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogCancel,
 } from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
 import { Dialog, DialogContent, DialogTrigger } from '~/components/ui/dialog'
-import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
-import { Plus } from 'lucide-react'
-import { useToast } from '~/components/ui/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
+import { PlusIcon } from 'lucide-react'
 import { Checkbox } from '~/components/ui/checkbox'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { Selectable } from 'kysely'
+import { DataTableActions } from '~/components/ui/data-table-actions'
 
-const columnHelper = createColumnHelper<Cycle>()
+const columnHelper = createColumnHelper<Selectable<Cycle>>()
 
 const columns = [
   columnHelper.display({
@@ -72,12 +63,12 @@ const columns = [
       <div className='flex justify-center'>
         {/* <Button>عرض</Button> */}
         <Button size='icon' variant='ghost'>
-          <Eye className='h-4 w-4' />
+          <EyeIcon className='h-4 w-4' />
         </Button>
         <Dialog>
           <DialogTrigger asChild>
             <Button variant='ghost' size='icon' className='hover:bg-orange-50'>
-              <Pencil className='h-4 w-4 text-orange-500' />
+              <PencilIcon className='h-4 w-4 text-orange-500' />
             </Button>
           </DialogTrigger>
           <DialogContent>
@@ -87,7 +78,7 @@ const columns = [
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant='ghost' size='icon' className='hover:bg-red-50'>
-              <Trash className='h-4 w-4 text-red-600' />
+              <TrashIcon className='h-4 w-4 text-red-600' />
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -102,9 +93,8 @@ const columns = [
 const PAGE_SIZE = 25
 
 const CyclesPage = () => {
+  const utils = api.useUtils()
   const router = useRouter()
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -121,7 +111,10 @@ const CyclesPage = () => {
     pageSize,
   }
 
-  const bulkDelete = api.cycle.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.cycle.bulkDelete.useMutation()
+  const deleteAllMutation = api.cycle.deleteAll.useMutation()
+
+  const invalidate = utils.cycle.invalidate
 
   const { data: cycles, isFetching: isFetchingCycles } =
     api.cycle.list.useQuery({ pagination }, { networkMode: 'always' })
@@ -160,21 +153,19 @@ const CyclesPage = () => {
     .flatRows.map((item) => item.original)
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف الدورات المختارة...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['cycle']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
   }
 
   return (
@@ -187,7 +178,7 @@ const CyclesPage = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className='flex items-center gap-2'>
-              <Plus className='h-4 w-4' />
+              <PlusIcon className='h-4 w-4' />
               إضافة دورة
             </Button>
           </DialogTrigger>
@@ -196,38 +187,14 @@ const CyclesPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <div className='mb-4'>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant='destructive'
-              className='flex items-center gap-2'
-              // onClick={handleBulkDelete}
-              disabled={selectedRows.length === 0}
-            >
-              <Trash size={16} />
-              حذف{' '}
-              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                هل تريد حقاً حذف الدورات المختارة؟
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <AlertDialogDescription>
-              سيتم حذف {selectedRows.length} من الدورات
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleBulkDelete}>
-                تأكيد
-              </AlertDialogAction>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+
+      <DataTableActions
+        deleteAll={{
+          handle: handleDeleteAll,
+          data: { disabled: !cycles || cycles?.length === 0 },
+        }}
+        bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+      />
       <DataTable table={table} fetching={isFetchingCycles} />
     </>
   )

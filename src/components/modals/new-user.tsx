@@ -1,6 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { UserRole } from '~/kysely/enums'
-import { useQueryClient } from '@tanstack/react-query'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { api } from '~/utils/api'
@@ -10,14 +9,10 @@ import {
   ImportStudentsFieldValues,
   ImportStudentsForm,
 } from '../forms/import-users'
-import {
-  AddUserFieldValues,
-  UserForm,
-  makeEmptyStudentCycle,
-} from '../forms/user'
+import { AddUserFieldValues, UserForm } from '../forms/user'
 import { DialogHeader } from '../ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { User, Users } from 'lucide-react'
 import { generateRandomPassword } from '~/utils/users'
 
@@ -26,8 +21,7 @@ type Props = {
 }
 
 const NewSingleUserTab = ({ setDialogOpen }: Props) => {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
 
   const form = useForm<AddUserFieldValues>({
     defaultValues: {
@@ -39,24 +33,20 @@ const NewSingleUserTab = ({ setDialogOpen }: Props) => {
     resolver: zodResolver(newUserSchema),
   })
 
-  const userCreate = api.user.create.useMutation()
+  const mutation = api.user.create.useMutation()
 
   const onSubmit = (data: AddUserFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المستخدم' })
-    userCreate
+    mutation
       .mutateAsync(data as z.infer<typeof newUserSchema>)
       .then(() => {
-        t.dismiss()
-        form.reset()
-        toast({ title: 'تم إضافة المستخدم بنجاح' })
+        toast.success('تم إضافة المستخدم بنجاح')
         setDialogOpen(false)
       })
       .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message })
+        toast.error(error.message)
       })
       .finally(() => {
-        queryClient.invalidateQueries([['user']])
+        utils.user.invalidate()
       })
   }
 
@@ -64,7 +54,7 @@ const NewSingleUserTab = ({ setDialogOpen }: Props) => {
     <UserForm
       form={form}
       onSubmit={onSubmit}
-      isLoading={userCreate.isLoading}
+      isLoading={mutation.isPending}
       submitText='إضافة'
     />
   )
@@ -74,31 +64,27 @@ const ImportStudentsTab = ({ setDialogOpen }: Props) => {
   const form = useForm<ImportStudentsFieldValues>({
     resolver: zodResolver(importUsersSchema),
   })
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
-  const studentsImport = api.user.import.useMutation()
+  const utils = api.useUtils()
+  const mutation = api.user.import.useMutation()
   const onSubmit = (data: ImportStudentsFieldValues) => {
-    // const t = toast({ title: 'جاري تنفيذ الطلب' })
-    studentsImport
+    mutation
       .mutateAsync(data as z.infer<typeof importUsersSchema>)
       .then(() => {
-        // t.dismiss()
         form.reset()
-        toast({ title: 'سيتم إضافة الطلبة' })
+        toast.success('سيتم إضافة الطلبة')
         setDialogOpen(false)
       })
       .catch((error) => {
-        // t.dismiss()
-        toast({ title: error.message })
+        toast.error(error.message)
       })
       .finally(() => {
-        queryClient.invalidateQueries([['user']])
+        utils.user.invalidate()
       })
   }
   return (
     <ImportStudentsForm
       form={form}
-      isLoading={studentsImport.isLoading}
+      isLoading={mutation.isPending}
       onSubmit={onSubmit}
     />
   )

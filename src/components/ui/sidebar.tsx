@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react'
 import { Avatar, AvatarFallback } from './avatar'
 
 type MenuLink = {
-  icon: string
+  icon: string | null
   label: ReactNode
   key: string
 }
@@ -39,10 +39,12 @@ export function Sidebar({ className, links, setIsSidebarOpen }: SidebarProps) {
                 if (window.innerWidth < 768) setIsSidebarOpen(false)
               }}
             >
-              <div
-                className='ml-2 inline-block'
-                dangerouslySetInnerHTML={{ __html: link.icon }}
-              />
+              {link.icon ? (
+                <div
+                  className='ml-2 inline-block'
+                  dangerouslySetInnerHTML={{ __html: link.icon }}
+                />
+              ) : null}
               {link.label}
             </Link>
           ))}

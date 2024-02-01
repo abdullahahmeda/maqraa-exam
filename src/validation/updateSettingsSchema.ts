@@ -1,15 +1,16 @@
-export const UNUSED = true
+import { SettingKey, UserRole } from '~/kysely/enums'
+import { z } from 'zod'
 
-// import { SettingKey } from '../constants'
-// import { z } from 'zod'
-
-// export const updateSettingsSchema = z.object({
-//   [SettingKey.EASY_MCQ_QUESTIONS]: z.number().positive().int(),
-//   [SettingKey.EASY_WRITTEN_QUESTIONS]: z.number().positive().int(),
-//   [SettingKey.MEDIUM_MCQ_QUESTIONS]: z.number().positive().int(),
-//   [SettingKey.MEDIUM_WRITTEN_QUESTIONS]: z.number().positive().int(),
-//   [SettingKey.HARD_MCQ_QUESTIONS]: z.number().positive().int(),
-//   [SettingKey.HARD_WRITTEN_QUESTIONS]: z.number().positive().int()
-// })
-
-// export type ValidSchema = z.infer<typeof updateSettingsSchema>
+export const updateSettingsSchema = z.object({
+  [SettingKey.SITE_NAME]: z.string().min(1),
+  menuItems: z.record(
+    z.nativeEnum(UserRole),
+    z.array(
+      z.object({
+        label: z.string().min(1),
+        icon: z.string().nullable(),
+        key: z.string().min(1),
+      })
+    )
+  ),
+})

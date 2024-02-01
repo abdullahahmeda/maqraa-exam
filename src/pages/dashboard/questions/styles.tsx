@@ -9,7 +9,7 @@ import {
   PaginationState,
   useReactTable,
 } from '@tanstack/react-table'
-import { Plus, Trash, Pencil } from 'lucide-react'
+import { PlusIcon, TrashIcon, PencilIcon } from 'lucide-react'
 import { NewQuestionStyleDialog } from '~/components/modals/new-question-style'
 import { EditQuestionStyleDialog } from '~/components/modals/edit-question-style'
 import type { QuestionStyle } from '~/kysely/types'
@@ -22,20 +22,15 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
-  AlertDialogCancel,
-  AlertDialogDescription,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogAction,
 } from '~/components/ui/alert-dialog'
 import { DeleteQuestionStyleDialog } from '~/components/modals/delete-question-style'
 import { enColumnToAr, enTypeToAr } from '~/utils/questions'
 import { Badge } from '~/components/ui/badge'
-import { useToast } from '~/components/ui/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { Selectable } from 'kysely'
+import { DataTableActions } from '~/components/ui/data-table-actions'
 
-const columnHelper = createColumnHelper<QuestionStyle>()
+const columnHelper = createColumnHelper<Selectable<QuestionStyle>>()
 
 const PAGE_SIZE = 25
 
@@ -43,8 +38,7 @@ const QuestionsStylesPage = () => {
   const [dialogOpen, setDialogOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
   const router = useRouter()
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -111,7 +105,7 @@ const QuestionsStylesPage = () => {
                   size='icon'
                   className='hover:bg-orange-50'
                 >
-                  <Pencil className='h-4 w-4 text-orange-500' />
+                  <PencilIcon className='h-4 w-4 text-orange-500' />
                 </Button>
               </DialogTrigger>
               <DialogContent>
@@ -124,7 +118,7 @@ const QuestionsStylesPage = () => {
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button size='icon' variant='ghost' className='hover:bg-red-50'>
-                  <Trash className='h-4 w-4 text-red-600' />
+                  <TrashIcon className='h-4 w-4 text-red-600' />
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -146,7 +140,10 @@ const QuestionsStylesPage = () => {
     error,
   } = api.questionStyle.list.useQuery({ pagination })
 
-  const bulkDelete = api.questionStyle.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.questionStyle.bulkDelete.useMutation()
+  const deleteAllMutation = api.questionStyle.deleteAll.useMutation()
+
+  const invalidate = utils.questionStyle.invalidate
 
   const { data: count, isLoading: isCountLoading } =
     api.questionStyle.count.useQuery(undefined, { networkMode: 'always' })
@@ -179,22 +176,21 @@ const QuestionsStylesPage = () => {
     .flatRows.map((item) => item.original)
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف أنواع الأسئلة المختارة...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['questionStyle']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
   }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
+  }
+
   return (
     <>
       <Head>
@@ -205,7 +201,7 @@ const QuestionsStylesPage = () => {
         <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
           <DialogTrigger asChild>
             <Button className='flex items-center gap-2'>
-              <Plus className='h-4 w-4' />
+              <PlusIcon className='h-4 w-4' />
               إضافة نوع سؤال
             </Button>
           </DialogTrigger>
@@ -214,38 +210,13 @@ const QuestionsStylesPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <div className='mb-4'>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant='destructive'
-              className='flex items-center gap-2'
-              // onClick={handleBulkDelete}
-              disabled={selectedRows.length === 0}
-            >
-              <Trash size={16} />
-              حذف{' '}
-              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                هل تريد حقاً حذف أنواع الأسئلة المختارة؟
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <AlertDialogDescription>
-              سيتم حذف {selectedRows.length} من أنواع الأسئلة
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleBulkDelete}>
-                تأكيد
-              </AlertDialogAction>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <DataTableActions
+        deleteAll={{
+          handle: handleDeleteAll,
+          data: { disabled: !questionStyles || questionStyles?.length === 0 },
+        }}
+        bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+      />
       <DataTable table={table} fetching={fetchingQuestionStyles} />
     </>
   )

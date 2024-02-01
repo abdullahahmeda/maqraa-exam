@@ -12,6 +12,7 @@ import { errorReportRouter } from './routers/custom/error-report'
 import { systemExamRouter } from './routers/custom/system-exam'
 import { questionStyleRouter } from './routers/custom/question-style'
 import { modelQuestionRouter } from './routers/custom/model-question'
+import { settingRouter } from './routers/custom/setting'
 
 /**
  * This is the primary router for your server.
@@ -33,6 +34,7 @@ export const appRouter = createTRPCRouter({
   errorReport: errorReportRouter,
   systemExam: systemExamRouter,
   questionStyle: questionStyleRouter,
+  setting: settingRouter,
 })
 
 export type AppRouter = typeof appRouter

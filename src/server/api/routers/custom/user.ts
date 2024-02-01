@@ -435,6 +435,7 @@ export const userRouter = createTRPCRouter({
           ...(password ? { password: hashSync(password, 12) } : {}),
         })
         .returning(['name', 'phone'])
+        .where('id', '=', ctx.session.user.id)
         .executeTakeFirst()
     }),
 
@@ -519,4 +520,9 @@ export const userRouter = createTRPCRouter({
       await ctx.db.deleteFrom('User').where('id', 'in', input).execute()
       return true
     }),
+
+  deleteAll: protectedProcedure.mutation(async ({ctx}) => {
+    await ctx.db.deleteFrom('User').execute()
+    return true
+  })
 })

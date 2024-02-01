@@ -7,7 +7,6 @@ import { useRouter } from 'next/router'
 import WebsiteLayout from '../components/layout'
 import { GetServerSideProps } from 'next'
 import { getServerAuthSession } from '../server/auth'
-import { useToast } from '~/components/ui/use-toast'
 import {
   Form,
   FormControl,
@@ -35,6 +34,7 @@ import { handleFormError } from '~/utils/errors'
 import { Separator } from '~/components/ui/separator'
 import { Loader2 } from 'lucide-react'
 import { cn } from '~/lib/utils'
+import { toast } from 'sonner'
 
 type FieldValues = {
   courseId: any
@@ -53,8 +53,6 @@ type FieldValues = {
   difficulty: QuestionDifficulty | string | undefined
 }
 const HomePage = () => {
-  const { toast } = useToast()
-
   const [submitting, setSubmitting] = useState(false)
 
   const form = useForm<FieldValues>({
@@ -173,7 +171,7 @@ const HomePage = () => {
           fields: (key, message) =>
             form.setError(key as keyof FieldValues, { message }),
           form: (message) => form.setError('root.form', { message }),
-          default: (message) => toast({ title: message }),
+          default: (message) => toast.error(message),
         })
       })
   }

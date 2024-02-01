@@ -28,3 +28,7 @@ export const QuestionsGroupType = {
 } as const
 export type QuestionsGroupType =
   (typeof QuestionsGroupType)[keyof typeof QuestionsGroupType]
+export const SettingKey = {
+  SITE_NAME: 'SITE_NAME',
+} as const
+export type SettingKey = (typeof SettingKey)[keyof typeof SettingKey]

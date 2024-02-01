@@ -6,12 +6,11 @@ import { getSpreadsheetIdFromURL } from '~/utils/sheets'
 import { TRPCError } from '@trpc/server'
 import { GaxiosError } from 'gaxios'
 import { db } from '~/server/db'
-import XLSX from 'xlsx'
 import { enColumnToAr, enDifficultyToAr, enTypeToAr } from '~/utils/questions'
 import { exportSheet, importFromGoogleSheet } from '~/services/sheet'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
 import { QuestionDifficulty, QuestionType, QuizType } from '~/kysely/enums'
-import { SelectQueryBuilder } from 'kysely'
+import { SelectQueryBuilder, sql } from 'kysely'
 import { DB } from '~/kysely/types'
 
 const questionFilterSchema = z.object({
@@ -174,6 +173,7 @@ export const questionRouter = createTRPCRouter({
       const total = Number((await query.executeTakeFirst())?.total)
       return total
     }),
+
   import: protectedProcedure
     .input(importQuestionsSchema)
     .mutation(async ({ ctx, input }) => {
@@ -187,7 +187,7 @@ export const questionRouter = createTRPCRouter({
         { id: string; type: QuestionType; columnChoices: string[] }
       >
 
-      let data
+      let data: any[]
       try {
         data = await importFromGoogleSheet({
           spreadsheetId,
@@ -313,7 +313,57 @@ export const questionRouter = createTRPCRouter({
         })
       }
 
-      await ctx.db.insertInto('Question').values(data).execute()
+      const columns = [
+        'number',
+        'pageNumber',
+        'partNumber',
+        'hadithNumber',
+        'type',
+        'styleId',
+        'difficulty',
+        'text',
+        'textForTrue',
+        'textForFalse',
+        'option1',
+        'option2',
+        'option3',
+        'option4',
+        'answer',
+        'anotherAnswer',
+        'isInsideShaded',
+        'objective',
+        'courseId',
+      ]
+
+      const rows = columns.map((col) => data.map((d) => d[col]))
+
+      await ctx.db
+        .insertInto('Question')
+        .columns(columns as any[])
+        .expression(
+          () =>
+            sql`select * from unnest(
+              ${rows[0]}::integer[], 
+              ${rows[1]}::integer[],
+              ${rows[2]}::integer[],
+              ${rows[3]}::integer[],
+              ${rows[4]}::"QuestionType"[],
+              ${rows[5]}::text[],
+              ${rows[6]}::"QuestionDifficulty"[],
+              ${rows[7]}::text[],
+              ${rows[8]}::text[],
+              ${rows[9]}::text[],
+              ${rows[10]}::text[],
+              ${rows[11]}::text[],
+              ${rows[12]}::text[],
+              ${rows[13]}::text[],
+              ${rows[14]}::text[],
+              ${rows[15]}::text[],
+              ${rows[16]}::boolean[],
+              ${rows[17]}::text[],
+              ${rows[18]}::text[])`.as('T') as any
+        )
+        .execute()
       return true
     }),
 
@@ -331,7 +381,7 @@ export const questionRouter = createTRPCRouter({
         .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
         .selectAll('Question')
         .select('QuestionStyle.name as styleName')
-        .orderBy('number asc')
+        .orderBy('Question.number', 'asc')
         .execute()
 
       return exportSheet(questions, (q) => ({
@@ -375,4 +425,9 @@ export const questionRouter = createTRPCRouter({
       await ctx.db.deleteFrom('Question').where('id', 'in', input).execute()
       return true
     }),
+
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.deleteFrom('Question').execute()
+    return true
+  }),
 })

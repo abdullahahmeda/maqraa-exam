@@ -1,6 +1,5 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '~/pages/_app'
 import {
   ColumnFiltersState,
   PaginationState,
@@ -32,7 +31,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
-import { useToast } from '~/components/ui/use-toast'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import {
   difficultyMapping,
@@ -45,24 +44,22 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
-  AlertDialogTitle,
-  AlertDialogAction,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogDescription,
-  AlertDialogCancel,
 } from '~/components/ui/alert-dialog'
 import { DeleteQuestionDialog } from '~/components/modals/delete-question'
 import { saveAs } from 'file-saver'
 import { Input } from '~/components/ui/input'
-import { useQueryClient } from '@tanstack/react-query'
 import { QuestionDifficulty, QuestionType } from '~/kysely/enums'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 import { Question } from '~/kysely/types'
 import { Textarea } from '~/components/ui/textarea'
 import { QuestionInfoModal } from '~/components/modals/question-info'
+import { DataTableActions } from '~/components/ui/data-table-actions'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { Selectable } from 'kysely'
 
-const columnHelper = createColumnHelper<Question & { courseName: string }>()
+const columnHelper = createColumnHelper<
+  Selectable<Question> & { courseName: string }
+>()
 
 const columnFiltersValidators = {
   id: z.string(),
@@ -94,10 +91,9 @@ const PAGE_SIZE = 25
 
 const QuestionsPage = () => {
   const router = useRouter()
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
-  const { toast } = useToast()
 
   const pageIndex = z
     .preprocess((v) => Number(v), z.number().positive().int())
@@ -118,7 +114,8 @@ const QuestionsPage = () => {
     {}
   )
 
-  const bulkDelete = api.question.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.question.bulkDelete.useMutation()
+  const deleteAllMutation = api.question.deleteAll.useMutation()
 
   const { data: questionStyles } = api.questionStyle.list.useQuery(
     {},
@@ -627,39 +624,32 @@ const QuestionsPage = () => {
     .getSelectedRowModel()
     .flatRows.map((item) => item.original)
 
-  const handleDownload = async () => {
-    const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
-    questionsExport
-      .mutateAsync()
-      .then((arrayBuffer) => {
-        const content = new Blob([arrayBuffer])
-        saveAs(content, 'قاعدة بيانات الأسئلة.xlsx')
-        toast({ title: 'تم بدأ تحميل الملف' })
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء تحميل الملف' })
-      })
-      .finally(() => {
-        t.dismiss()
-      })
+  const handleExcelExport = async () => {
+    const promise = questionsExport.mutateAsync().then((arrayBuffer) => {
+      const content = new Blob([arrayBuffer])
+      saveAs(content, 'قاعدة بيانات الأسئلة.xlsx')
+    })
+    toast.promise(promise, {
+      loading: 'يتم تجهيز الملف للتحميل...',
+      success: 'تم بدأ تحميل الملف',
+      error: (error) => error.message,
+    })
   }
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف الأسئلة المختارة...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['question']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate: utils.question.invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate: utils.question.invalidate,
+    })
   }
 
   return (
@@ -682,48 +672,17 @@ const QuestionsPage = () => {
         </Dialog>
       </div>
       <div>
-        <Button
-          disabled={!questions || questions.length === 0}
-          variant='success'
-          className='mb-4 flex gap-2'
-          onClick={handleDownload}
-        >
-          <Download className='h-4 w-4' />
-          تصدير الكل
-        </Button>
-        <div className='mb-4'>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                variant='destructive'
-                className='flex items-center gap-2'
-                // onClick={handleBulkDelete}
-                disabled={selectedRows.length === 0}
-              >
-                <Trash size={16} />
-                حذف{' '}
-                {selectedRows.length > 0 &&
-                  `(${selectedRows.length} من العناصر)`}
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>
-                  هل تريد حقاً حذف الأسئلة المختارة؟
-                </AlertDialogTitle>
-              </AlertDialogHeader>
-              <AlertDialogDescription>
-                سيتم حذف {selectedRows.length} من الأسئلة
-              </AlertDialogDescription>
-              <AlertDialogFooter>
-                <AlertDialogAction onClick={handleBulkDelete}>
-                  تأكيد
-                </AlertDialogAction>
-                <AlertDialogCancel>إلغاء</AlertDialogCancel>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
+        <DataTableActions
+          deleteAll={{
+            handle: handleDeleteAll,
+            data: { disabled: !questions || questions?.length === 0 },
+          }}
+          bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+          excelExport={{
+            handle: handleExcelExport,
+            data: { disabled: !questions || questions.length === 0 },
+          }}
+        />
         <DataTable table={table} fetching={isFetchingQuestions} />
       </div>
     </>

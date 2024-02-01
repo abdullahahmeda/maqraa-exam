@@ -87,4 +87,9 @@ export const trackRouter = createTRPCRouter({
       await ctx.db.deleteFrom('Track').where('id', 'in', input).execute()
       return true
     }),
+
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.deleteFrom('Track').execute()
+    return true
+  }),
 })

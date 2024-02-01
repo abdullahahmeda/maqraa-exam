@@ -1,6 +1,5 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { NewCourseFieldValues, CourseForm } from '../forms/course'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { api } from '~/utils/api'
@@ -12,29 +11,26 @@ export const NewCourseDialog = ({
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
   const form = useForm<NewCourseFieldValues>({
     resolver: zodResolver(newCourseSchema),
   })
-  const courseCreate = api.course.create.useMutation()
+  const mutation = api.course.create.useMutation()
 
   const onSubmit = (data: NewCourseFieldValues) => {
-    const t = toast({ title: 'جاري إضافة المقرر' })
-    courseCreate
+    const promise = mutation
       .mutateAsync(data)
       .then(() => {
-        t.dismiss()
-        toast({ title: 'تم إضافة المقرر بنجاح' })
         setDialogOpen(false)
       })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
       .finally(() => {
-        queryClient.invalidateQueries([['course']])
+        utils.course.invalidate()
       })
+    toast.promise(promise, {
+      loading: 'جاري إضافة المقرر',
+      success: 'تم إضافة المقرر بنجاح',
+      error: (error) => error.message,
+    })
   }
   return (
     <>
@@ -42,7 +38,7 @@ export const NewCourseDialog = ({
       <CourseForm
         form={form}
         onSubmit={onSubmit}
-        isLoading={courseCreate.isLoading}
+        isLoading={mutation.isPending}
         submitText='إضافة'
       />
     </>

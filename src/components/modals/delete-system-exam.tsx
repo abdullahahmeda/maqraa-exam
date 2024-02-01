@@ -1,5 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { api } from '~/utils/api'
 import {
   AlertDialogHeader,
@@ -11,25 +10,18 @@ import {
 } from '../ui/alert-dialog'
 
 export const DeleteSystemExamDialog = ({ id }: { id: string }) => {
-  const { toast } = useToast()
-  const systemExamDelete = api.systemExam.delete.useMutation()
-  const queryClient = useQueryClient()
+  const mutation = api.systemExam.delete.useMutation()
+  const utils = api.useUtils()
 
   const deleteSystemExam = () => {
-    const t = toast({ title: 'جاري حذف الإمتحان' })
-    systemExamDelete
-      .mutateAsync(id)
-      .then(() => {
-        t.dismiss()
-        toast({ title: 'تم حذف الإمتحان بنجاح' })
-      })
-      .catch((error) => {
-        t.dismiss()
-        toast({ title: error.message, variant: 'destructive' })
-      })
-      .finally(() => {
-        queryClient.invalidateQueries([['systemExam']])
-      })
+    const promise = mutation.mutateAsync(id).finally(() => {
+      utils.systemExam.invalidate()
+    })
+    toast.promise(promise, {
+      loading: 'جاري حذف الإمتحان...',
+      success: 'تم حذف الإمتحان بنجاح',
+      error: (error) => error.message,
+    })
   }
 
   return (

@@ -1,6 +1,5 @@
 import Head from 'next/head'
 import DashboardLayout from '~/components/dashboard/layout'
-// import { NextPageWithLayout } from '~/pages/_app'
 import { Track } from '~/kysely/types'
 import {
   ColumnFiltersState,
@@ -10,8 +9,7 @@ import {
   getFilteredRowModel,
   useReactTable,
 } from '@tanstack/react-table'
-import { Eye, Filter, Trash } from 'lucide-react'
-import { GetServerSideProps } from 'next'
+import { Eye, Filter, Trash, Plus } from 'lucide-react'
 import { useRouter } from 'next/router'
 import { useState } from 'react'
 import { z } from 'zod'
@@ -21,12 +19,6 @@ import {
   AlertDialog,
   AlertDialogContent,
   AlertDialogTrigger,
-  AlertDialogCancel,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogAction,
-  AlertDialogTitle,
-  AlertDialogDescription,
 } from '~/components/ui/alert-dialog'
 import { Button } from '~/components/ui/button'
 import { Combobox } from '~/components/ui/combobox'
@@ -37,18 +29,19 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { getServerAuthSession } from '~/server/auth'
 import { api } from '~/utils/api'
-import { Plus } from 'lucide-react'
 import { getColumnFilters } from '~/utils/getColumnFilters'
 import { Checkbox } from '~/components/ui/checkbox'
-import { useQueryClient } from '@tanstack/react-query'
-import { useToast } from '~/components/ui/use-toast'
+import { Selectable } from 'kysely'
+import { deleteRows } from '~/utils/client/deleteRows'
+import { DataTableActions } from '~/components/ui/data-table-actions'
 
 const columnFiltersValidators = {
   courseId: z.string(),
 }
-const columnHelper = createColumnHelper<Track & { courseName: string }>()
+const columnHelper = createColumnHelper<
+  Selectable<Track> & { courseName: string }
+>()
 
 const columns = [
   columnHelper.display({
@@ -134,8 +127,7 @@ const PAGE_SIZE = 25
 
 const TracksPage = () => {
   const router = useRouter()
-  const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const utils = api.useUtils()
   const [dialogOpen, setDialogOpen] = useState(false)
   const [rowSelection, setRowSelection] = useState({})
 
@@ -152,7 +144,10 @@ const TracksPage = () => {
     pageSize,
   }
 
-  const bulkDelete = api.track.bulkDelete.useMutation()
+  const bulkDeleteMutation = api.track.bulkDelete.useMutation()
+  const deleteAllMutation = api.track.deleteAll.useMutation()
+
+  const invalidate = utils.track.invalidate
 
   const columnFilters = getColumnFilters(router.query, columnFiltersValidators)
   const filters = columnFilters.reduce(
@@ -217,21 +212,19 @@ const TracksPage = () => {
     .flatRows.map((item) => item.original)
 
   const handleBulkDelete = () => {
-    if (selectedRows.length === 0) return
-    const t = toast({ title: 'جاري حذف المسارات المختارة...' })
-    bulkDelete
-      .mutateAsync(selectedRows.map(({ id }) => id) as unknown as string[])
-      .then(() => {
-        toast({ title: 'تم الحذف بنجاح' })
-        setRowSelection({})
-      })
-      .catch((e) => {
-        toast({ title: 'حدث خطأ أثناء الحذف' })
-      })
-      .finally(() => {
-        t.dismiss()
-        queryClient.invalidateQueries([['track']])
-      })
+    deleteRows({
+      mutateAsync: () =>
+        bulkDeleteMutation.mutateAsync(selectedRows.map((r) => r.id)),
+      invalidate,
+      setRowSelection,
+    })
+  }
+
+  const handleDeleteAll = () => {
+    deleteRows({
+      mutateAsync: deleteAllMutation.mutateAsync,
+      invalidate,
+    })
   }
 
   return (
@@ -253,37 +246,13 @@ const TracksPage = () => {
           </DialogContent>
         </Dialog>
       </div>
-      <div className='mb-4'>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              variant='destructive'
-              className='flex items-center gap-2'
-              disabled={selectedRows.length === 0}
-            >
-              <Trash size={16} />
-              حذف{' '}
-              {selectedRows.length > 0 && `(${selectedRows.length} من العناصر)`}
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
-                هل تريد حقاً حذف المسارات المختارة؟
-              </AlertDialogTitle>
-            </AlertDialogHeader>
-            <AlertDialogDescription>
-              سيتم حذف {selectedRows.length} من المسارات
-            </AlertDialogDescription>
-            <AlertDialogFooter>
-              <AlertDialogAction onClick={handleBulkDelete}>
-                تأكيد
-              </AlertDialogAction>
-              <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
+      <DataTableActions
+        deleteAll={{
+          handle: handleDeleteAll,
+          data: { disabled: !tracks || tracks?.length === 0 },
+        }}
+        bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
+      />
       <DataTable table={table} fetching={isFetchingTracks} />
     </>
   )

@@ -14,7 +14,7 @@ import { useForm } from 'react-hook-form'
 import { forgotPasswordSchema } from '~/validation/forgotPasswordSchema'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { api } from '~/utils/api'
-import { useToast } from '~/components/ui/use-toast'
+import { toast } from 'sonner'
 import { useState } from 'react'
 import { CheckCircle } from 'lucide-react'
 
@@ -29,8 +29,6 @@ const ForgotPasswordPage = () => {
 
   const [isSuccess, setIsSuccess] = useState(false)
 
-  const { toast } = useToast()
-
   const passwordResetRequest = api.user.forgotPassword.useMutation()
 
   const onSubmit = (data: FieldValues) => {
@@ -40,7 +38,7 @@ const ForgotPasswordPage = () => {
         setIsSuccess(true)
       })
       .catch((error) => {
-        toast({ title: (error as any).message, variant: 'destructive' })
+        toast.error((error as any).message)
       })
   }
 
@@ -81,7 +79,7 @@ const ForgotPasswordPage = () => {
                       سيتم ارسال رابط لإعادة تعيين كلمة المرور على البريد
                       الإلكتروني الخاص بك.
                     </p>
-                    <Button loading={passwordResetRequest.isLoading}>
+                    <Button loading={passwordResetRequest.isPending}>
                       أرسل
                     </Button>
                   </div>

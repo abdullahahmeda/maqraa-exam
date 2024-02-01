@@ -10,18 +10,11 @@ import {
   FormLabel,
   FormMessage,
 } from '../ui/form'
-import { useToast } from '../ui/use-toast'
-import { useQueryClient } from '@tanstack/react-query'
-import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
+import { toast } from 'sonner'
 import { z } from 'zod'
-import { Checkbox } from '../ui/checkbox'
 import { Button } from '../ui/button'
 import { CheckedState } from '@radix-ui/react-checkbox'
-import { Popover, PopoverContent, PopoverTrigger } from '../ui/popover'
-import { cn } from '~/lib/utils'
-import { Loader2 } from 'lucide-react'
-import { arSA } from 'date-fns/locale'
-import { format } from 'date-fns'
+import { Loader2Icon } from 'lucide-react'
 import { useEffect } from 'react'
 import { editQuizSchema } from '~/validation/editQuizSchema'
 import { DatePicker } from '~/components/ui/date-picker'
@@ -39,14 +32,13 @@ export const EditQuizDialog = ({
   id: string
   setDialogOpen: (state: boolean) => void
 }) => {
-  const { toast } = useToast()
-  const queryClient = useQueryClient()
+  const utils = api.useUtils()
   const form = useForm<FieldValues>({
     resolver: zodResolver(editQuizSchema),
     defaultValues: { repeatFromSameHadith: false },
   })
 
-  const quizUpdate = api.quiz.update.useMutation()
+  const mutation = api.quiz.update.useMutation()
 
   const { data: quiz, isLoading, error } = api.quiz.get.useQuery(id)
 
@@ -57,7 +49,7 @@ export const EditQuizDialog = ({
   if (isLoading)
     return (
       <div className='flex justify-center'>
-        <Loader2 className='h-4 w-4 animate-spin' />
+        <Loader2Icon className='h-4 w-4 animate-spin' />
       </div>
     )
 
@@ -69,25 +61,17 @@ export const EditQuizDialog = ({
     )
 
   const onSubmit = (data: FieldValues) => {
-    quizUpdate
+    mutation
       .mutateAsync(data as z.infer<typeof editQuizSchema>)
       .then(() => {
-        toast({ title: 'تم تعديل الإختبار بنجاح' })
         setDialogOpen(false)
+        toast.success('تم تعديل الإختبار بنجاح')
       })
       .catch((error) => {
-        if (error.message) {
-          toast({
-            title: 'حدث خطأ',
-            description: error.message,
-          })
-        } else
-          toast({
-            title: 'حدث خطأ غير متوقع',
-          })
+        toast.error(error.message)
       })
       .finally(() => {
-        queryClient.invalidateQueries([['quiz']])
+        utils.quiz.invalidate()
       })
   }
 
@@ -117,7 +101,7 @@ export const EditQuizDialog = ({
             </FormItem>
           )}
         />
-        <Button>تعديل</Button>
+        <Button loading={mutation.isPending}>تعديل</Button>
       </form>
     </Form>
   )

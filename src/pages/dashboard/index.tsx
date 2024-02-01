@@ -21,21 +21,24 @@ import { startOfDay, sub, format } from 'date-fns'
 const DashboardPage = ({
   lastMonthExamsStats,
   lastMonthGradesStats,
-}: InferGetServerSidePropsType<typeof getServerSideProps>) => {
+  siteName,
+}: InferGetServerSidePropsType<typeof getServerSideProps> & {
+  siteName: string
+}) => {
   return (
     <>
       <Head>
-        <title>لوحة التحكم</title>
+        <title>لوحة التحكم | {siteName}</title>
       </Head>
       <div>
         <h2 className='mb-4 text-2xl font-bold'>الإحصائيات آخر 30 يوم</h2>
         <h3 className='mb-4 text-xl font-semibold '>إختبارات النظام</h3>
         <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
           <div>
-            <h3 className='mb-4 font-semibold text-gray-700'>
-              التسليم والتصحيح
-            </h3>
             <div className='rounded-md bg-white p-4 shadow'>
+              <h3 className='mb-4 font-semibold text-gray-800'>
+                التسليم والتصحيح
+              </h3>
               {lastMonthExamsStats.length === 0 ? (
                 <p>لا يوجد بيانات</p>
               ) : (
@@ -83,8 +86,8 @@ const DashboardPage = ({
             </div>
           </div>
           <div>
-            <h3 className='mb-4 font-semibold text-gray-700'>الدرجات</h3>
             <div className='rounded-md bg-white p-4 shadow'>
+              <h3 className='mb-4 font-semibold text-gray-800'>الدرجات</h3>
               {lastMonthGradesStats.length === 0 ? (
                 <p>لا يوجد بيانات</p>
               ) : (
@@ -113,21 +116,21 @@ const DashboardPage = ({
                     <Legend />
                     <Line
                       type='monotone'
-                      dataKey={(obj) => '' + Number(obj.max)}
+                      dataKey={(obj) => '' + Number(obj.max).toFixed(2)}
                       unit='%'
                       fill='#8884d8'
                       name='أعلى درجة'
                     />
                     <Line
                       type='monotone'
-                      dataKey={(obj) => '' + Number(obj.avg)}
+                      dataKey={(obj) => '' + Number(obj.avg).toFixed(2)}
                       fill='#82ca9d'
                       unit='%'
                       name='المتوسط'
                     />
                     <Line
                       type='monotone'
-                      dataKey={(obj) => '' + Number(obj.min)}
+                      dataKey={(obj) => '' + Number(obj.min).toFixed(2)}
                       fill='#82ca9d'
                       unit='%'
                       name='أقل درجة'

@@ -7,10 +7,10 @@ import {
   FormLabel,
   FormMessage,
   FormItem,
-} from '../ui/form'
-import { Input } from '../ui/input'
-import { DialogFooter } from '../ui/dialog'
-import { Button } from '../ui/button'
+} from '~/components/ui/form'
+import { Input } from '~/components/ui/input'
+import { DialogFooter } from '~/components/ui/dialog'
+import { Button } from '~/components/ui/button'
 import { QuestionType } from '~/kysely/enums'
 import {
   Select,

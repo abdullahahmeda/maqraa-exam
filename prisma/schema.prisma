@@ -346,13 +346,20 @@ model ErrorReport {
 }
 
 model MenuItem {
-  key   String  @id @db.VarChar(255)
+  key   String   @db.VarChar(255)
   label String
-  order Int     @default(99)
+  order Int      @default(99)
   icon  String?
+  role  UserRole
+
+  @@id([key, role])
 }
 
 model Setting {
-  key   String @id() @db.VarChar(255)
+  key   SettingKey @id()
   value String
+}
+
+enum SettingKey {
+  SITE_NAME
 }

@@ -75,4 +75,16 @@ export const errorReportRouter = createTRPCRouter({
       await ctx.db.deleteFrom('ErrorReport').where('id', '=', input).execute()
       return true
     }),
+
+  bulkDelete: protectedProcedure
+    .input(z.array(z.string()))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.deleteFrom('ErrorReport').where('id', 'in', input).execute()
+      return true
+    }),
+
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    await ctx.db.deleteFrom('ErrorReport').execute()
+    return true
+  }),
 })

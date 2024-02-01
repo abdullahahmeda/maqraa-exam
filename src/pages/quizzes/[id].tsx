@@ -36,7 +36,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import { useToast } from '~/components/ui/use-toast'
+import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
 import { AlertTriangleIcon } from 'lucide-react'
 import { Dialog, DialogTrigger, DialogContent } from '~/components/ui/dialog'
@@ -57,7 +57,6 @@ const ExamPage = ({
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false)
   const router = useRouter()
   const form = useForm<FieldValues>()
-  const { toast } = useToast()
   const { data: session } = useSession()
 
   const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null)
@@ -95,8 +94,7 @@ const ExamPage = ({
         router.reload()
       })
       .catch((error) => {
-        if (error.message) toast({ title: error.message })
-        else toast({ title: 'حدث خطأ غير متوقع' })
+        toast.error(error.message)
       })
   }
 
@@ -297,7 +295,7 @@ const ExamPage = ({
                   )
                 )}
                 {!exam.submittedAt && session?.user.id == exam.examineeId && (
-                  <Button loading={quizSubmit.isLoading}>تسليم</Button>
+                  <Button loading={quizSubmit.isPending}>تسليم</Button>
                 )}
               </form>
             </Form>
@@ -356,7 +354,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             ).as('userAnswer'),
           ])
           .whereRef('Quiz.modelId', '=', 'ModelQuestion.modelId')
-          .orderBy('ModelQuestion.order asc')
+          .orderBy('ModelQuestion.order', 'asc')
       ).as('questions'),
     ])
     .where('Quiz.id', '=', id)

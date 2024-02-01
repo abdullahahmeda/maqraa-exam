@@ -1,4 +1,4 @@
-import { useToast } from '../ui/use-toast'
+import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { api } from '~/utils/api'
@@ -15,6 +15,7 @@ import {
 import { Combobox } from '../ui/combobox'
 import { saveAs } from 'file-saver'
 import { Button } from '../ui/button'
+import { DownloadIcon } from 'lucide-react'
 
 type FieldValues = {
   cycleId: string
@@ -25,7 +26,6 @@ export const ExportSystemExamsDialog = ({
 }: {
   setDialogOpen: (state: boolean) => void
 }) => {
-  const { toast } = useToast()
   const form = useForm<FieldValues>({
     resolver: zodResolver(exportSystemExamsSchema),
   })
@@ -34,24 +34,21 @@ export const ExportSystemExamsDialog = ({
     {}
   )
 
-  const systemExamsExport = api.systemExam.export.useMutation()
+  const mutation = api.systemExam.export.useMutation()
 
   const onSubmit = async (data: FieldValues) => {
     setDialogOpen(false)
-    const t = toast({ title: 'يتم تجهيز الملف للتحميل...' })
-    systemExamsExport
+    const promise = mutation
       .mutateAsync({ cycleId: data.cycleId })
       .then((arrayBuffer) => {
         const content = new Blob([arrayBuffer])
         saveAs(content, `الإختبارات.xlsx`)
-        toast({ title: 'تم بدأ تحميل الملف' })
       })
-      .catch(() => {
-        toast({ title: 'حدث خطأ أثناء تحميل الملف' })
-      })
-      .finally(() => {
-        t.dismiss()
-      })
+    toast.promise(promise, {
+      loading: 'يتم تجهيز الملف للتحميل...',
+      success: 'تم بدأ تحميل الملف',
+      error: 'حدث خطأ أثناء تحميل الملف',
+    })
   }
 
   return (
@@ -84,7 +81,10 @@ export const ExportSystemExamsDialog = ({
             )}
           />
           <DialogFooter>
-            <Button type='submit'>تحميل</Button>
+            <Button type='submit' loading={mutation.isPending}>
+              <DownloadIcon />
+              تحميل
+            </Button>
           </DialogFooter>
         </form>
       </Form>
