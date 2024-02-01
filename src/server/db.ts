@@ -13,6 +13,7 @@ export const db =
             connectionString: env.DATABASE_URL,
           }),
         }),
+        plugins: [new DeduplicateJoinsPlugin()],
         log: ['query', 'error'],
       })
     : new Kysely<DB>({

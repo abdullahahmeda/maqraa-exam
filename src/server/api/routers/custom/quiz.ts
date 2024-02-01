@@ -12,13 +12,40 @@ import { editQuizSchema } from '~/validation/editQuizSchema'
 import { exportSheet } from '~/services/sheet'
 import { percentage } from '~/utils/percentage'
 import { formatDate } from '~/utils/formatDate'
-import { DB } from '~/kysely/types'
-import { SelectQueryBuilder } from 'kysely'
+import { DB, Quiz, User } from '~/kysely/types'
+import { Selectable, SelectQueryBuilder } from 'kysely'
 import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
 import { correctQuestion } from '~/utils/strings'
 import sampleSize from 'lodash.samplesize'
 import { QuestionDifficulty } from '~/kysely/enums'
 import { getQuestions } from '~/services/quiz'
+import { db } from '~/server/db'
+
+async function canUserRead(user: Selectable<User>, quiz: Selectable<Quiz>) {
+  if (user.role === 'ADMIN') return true
+  if (quiz.examineeId === user.id) return true
+  if (quiz.systemExamId) {
+    const systemExam = await db
+      .selectFrom('SystemExam')
+      .selectAll('SystemExam')
+      .where('id', '=', quiz.systemExamId)
+      .executeTakeFirstOrThrow()
+
+    const userCycles = await db
+      .selectFrom('UserCycle')
+      .selectAll('UserCycle')
+      .where('userId', '=', user.id)
+      .execute()
+
+    return userCycles.some(
+      (c) =>
+        c.curriculumId === systemExam.curriculumId &&
+        c.cycleId === systemExam.cycleId
+    )
+  }
+
+  return false
+}
 
 const quizFilterSchema = z.object({
   systemExamId: z.string().nullable().optional(),
@@ -71,8 +98,6 @@ export const quizRouter = createTRPCRouter({
         repeatFromSameHadith,
         difficulty,
       })
-
-      console.log(allEligibleQuestions)
 
       const questions = sampleSize(allEligibleQuestions, questionsNumber)
 
@@ -268,15 +293,16 @@ export const quizRouter = createTRPCRouter({
       }
     }),
 
-  get: protectedProcedure
-    .input(z.string())
-    .query(async ({ input, ctx }) =>
-      ctx.db
-        .selectFrom('Quiz')
-        .selectAll()
-        .where('id', '=', input)
-        .executeTakeFirst()
-    ),
+  get: protectedProcedure.input(z.string()).query(async ({ input, ctx }) => {
+    const result = ctx.db
+      .selectFrom('Quiz')
+      .selectAll()
+      .where('id', '=', input)
+      .executeTakeFirst()
+
+    const isAbleToRead = await canUserRead(ctx.session.user, result)
+    isAbleToRead ? result : null
+  }),
 
   list: protectedProcedure
     .input(
@@ -287,7 +313,7 @@ export const quizRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const query = ctx.db
+      let query = ctx.db
         .selectFrom('Quiz')
         .selectAll('Quiz')
         .$if(!!input.include?.examinee, (qb) =>
@@ -313,19 +339,25 @@ export const quizRouter = createTRPCRouter({
             .leftJoin('User as corrector', 'Quiz.correctorId', 'corrector.id')
             .select('corrector.name as correctorName')
         )
-        .$if(!!input.include?.systemExam, (qb) =>
-          qb
+        .$if(!!input.include?.systemExam, (qb) => {
+          return qb
             .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
             .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
             .select([
               'SystemExam.name as systemExamName',
               'Cycle.name as cycleName',
             ])
-        )
-      return await applyPagination(
+        })
+
+      if (ctx.session.user.role !== 'ADMIN')
+        query = query.where('examineeId', '=', ctx.session.user.id)
+
+      const rows = await applyPagination(
         applyQuizFilters(query, input.filters),
         input.pagination
       ).execute()
+
+      return rows
     }),
   count: protectedProcedure
     .input(z.object({ filters: quizFilterSchema.optional().default({}) }))
