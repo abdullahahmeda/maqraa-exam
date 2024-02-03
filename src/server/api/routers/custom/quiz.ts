@@ -353,7 +353,12 @@ export const quizRouter = createTRPCRouter({
         })
 
       if (ctx.session.user.role !== 'ADMIN')
-        query = query.where('examineeId', '=', ctx.session.user.id)
+        query = query.where(({ or, eb }) =>
+          or([
+            eb('examineeId', '=', ctx.session.user.id),
+            eb('correctorId', '=', ctx.session.user.id),
+          ])
+        )
 
       const rows = await applyPagination(
         applyQuizFilters(query, input.filters),
