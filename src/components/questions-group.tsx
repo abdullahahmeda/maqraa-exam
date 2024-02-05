@@ -580,6 +580,7 @@ export const QuestionGroup = ({
                               className='rounded-md bg-gray-200 p-4'
                             >
                               <Badge>
+                                {/* @ts-expect-error TODO: check this */}
                                 {questionStyles?.[question?.styleId]?.name}
                               </Badge>{' '}
                               {question?.text}
