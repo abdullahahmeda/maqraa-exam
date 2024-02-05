@@ -573,18 +573,16 @@ export const QuestionGroup = ({
                       {Object.keys({ ...selectedQuestions }).map(
                         (key, listIndex) => {
                           const qIndex = +key.substring(1) as number
-                          const question = questions?.[
-                            qIndex
-                          ] as unknown as Question
+                          const question = questions?.[qIndex]
                           return (
                             <div
                               key={key}
                               className='rounded-md bg-gray-200 p-4'
                             >
                               <Badge>
-                                {questionStyles?.[question.styleId]?.name}
+                                {questionStyles?.[question?.styleId]?.name}
                               </Badge>{' '}
-                              {question.text}
+                              {question?.text}
                               <FormField
                                 control={form.control}
                                 name={`groups.${groupIndex}.questions.${key}.weight`}

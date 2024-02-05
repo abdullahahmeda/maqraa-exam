@@ -179,7 +179,7 @@ const HomePage = () => {
   return (
     <>
       <Head>
-        <title>بدأ اختبار</title>
+        <title>بدأ اختبار تجريبي</title>
       </Head>
       <div className='container mx-auto py-10'>
         <div className='mx-auto max-w-md rounded-md bg-white p-4 shadow'>

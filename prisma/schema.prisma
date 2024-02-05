@@ -98,7 +98,7 @@ model UserCycle {
   curriculumId String
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   cycle        Cycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  Curriculum   Curriculum @relation(fields: [curriculumId], references: [id])
+  Curriculum   Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
 
   @@unique([cycleId, userId, curriculumId])
   @@index([userId])

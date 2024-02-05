@@ -53,6 +53,8 @@ function getKeyAr(key: string) {
     '/dashboard/tracks': 'المسارات',
     '/dashboard/error-reports': 'تبليغات الأخطاء',
     '/dashboard/reports': 'التقارير',
+    '/dashboard/my-exams': 'إختبارات النظام',
+    '/start-quiz': 'بدأ اختبار تجريبي',
   }[key]
 }
 
@@ -251,7 +253,7 @@ const SettingsPage = ({
               </FormItem>
             )}
           />
-          <h3 className='text-lg font-semibold'>القائمة</h3>
+          <h3 className='text-lg font-semibold'>القائمة الجانبية</h3>
           <DndContext
             collisionDetection={closestCenter}
             onDragStart={onDragStart}

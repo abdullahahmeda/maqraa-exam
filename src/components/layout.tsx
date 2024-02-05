@@ -1,7 +1,7 @@
 import clsx from 'clsx'
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
-import { ReactNode, useReducer, useState } from 'react'
+import { ReactNode, useReducer } from 'react'
 import { Menu } from 'lucide-react'
 import { getFirstName } from '~/utils/users'
 

@@ -19,6 +19,18 @@ type SendMailOptions = {
 }
 
 export const sendMail = async (mailOptions: SendMailOptions) => {
+  if (env.NODE_ENV === 'development') {
+    console.log(`
+New email has been sent!
+-------------------------
+${mailOptions.subject}
+
+
+${mailOptions.textContent}
+---
+to: ${mailOptions.to.map((receiver) => receiver.email).join(',')}
+`)
+  }
   return transport.sendMail({
     from: `Maqraa <${env.SMTP_EMAIL}>`,
     text: mailOptions.textContent,

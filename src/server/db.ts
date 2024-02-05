@@ -14,7 +14,15 @@ export const db =
           }),
         }),
         plugins: [new DeduplicateJoinsPlugin()],
-        log: ['query', 'error'],
+        // log: ['query', 'error'],
+        log(event) {
+          if (event.level === 'query') {
+            console.log(event.query.sql)
+            console.log(event.query.parameters)
+          } else {
+            console.log(event)
+          }
+        },
       })
     : new Kysely<DB>({
         dialect: new NeonDialect({

@@ -81,6 +81,13 @@ export const systemExamRouter = createTRPCRouter({
         .select('UserCycle.userId')
         .execute()
 
+      if (students.length === 0) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'لا يوجد طلاب مشتركين في هذه الدورة ومن نفس المنهج',
+        })
+      }
+
       await ctx.db.transaction().execute(async (trx) => {
         const systemExam = await trx
           .insertInto('SystemExam')
@@ -90,7 +97,7 @@ export const systemExamRouter = createTRPCRouter({
 
         const model = await trx
           .insertInto('Model')
-          .values({ systemExamId: systemExam!.id })
+          .values({ systemExamId: systemExam.id })
           .returning('id')
           .executeTakeFirstOrThrow()
 
@@ -99,7 +106,7 @@ export const systemExamRouter = createTRPCRouter({
           .values(
             questions.map((question, index) => ({
               ...question,
-              modelId: model!.id,
+              modelId: model.id,
               order: index + 1,
             }))
           )
