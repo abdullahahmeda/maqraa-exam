@@ -514,7 +514,7 @@ export const UserForm = ({
               {Object.entries(correctorCycles).map(([cycleId, fields]) => (
                 <AccordionItem key={cycleId} value={cycleId}>
                   <AccordionTrigger className='rounded bg-gray-100 p-2'>
-                    {cycles?.find((c) => c.id === cycleId)?.name}
+                    {cycles?.data.find((c) => c.id === cycleId)?.name}
                   </AccordionTrigger>
                   <AccordionContent className='p-2'>
                     <CorrectorCycleForm
