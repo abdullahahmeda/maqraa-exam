@@ -63,11 +63,13 @@ export type CycleCourse = {
 }
 export type ErrorReport = {
   id: Generated<string>
-  name: string
-  email: string
+  name: string | null
+  email: string | null
   note: string
   createdAt: Generated<Timestamp>
   modelQuestionId: string
+  userId: string | null
+  quizId: string | null
 }
 export type MenuItem = {
   key: string

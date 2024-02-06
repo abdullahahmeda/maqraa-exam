@@ -356,7 +356,7 @@ export const QuestionGroup = ({
                     <FormItem className='flex-grow'>
                       <FormLabel>الدرجة للسؤال</FormLabel>
                       <FormControl>
-                        <Input min={1} {...field} />
+                        <Input type='number' min={1} {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>

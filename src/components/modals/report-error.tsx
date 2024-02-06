@@ -16,6 +16,8 @@ import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
 import { Button } from '~/components/ui/button'
 import { Loader2Icon } from 'lucide-react'
+import { useSession } from 'next-auth/react'
+import { populateFormWithErrors } from '~/utils/errors'
 
 type FieldValues = {
   modelQuestionId: string
@@ -31,39 +33,45 @@ export const ReportErrorDialog = ({
   closeDialog: () => void
   questionId: string
 }) => {
+  const { status } = useSession()
   const utils = api.useUtils()
   const form = useForm<FieldValues>({
     resolver: zodResolver(reportErrorSchema),
   })
 
   const {
-    data: modelQuestion,
-    isLoading,
+    data: modelQ,
+    isLoading: modelQLoading,
     error,
   } = api.modelQuestion.get.useQuery({
     id: modelQuestionId,
     include: { question: true },
   })
 
+  const isLoading = modelQLoading || status === 'loading'
+
   const mutation = api.errorReport.create.useMutation()
 
   const onSubmit = (data: FieldValues) => {
-    const promise = mutation
-      .mutateAsync({
-        ...data,
-        modelQuestionId: modelQuestionId,
-      })
-      .then(() => {
-        closeDialog()
-      })
-      .finally(() => {
-        utils.errorReport.invalidate()
-      })
+    const promise = mutation.mutateAsync({
+      ...data,
+      modelQuestionId: modelQuestionId,
+    })
     toast.promise(promise, {
       loading: 'جاري الإبلاغ عن الخطأ...',
       success: 'تم الإبلاغ عن الخطأ بنجاح',
       error: (error) => error.message,
     })
+    promise
+      .then(() => {
+        closeDialog()
+      })
+      .catch((error) => {
+        populateFormWithErrors(form, error)
+      })
+      .finally(() => {
+        utils.errorReport.invalidate()
+      })
   }
 
   return (
@@ -79,7 +87,7 @@ export const ReportErrorDialog = ({
       {!!error && (
         <p className='text-center text-red-600'>{error.message || 'حدث خطأ'}</p>
       )}
-      {!!modelQuestion && (
+      {!!modelQ && (
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
             <input
@@ -87,37 +95,41 @@ export const ReportErrorDialog = ({
               {...form.register('modelQuestionId')}
               value={modelQuestionId}
             />
-            <FormField
-              control={form.control}
-              name='name'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>الاسم</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='email'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>البريد الإلكتروني</FormLabel>
-                  <FormControl>
-                    <Input type='email' {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {status === 'unauthenticated' && (
+              <>
+                <FormField
+                  control={form.control}
+                  name='name'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>الاسم</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='email'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>البريد الإلكتروني</FormLabel>
+                      <FormControl>
+                        <Input type='email' {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
             <FormItem>
               <FormLabel>السؤال</FormLabel>
               <FormControl>
                 {/* @ts-expect-error TODO: fix this type */}
-                <Textarea disabled value={modelQuestion?.question.text} />
+                <Textarea disabled value={modelQ?.question.text} />
               </FormControl>
               <FormMessage />
             </FormItem>

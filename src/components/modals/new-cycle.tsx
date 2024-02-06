@@ -5,6 +5,7 @@ import { api } from '~/utils/api'
 import { NewCycleFieldValues, CycleForm } from '../forms/cycle'
 import { DialogHeader } from '../ui/dialog'
 import { toast } from 'sonner'
+import { populateFormWithErrors } from '~/utils/errors'
 
 export const NewCycleDialog = ({
   setDialogOpen,
@@ -19,19 +20,22 @@ export const NewCycleDialog = ({
   const mutation = api.cycle.create.useMutation()
 
   const onSubmit = (data: NewCycleFieldValues) => {
-    const promise = mutation
-      .mutateAsync(data)
-      .then(() => {
-        setDialogOpen(false)
-      })
-      .finally(() => {
-        utils.cycle.invalidate()
-      })
+    const promise = mutation.mutateAsync(data)
     toast.promise(promise, {
       loading: 'جاري إضافة الدورة...',
       success: 'تم إضافة الدورة بنجاح',
       error: (error) => error.message,
     })
+    promise
+      .then(() => {
+        setDialogOpen(false)
+      })
+      .catch((error) => {
+        populateFormWithErrors(form, error)
+      })
+      .finally(() => {
+        utils.cycle.invalidate()
+      })
   }
 
   return (

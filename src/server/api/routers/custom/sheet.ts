@@ -30,7 +30,7 @@ const googleSheetErrorHandler = (error: any) => {
 }
 
 export const sheetRouter = createTRPCRouter({
-  listNames: protectedProcedure
+  listSheetNames: protectedProcedure
     .input(z.object({ url: spreadsheetUrlSchema }))
     .query(async ({ input, ctx }) => {
       if (ctx.session.user.role !== 'ADMIN')

@@ -150,7 +150,7 @@ const SystemExamsPage = () => {
             )
             const filterValue = column.getFilterValue() as string | undefined
             return (
-              <div className='flex items-center'>
+              <div className='flex items-center justify-center'>
                 المنهج
                 <Popover>
                   <PopoverTrigger className='mr-4' asChild>
@@ -193,7 +193,7 @@ const SystemExamsPage = () => {
           const filterValue = column.getFilterValue() as string | undefined
 
           return (
-            <div className='flex items-center'>
+            <div className='flex items-center justify-center'>
               النوع
               <Popover>
                 <PopoverTrigger className='mr-4' asChild>
@@ -232,12 +232,12 @@ const SystemExamsPage = () => {
       columnHelper.accessor('cycleName', {
         id: 'cycleId',
         header: ({ column }) => {
-          const { data: cycles, isLoading } = api.cycle.list.useQuery({})
+          const { data: cycles, isLoading } = api.cycle.list.useQuery()
 
           const filterValue = column.getFilterValue() as string | undefined
 
           return (
-            <div className='flex items-center'>
+            <div className='flex items-center justify-center'>
               الدورة
               <Popover>
                 <PopoverTrigger className='mr-4' asChild>
@@ -250,7 +250,7 @@ const SystemExamsPage = () => {
                 </PopoverTrigger>
                 <PopoverContent>
                   <Combobox
-                    items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
+                    items={[{ name: 'الكل', id: '' }, ...(cycles?.data || [])]}
                     loading={isLoading}
                     labelKey='name'
                     valueKey='id'

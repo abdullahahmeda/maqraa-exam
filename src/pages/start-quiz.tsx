@@ -30,7 +30,7 @@ import { Input } from '~/components/ui/input'
 import { difficultyMapping, typeMapping } from '~/utils/questions'
 import { z } from 'zod'
 import { useEffect, useState } from 'react'
-import { handleFormError } from '~/utils/errors'
+import { populateFormWithErrors } from '~/utils/errors'
 import { Separator } from '~/components/ui/separator'
 import { Loader2 } from 'lucide-react'
 import { cn } from '~/lib/utils'
@@ -80,7 +80,7 @@ const HomePage = () => {
   })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.list.useQuery({})
+    api.course.list.useQuery()
 
   const {
     data: questionsInfo,
@@ -167,12 +167,8 @@ const HomePage = () => {
       })
       .catch((error) => {
         setSubmitting(false)
-        handleFormError(error, {
-          fields: (key, message) =>
-            form.setError(key as keyof FieldValues, { message }),
-          form: (message) => form.setError('root.form', { message }),
-          default: (message) => toast.error(message),
-        })
+        populateFormWithErrors(form, error)
+        toast.error('لم يتم تسليم الاختبار')
       })
   }
 
@@ -200,7 +196,7 @@ const HomePage = () => {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {courses?.map((course) => (
+                        {courses?.data.map((course) => (
                           <SelectItem key={course.id} value={course.id}>
                             {course.name}
                           </SelectItem>

@@ -19,6 +19,7 @@ import { Button } from '../ui/button'
 import { UseFormReturn } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { useEffect } from 'react'
+import { ImportFormFields } from '../import-form'
 
 export type ImportStudentsFieldValues = {
   url: string
@@ -37,90 +38,12 @@ export const ImportStudentsForm = ({
   onSubmit,
   isLoading,
 }: FormProps) => {
-  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery(
-    {}
-  )
-
-  const {
-    isFetching: isFetchingSheets,
-    data: sheets,
-    error: sheetsError,
-    refetch: refetchSheets,
-  } = api.sheet.listNames.useQuery(
-    { url: form.getValues('url') },
-    {
-      enabled: false,
-      refetchOnMount: false,
-      refetchOnReconnect: false,
-    }
-  )
-
-  useEffect(() => {
-    form.setError('url', {
-      message: sheetsError?.message,
-    })
-  }, [form, sheetsError])
-
-  const updateSpreadsheet = async () => {
-    const isValidUrl = await form.trigger('url')
-    if (!isValidUrl) return
-
-    refetchSheets()
-  }
+  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery()
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <FormField
-          control={form.control}
-          name='url'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>رابط الإكسل الشيت</FormLabel>
-              <FormControl>
-                <div className='flex gap-1'>
-                  <Input type='url' {...field} />
-                  <Button
-                    type='button'
-                    onClick={updateSpreadsheet}
-                    loading={isFetchingSheets}
-                  >
-                    تحديث
-                  </Button>
-                </div>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        <FormField
-          control={form.control}
-          name='sheetName'
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>الورقة</FormLabel>
-              <Select
-                disabled={!sheets || sheets.length === 0}
-                onValueChange={field.onChange}
-                value={field.value}
-              >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder='اختر الورقة' />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  {sheets?.map((sheet) => (
-                    <SelectItem key={sheet} value={sheet}>
-                      {sheet}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <ImportFormFields form={form} />
         <FormField
           control={form.control}
           name='cycleId'
@@ -136,7 +59,7 @@ export const ImportStudentsForm = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {cycles?.map((cycle) => (
+                  {cycles?.data.map((cycle) => (
                     <SelectItem key={cycle.id} value={cycle.id}>
                       {cycle.name}
                     </SelectItem>

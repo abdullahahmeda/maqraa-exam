@@ -29,7 +29,7 @@ type FormProps = {
 
 export const TrackForm = ({ form, onSubmit, isLoading }: FormProps) => {
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.list.useQuery({})
+    api.course.list.useQuery()
 
   return (
     <Form {...form}>
@@ -62,7 +62,7 @@ export const TrackForm = ({ form, onSubmit, isLoading }: FormProps) => {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {courses?.map((course) => (
+                  {courses?.data.map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.name}
                     </SelectItem>

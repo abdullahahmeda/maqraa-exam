@@ -8,6 +8,7 @@ import { editCourseSchema } from '~/validation/editCourseSchema'
 import { applyPagination, paginationSchema } from '~/utils/db'
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { getListResponse } from '~/utils/server/getListResponse'
 
 export const courseRouter = createTRPCRouter({
   create: protectedProcedure
@@ -29,16 +30,29 @@ export const courseRouter = createTRPCRouter({
 
   list: publicProcedure
     .input(
-      z.object({
-        pagination: paginationSchema.optional(),
-      })
+      z
+        .object({
+          pagination: paginationSchema.optional(),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
-      const query = applyPagination(
-        ctx.db.selectFrom('Course').select(['id', 'name']),
-        input.pagination
-      )
-      return await query.execute()
+      return getListResponse({
+        rows: {
+          query: ctx.db.selectFrom('Course').selectAll(),
+          modifiers: [
+            {
+              modifier: applyPagination,
+              params: [input?.pagination],
+            },
+          ],
+        },
+        count: {
+          query: ctx.db
+            .selectFrom('Course')
+            .select(({ fn }) => fn.count<string>('id').as('count')),
+        },
+      })
     }),
   count: protectedProcedure.query(async ({ ctx, input }) => {
     const query = ctx.db

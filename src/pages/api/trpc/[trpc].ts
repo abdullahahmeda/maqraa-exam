@@ -21,6 +21,7 @@ export default createNextApiHandler({
         },
 })
 
-// export const config = {
-//   responseLimit: '1mb',
-// }
+// TODO: please check this "responseLimit" thing
+export const config = {
+  responseLimit: false,
+}

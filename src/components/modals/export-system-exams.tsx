@@ -30,9 +30,7 @@ export const ExportSystemExamsDialog = ({
     resolver: zodResolver(exportSystemExamsSchema),
   })
 
-  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery(
-    {}
-  )
+  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery()
 
   const mutation = api.systemExam.export.useMutation()
 
@@ -66,7 +64,7 @@ export const ExportSystemExamsDialog = ({
                 <FormLabel>الدورة</FormLabel>
                 <FormControl>
                   <Combobox
-                    items={cycles || []}
+                    items={cycles?.data || []}
                     loading={isCyclesLoading}
                     value={field.value}
                     labelKey='name'

@@ -1,36 +1,19 @@
 import { QuestionDifficulty } from '~/kysely/enums'
 import { z } from 'zod'
+import { numberInput } from './common'
 
 export const newQuizSchema = z
   .object({
     courseId: z.string().min(1),
     from: z.object({
-      part: z.preprocess(
-        (v) => (v !== '' ? Number(v) : v),
-        z.number().int().safe().finite()
-      ),
-      page: z.preprocess(
-        (v) => (v !== '' ? Number(v) : v),
-        z.number().int().safe().finite()
-      ),
-      hadith: z.preprocess(
-        (v) => (v !== '' ? Number(v) : v),
-        z.number().int().safe().finite()
-      ),
+      part: numberInput.pipe(z.number().int().safe().finite()),
+      page: numberInput.pipe(z.number().int().safe().finite()),
+      hadith: numberInput.pipe(z.number().int().safe().finite()),
     }),
     to: z.object({
-      part: z.preprocess(
-        (v) => (v !== '' ? Number(v) : v),
-        z.number().int().safe().finite()
-      ),
-      page: z.preprocess(
-        (v) => (v !== '' ? Number(v) : v),
-        z.number().int().safe().finite()
-      ),
-      hadith: z.preprocess(
-        (v) => (v !== '' ? Number(v) : v),
-        z.number().int().safe().finite()
-      ),
+      part: numberInput.pipe(z.number().int().safe().finite()),
+      page: numberInput.pipe(z.number().int().safe().finite()),
+      hadith: numberInput.pipe(z.number().int().safe().finite()),
     }),
     repeatFromSameHadith: z.boolean(),
     difficulty: z.union([
@@ -40,8 +23,7 @@ export const newQuizSchema = z
       z.literal('').transform(() => null),
       z.null(),
     ]),
-    questionsNumber: z.preprocess(
-      (v) => Number(v),
+    questionsNumber: numberInput.pipe(
       z.number().positive().int().finite().safe().max(25)
     ),
   })

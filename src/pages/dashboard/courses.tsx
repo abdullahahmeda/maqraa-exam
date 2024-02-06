@@ -95,14 +95,9 @@ const CoursesPage = () => {
   const { data: courses, isFetching: isFetchingCourses } =
     api.course.list.useQuery({ pagination }, { networkMode: 'always' })
 
-  const { data: count, isLoading: isCountLoading } = api.course.count.useQuery(
-    undefined,
-    { networkMode: 'always' }
-  )
-
   const pageCount =
-    courses !== undefined && typeof count === 'number'
-      ? Math.ceil(count / pageSize)
+    courses?.data !== undefined && typeof courses?.count === 'number'
+      ? Math.ceil(courses?.count / pageSize)
       : -1
 
   const columns = useMemo(
@@ -194,7 +189,7 @@ const CoursesPage = () => {
   )
 
   const table = useReactTable({
-    data: (courses as any[]) || [],
+    data: (courses?.data as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
@@ -253,7 +248,7 @@ const CoursesPage = () => {
       <DataTableActions
         deleteAll={{
           handle: handleDeleteAll,
-          data: { disabled: !courses || courses?.length === 0 },
+          data: { disabled: courses?.count === 0 },
         }}
         bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
       />

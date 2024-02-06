@@ -5,14 +5,13 @@ import {
   QuestionType,
 } from '~/kysely/enums'
 import { z } from 'zod'
+import { numberInput } from './common'
 
 const groupSchema = z.object({
-  questionsNumber: z.preprocess(
-    (v) => Number(v),
+  questionsNumber: numberInput.pipe(
     z.number().positive().int().finite().safe()
   ),
-  gradePerQuestion: z.preprocess(
-    (v) => Number(v),
+  gradePerQuestion: numberInput.pipe(
     z.number().positive().int().finite().safe()
   ),
   difficulty: z.union([
@@ -34,7 +33,7 @@ const groupSchema = z.object({
 
 const questionSchema = z.object({
   id: z.string().min(1),
-  weight: z.number().int().safe().finite().min(1),
+  weight: numberInput.pipe(z.number().int().safe().finite().min(1)),
 })
 
 export const newSystemExamSchema = z.object({
@@ -67,10 +66,8 @@ export const newSystemExamSchema = z.object({
       ])
     )
     .superRefine((groups, ctx) => {
-      // let numberSum = 0
       let gradeSum = 0
       groups.forEach((group) => {
-        // numberSum += group.questionsNumber
         if (group.type === 'AUTOMATIC')
           gradeSum += group.questionsNumber * group.gradePerQuestion
         else

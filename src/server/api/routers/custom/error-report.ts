@@ -9,6 +9,7 @@ import { applyPagination, paginationSchema } from '~/utils/db'
 import { z } from 'zod'
 import { SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
+import { TRPCError } from '@trpc/server'
 
 const errorReportIncludeSchema = z.record(
   z.literal('question'),
@@ -39,7 +40,24 @@ export const errorReportRouter = createTRPCRouter({
   create: publicProcedure
     .input(reportErrorSchema)
     .mutation(async ({ ctx, input }) => {
-      await db.insertInto('ErrorReport').values(input).execute()
+      if (ctx.session) {
+        await db
+          .insertInto('ErrorReport')
+          .values({
+            ...input,
+            userId: ctx.session.user.id,
+          })
+          .execute()
+      } else {
+        if ('email' in input) {
+          await db.insertInto('ErrorReport').values(input).execute()
+        } else {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'يجب تسجيل الدخول أو تعبئة الحقول',
+          })
+        }
+      }
       return true
     }),
 

@@ -82,7 +82,7 @@ export const NewSystemExamDialog = ({
   const trackId = useWatch({ control: form.control, name: 'trackId' })
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.list.useQuery({})
+    api.course.list.useQuery()
 
   const {
     data: tracks,
@@ -112,9 +112,7 @@ export const NewSystemExamDialog = ({
     name: 'groups',
   })
 
-  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery(
-    {}
-  )
+  const { data: cycles, isLoading: isCyclesLoading } = api.cycle.list.useQuery()
 
   const appendGroup = () => {
     append({
@@ -263,7 +261,7 @@ export const NewSystemExamDialog = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {courses?.map((course) => (
+                  {courses?.data.map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.name}
                     </SelectItem>
@@ -428,7 +426,7 @@ export const NewSystemExamDialog = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {cycles?.map((cycle) => (
+                  {cycles?.data?.map((cycle) => (
                     <SelectItem key={cycle.id} value={cycle.id}>
                       {cycle.name}
                     </SelectItem>

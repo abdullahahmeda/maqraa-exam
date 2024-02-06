@@ -100,7 +100,7 @@ const StudentCycleForm = ({
   //   api.cycle.findMany.useQuery({})
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.list.useQuery({})
+    api.course.list.useQuery()
 
   const courseId = useWatch({
     control: form.control,
@@ -146,7 +146,7 @@ const StudentCycleForm = ({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {courses?.map((course) => (
+                {courses?.data.map((course) => (
                   <SelectItem key={course.id} value={course.id}>
                     {course.name}
                   </SelectItem>
@@ -286,9 +286,7 @@ export const UserForm = ({
     name: 'corrector.cycles',
   })
 
-  const { data: cycles, isLoading: isLoadingCycles } = api.cycle.list.useQuery(
-    {}
-  )
+  const { data: cycles, isLoading: isLoadingCycles } = api.cycle.list.useQuery()
 
   return (
     <Form {...form}>
@@ -423,7 +421,7 @@ export const UserForm = ({
                   <FormControl>
                     <MultiSelect
                       placeholder='اختر الدورات'
-                      items={(cycles as any) || []}
+                      items={(cycles?.data as any) || []}
                       labelKey='name'
                       valueKey='id'
                       onSelect={(newValue: string[]) => {
@@ -458,7 +456,7 @@ export const UserForm = ({
               {Object.entries(studentCycles).map(([cycleId, fields]) => (
                 <AccordionItem key={cycleId} value={cycleId}>
                   <AccordionTrigger className='rounded bg-gray-100 p-2'>
-                    {cycles?.find((c) => c.id === cycleId)?.name}
+                    {cycles?.data.find((c) => c.id === cycleId)?.name}
                   </AccordionTrigger>
                   <AccordionContent className='p-2'>
                     <StudentCycleForm
@@ -481,7 +479,7 @@ export const UserForm = ({
                   <FormLabel>الدورات</FormLabel>
                   <FormControl>
                     <MultiSelect
-                      items={cycles || []}
+                      items={cycles?.data || []}
                       labelKey='name'
                       valueKey='id'
                       onSelect={(newValue: string[]) => {

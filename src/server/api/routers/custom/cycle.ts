@@ -4,6 +4,7 @@ import { newCycleSchema } from '~/validation/newCycleSchema'
 import { editCycleSchema } from '~/validation/editCycleSchema'
 import { applyPagination, paginationSchema } from '~/utils/db'
 import { TRPCError } from '@trpc/server'
+import { getListResponse } from '~/utils/server/getListResponse'
 
 export const cycleRouter = createTRPCRouter({
   create: protectedProcedure
@@ -25,16 +26,29 @@ export const cycleRouter = createTRPCRouter({
 
   list: protectedProcedure
     .input(
-      z.object({
-        pagination: paginationSchema.optional(),
-      })
+      z
+        .object({
+          pagination: paginationSchema.optional(),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
-      const query = applyPagination(
-        ctx.db.selectFrom('Cycle').selectAll(),
-        input.pagination
-      )
-      return await query.execute()
+      return getListResponse({
+        rows: {
+          query: ctx.db.selectFrom('Cycle').selectAll(),
+          modifiers: [
+            {
+              modifier: applyPagination,
+              params: [input?.pagination],
+            },
+          ],
+        },
+        count: {
+          query: ctx.db
+            .selectFrom('Cycle')
+            .select(({ fn }) => fn.count<string>('id').as('count')),
+        },
+      })
     }),
 
   count: protectedProcedure.query(async ({ ctx, input }) => {

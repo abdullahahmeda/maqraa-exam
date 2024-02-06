@@ -227,7 +227,7 @@ const UsersPage = () => {
         {
           id: 'cycleId',
           header: ({ column }) => {
-            const { data: cycles, isLoading } = api.cycle.list.useQuery({})
+            const { data: cycles, isLoading } = api.cycle.list.useQuery()
             const filterValue = column.getFilterValue() as string | undefined
             return (
               <div className='flex items-center justify-center'>
@@ -243,7 +243,10 @@ const UsersPage = () => {
                   </PopoverTrigger>
                   <PopoverContent>
                     <Combobox
-                      items={[{ name: 'الكل', id: '' }, ...(cycles || [])]}
+                      items={[
+                        { name: 'الكل', id: '' },
+                        ...(cycles?.data || []),
+                      ]}
                       loading={isLoading}
                       labelKey='name'
                       valueKey='id'

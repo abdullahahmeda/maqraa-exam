@@ -74,10 +74,11 @@ export const createTRPCContext = async (opts: CreateNextContextOptions) => {
 import { initTRPC, TRPCError } from '@trpc/server'
 import superjson from 'superjson'
 import { UserRole } from '~/kysely/enums'
-import { ZodError } from 'zod'
+import { ZodError, ZodIssue } from 'zod'
 import { env } from '~/env.mjs'
 import { Kysely } from 'kysely'
 import { DB } from '~/kysely/types'
+import { replaceEmptyStringsWithUndefined } from '~/utils/replaceEmptyStringsWithUndefined'
 
 const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
@@ -92,11 +93,14 @@ const t = initTRPC.context<typeof createTRPCContext>().create({
 
     return {
       ...shape,
+      message:
+        error.cause instanceof ZodError ? 'البيانات غير صحيحة' : shape.message,
       data: {
         ...shape.data,
         zodError:
-          // error.code === 'BAD_REQUEST' &&
-          error.cause instanceof ZodError ? error.cause.flatten() : null,
+          error.cause instanceof ZodError
+            ? error.cause.flatten((issue: ZodIssue) => issue)
+            : null,
       },
     }
   },
@@ -125,7 +129,15 @@ export const mergeRouters = t.mergeRouters
  * tRPC API. It does not guarantee that a user querying is authorized, but you
  * can still access user session data if they are logged in.
  */
-export const publicProcedure = t.procedure
+export const publicProcedure = t.procedure.use(
+  async function replaceEmptyStringsWithUndefinedMiddleware(opts) {
+    const input = await opts.getRawInput()
+    const newInput = replaceEmptyStringsWithUndefined(input)
+    return opts.next({
+      input: newInput,
+    })
+  }
+)
 
 /**
  * Reusable middleware that enforces users are logged in before running the

@@ -1,5 +1,4 @@
 import App, { type AppType, AppContext } from 'next/app'
-import { type Session } from 'next-auth'
 import type { NextPage } from 'next'
 import { ReactElement, ReactNode } from 'react'
 import { SessionProvider } from 'next-auth/react'
@@ -10,9 +9,9 @@ import { arSA } from 'date-fns/locale'
 import setDefaultOptions from 'date-fns/setDefaultOptions'
 import { api } from '../utils/api'
 import { Toaster } from '~/components/ui/sonner'
+import { DirectionProvider } from '@radix-ui/react-direction'
 import { SpeedInsights } from '@vercel/speed-insights/next'
-import { SettingKey } from '~/kysely/enums'
-import { db } from '~/server/db'
+import { getSiteName } from '~/services/setting'
 
 const fontFamily = Rubik({
   subsets: ['arabic', 'latin'],
@@ -21,7 +20,7 @@ const fontFamily = Rubik({
 })
 
 import '../styles/globals.css'
-import { DirectionProvider } from '@radix-ui/react-direction'
+import { SettingKey } from '~/kysely/enums'
 
 z.setErrorMap(errorMap)
 setDefaultOptions({ locale: arSA })
@@ -62,6 +61,14 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
       </DirectionProvider>
     </>
   )
+}
+
+MyApp.getInitialProps = async (context: AppContext) => {
+  const ctx = await App.getInitialProps(context)
+
+  return ctx
+
+  // return { ...ctx, siteName: await getSiteName() }
 }
 
 export default api.withTRPC(MyApp as AppType)

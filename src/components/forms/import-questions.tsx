@@ -42,7 +42,7 @@ export const ImportQuestionsForm = ({
     data: sheets,
     refetch: refetchSheets,
     error: sheetsError,
-  } = api.sheet.listNames.useQuery(
+  } = api.sheet.listSheetNames.useQuery(
     { url: form.getValues('url') },
     {
       enabled: false,
@@ -58,7 +58,7 @@ export const ImportQuestionsForm = ({
   }, [form, sheetsError])
 
   const { data: courses, isLoading: isCoursesLoading } =
-    api.course.list.useQuery({})
+    api.course.list.useQuery()
 
   const updateSpreadsheet = async () => {
     const isValidUrl = await form.trigger('url')
@@ -137,7 +137,7 @@ export const ImportQuestionsForm = ({
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {courses?.map((course) => (
+                  {courses?.data.map((course) => (
                     <SelectItem key={course.id} value={course.id}>
                       {course.name}
                     </SelectItem>

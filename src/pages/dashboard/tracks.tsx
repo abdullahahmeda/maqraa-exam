@@ -71,7 +71,7 @@ const columns = [
   columnHelper.accessor('courseName', {
     id: 'courseId',
     header: ({ column }) => {
-      const { data: courses, isLoading } = api.course.list.useQuery({})
+      const { data: courses, isLoading } = api.course.list.useQuery()
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -86,7 +86,7 @@ const columns = [
             </PopoverTrigger>
             <PopoverContent>
               <Combobox
-                items={[{ name: 'الكل', id: '' }, ...(courses || [])]}
+                items={[{ name: 'الكل', id: '' }, ...(courses?.data || [])]}
                 loading={isLoading}
                 labelKey='name'
                 valueKey='id'

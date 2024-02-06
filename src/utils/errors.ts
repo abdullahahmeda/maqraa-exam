@@ -1,29 +1,30 @@
 import { TRPCClientError } from '@trpc/client'
+import { FieldPath, FieldValues, UseFormReturn } from 'react-hook-form'
+import { inferFlattenedErrors, ZodIssue } from 'zod'
 
-export const handleFormError = (
-  error: unknown,
-  handlers: {
-    fields: (key: string, errorMessage: string) => void
-    form: (errorMessage: string) => void
-    default: (errorMessage: string) => void
-  },
-  defaultMessage = 'حدث خطأ'
-): void => {
-  let message = defaultMessage
-  let receivedFeedback = false
+export function populateFormWithErrors<T extends FieldValues>(
+  form: UseFormReturn<T>,
+  error: unknown
+) {
   if (error instanceof TRPCClientError) {
-    message = error.message
-    if (error.data.zodError) {
-      Object.entries(error.data?.zodError?.fieldErrors).forEach(
-        ([key, errors]: [key: string, errors: unknown]) => {
-          receivedFeedback = true
-          handlers.fields(key, (errors as string[])[0] as string)
+    const zodError = error.data?.zodError as inferFlattenedErrors<any, ZodIssue>
+    if (zodError) {
+      console.log(zodError)
+      if (zodError.formErrors.length > 0) {
+        form.setError('root.serverError', {
+          message: zodError.formErrors[0]!.message,
+        })
+      }
+
+      Object.values(zodError.fieldErrors).forEach((issues) => {
+        const error = issues?.[0]
+        if (error) {
+          const path = error.path.join('.')
+          form.setError(path as FieldPath<T>, {
+            message: error.message,
+          })
         }
-      )
-      if (error.data?.zodError?.formErrors?.length > 0) receivedFeedback = true
-      handlers.form(error.data?.zodError?.formErrors[0])
+      })
     }
   }
-  // if there is no `fieldErrors` or `formErrors` then the user has not got any feedback yet, show `message`
-  if (!receivedFeedback) handlers.default(message)
 }

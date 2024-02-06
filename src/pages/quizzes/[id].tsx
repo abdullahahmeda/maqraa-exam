@@ -273,7 +273,7 @@ const ExamPage = ({
                                           {
                                             question[
                                               column as keyof typeof question
-                                            ]
+                                            ] as string
                                           }
                                         </FormLabel>
                                       </FormItem>
@@ -352,6 +352,16 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
                 .whereRef('Answer.modelQuestionId', '=', 'ModelQuestion.id')
                 .where('Answer.quizId', '=', id)
             ).as('userAnswer'),
+            jsonObjectFrom(
+              selectFrom('ErrorReport')
+                .selectAll('ErrorReport')
+                .whereRef(
+                  'ErrorReport.modelQuestionId',
+                  '=',
+                  'ModelQuestion.id'
+                )
+                .where('ErrorReport.quizId', '=', id)
+            ).as('errorReport'),
           ])
           .whereRef('Quiz.modelId', '=', 'ModelQuestion.modelId')
           .orderBy('ModelQuestion.order', 'asc')

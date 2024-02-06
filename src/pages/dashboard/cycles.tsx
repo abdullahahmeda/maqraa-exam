@@ -119,18 +119,13 @@ const CyclesPage = () => {
   const { data: cycles, isFetching: isFetchingCycles } =
     api.cycle.list.useQuery({ pagination }, { networkMode: 'always' })
 
-  const { data: count, isLoading: isCountLoading } = api.cycle.count.useQuery(
-    undefined,
-    { networkMode: 'always' }
-  )
-
   const pageCount =
-    cycles !== undefined && typeof count === 'number'
-      ? Math.ceil(count / pageSize)
+    cycles?.data !== undefined && typeof cycles?.count === 'number'
+      ? Math.ceil(cycles!.count / pageSize)
       : -1
 
   const table = useReactTable({
-    data: (cycles as any[]) || [],
+    data: (cycles?.data as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -191,7 +186,7 @@ const CyclesPage = () => {
       <DataTableActions
         deleteAll={{
           handle: handleDeleteAll,
-          data: { disabled: !cycles || cycles?.length === 0 },
+          data: { disabled: cycles?.count === 0 },
         }}
         bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
       />
