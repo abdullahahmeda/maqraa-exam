@@ -1,3 +1,4 @@
+import { SettingKey } from '~/kysely/enums'
 import { db } from '~/server/db'
 
 export async function getSiteName() {
