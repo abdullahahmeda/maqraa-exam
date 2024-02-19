@@ -45,10 +45,11 @@ export default function LoginPage() {
             form.setError('root.serverError', {
               message: 'هذه البيانات غير صحيحة',
             })
+          } else {
+            form.setError('root.serverError', {
+              message: 'حدث خطأ أثناء تسجيل الدخول، يرجى إعادة المحاولة',
+            })
           }
-          form.setError('root.serverError', {
-            message: 'حدث خطأ أثناء تسجيل الدخول، يرجى إعادة المحاولة',
-          })
           return
         }
         router.push('/')

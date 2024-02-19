@@ -36,7 +36,7 @@ const server = z.object({
  * To expose them to the client, prefix them with `NEXT_PUBLIC_`.
  */
 const client = z.object({
-  // NEXT_PUBLIC_CLIENTVAR: z.string().min(1),
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN: z.string().min(1),
 })
 
 /**
@@ -58,7 +58,8 @@ const processEnv = {
   QSTASH_CURRENT_SIGNING_KEY: process.env.QSTASH_CURRENT_SIGNING_KEY,
   QSTASH_NEXT_SIGNING_KEY: process.env.QSTASH_NEXT_SIGNING_KEY,
   QSTASH_TOKEN: process.env.QSTASH_TOKEN,
-  // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+  NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN:
+    process.env.NEXT_PUBLIC_LOGTAIL_SOURCE_TOKEN,
 }
 
 // Don't touch the part below
