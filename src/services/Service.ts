@@ -24,7 +24,7 @@ export abstract class Service<DB, TB extends keyof DB> {
   }
 
   public async getListQuery<TFilters extends {}, TOrderBy, TInclude extends {}>(
-    params: Query<TFilters, TOrderBy, TInclude>
+    params?: Query<TFilters, TOrderBy, TInclude> | undefined
   ) {
     let query = this.getBaseSelectQuery({ include: params?.include })
     Object.defineProperty(query, 'then', { value: undefined })
