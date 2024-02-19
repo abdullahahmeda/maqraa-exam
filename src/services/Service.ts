@@ -24,7 +24,7 @@ export abstract class Service<DB, TB extends keyof DB> {
   }
 
   public async getListQuery<TFilters extends {}, TOrderBy, TInclude extends {}>(
-    params?: Query<TFilters, TOrderBy, TInclude> | undefined
+    params: Query<TFilters, TOrderBy, TInclude>
   ) {
     let query = this.getBaseSelectQuery({ include: params?.include })
     Object.defineProperty(query, 'then', { value: undefined })
@@ -88,7 +88,9 @@ export abstract class Service<DB, TB extends keyof DB> {
     cursor: TOrderBy
   ): Promise<SelectQueryBuilder<any, any, any>> {
     const column = this.getCursorColumn()
-    return query.where(column, '>=', cursor)
+    query = query.where(column, '>=', cursor)
+    Object.defineProperty(query, 'then', { value: undefined })
+    return query
   }
 
   public async applyOrderBy(
@@ -103,6 +105,7 @@ export abstract class Service<DB, TB extends keyof DB> {
       const { expression, direction } = orderBy
       query = query.orderBy(expression, direction)
     }
+    Object.defineProperty(query, 'then', { value: undefined })
     return query
   }
 
@@ -110,7 +113,9 @@ export abstract class Service<DB, TB extends keyof DB> {
     query: SelectQueryBuilder<any, any, any>,
     limit: number
   ): Promise<SelectQueryBuilder<any, any, any>> {
-    return query.limit(limit)
+    query = query.limit(limit)
+    Object.defineProperty(query, 'then', { value: undefined })
+    return query
   }
 
   public getTableName(): TableReference<DB> {

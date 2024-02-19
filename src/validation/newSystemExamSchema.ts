@@ -37,7 +37,7 @@ export const newSystemExamSchema = z.object({
           return questionsCount > 0
         }),
       {
-        message: 'هنلك مجموعات لا تحتوي على أي أسئلة',
+        message: 'هناك مجموعات لا تحتوي على أي أسئلة',
       }
     ),
   questions: z.array(z.record(z.string(), questionSchema)).min(1),

@@ -462,6 +462,7 @@ export const NewSystemExamDialog = ({
                         <div className='flex-1 space-y-2'>
                           <QuestionCard
                             question={q}
+                            style={q.style as any}
                             showPartNumber
                             showPageNumber
                             showHadithNumber

@@ -129,10 +129,12 @@ export class QuestionService extends Service<DB, 'Question'> {
     } else {
       orderBy = [...params.orderBy]
     }
-    return this.getListQuery({
+    const query = await this.getListQuery({
       ...params,
       orderBy: [{ expression: sql`RANDOM()` }, ...orderBy],
     })
+    Object.defineProperty(query, 'then', { value: undefined })
+    return query
   }
 
   public async getRandom(params: QuestionsQuery) {

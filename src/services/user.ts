@@ -119,7 +119,7 @@ export class UserService extends Service<DB, 'User'> {
       const { email, role, userCycle } = filters
 
       if (email !== undefined) {
-        query = query.where('email', '=', email)
+        query = query.where('email', 'like', email + '%')
       }
       if (role !== undefined) {
         query = query.where('role', '=', role)

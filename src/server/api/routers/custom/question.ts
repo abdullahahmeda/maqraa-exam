@@ -83,12 +83,14 @@ export const questionRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const limit = 100 // default limit
       const questionService = new QuestionService(ctx.db)
-      const questions = await questionService.getList({
+      const query = await questionService.getListQuery({
         limit: limit + 1,
         filters: input?.filters,
         cursor: input?.cursor,
         include: input?.include,
       })
+
+      const questions = await query.execute()
 
       let nextCursor: string | undefined = undefined
       if (questions.length > limit) {
@@ -139,7 +141,8 @@ export const questionRouter = createTRPCRouter({
     )
     .query(async ({ ctx, input }) => {
       const questionService = new QuestionService(ctx.db)
-      return questionService.getRandom(input)
+      const rows = await questionService.getRandom(input)
+      return rows
     }),
 
   get: protectedProcedure
