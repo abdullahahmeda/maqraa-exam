@@ -162,6 +162,7 @@ export const ManualQuestionsFormFields = ({
                 <QuestionCard
                   key={question.id}
                   question={question}
+                  style={(question as any).style}
                   showPageNumber
                   showPartNumber
                   showHadithNumber
