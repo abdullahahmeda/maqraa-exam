@@ -5,6 +5,7 @@ import { generate as generatePassword } from 'generate-password'
 import bcrypt from 'bcryptjs'
 import { sendMail } from '~/utils/email'
 import { getBaseUrl } from '~/utils/api'
+import { hashPassword } from '~/utils/server/password'
 
 async function handler(req: NextApiRequest, res: NextApiResponse) {
   const body: {
@@ -47,7 +48,7 @@ async function handler(req: NextApiRequest, res: NextApiResponse) {
   await db.transaction().execute(async (trx) => {
     if (!user) {
       const password = generatePassword()
-      const hashedPassword = bcrypt.hashSync(password)
+      const hashedPassword = hashPassword(password)
       user = await trx
         .insertInto('User')
         .values({

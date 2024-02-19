@@ -22,6 +22,7 @@ import { Switch } from '~/components/ui/switch'
 import { useSession } from 'next-auth/react'
 import { useToast } from '~/components/ui/use-toast'
 import { TRPCClientError } from '@trpc/client'
+import { ActivityIcon } from 'lucide-react'
 
 type FieldValues = {
   name: string
@@ -36,9 +37,29 @@ type Props = {
   user: { name: string; phone: string | null }
 }
 
-// TODO:
 const ReportsPage = () => {
-  return <div>Hello</div>
+  return (
+    <>
+      <Head>
+        <title>التقارير</title>
+      </Head>
+      <div className='mb-4 flex items-center'>
+        <h2 className='ml-4 text-2xl font-bold'>التقارير</h2>
+      </div>
+      <div className='grid grid-cols-1 md:grid-cols-4'>
+        <div className='flex rounded-md bg-green-600 text-white shadow'>
+          <div className='p-4'>
+            <h4 className='text-xl'>إجمالي اختبارات النظام</h4>
+            <p className='text-2xl font-semibold'>100</p>
+          </div>
+          <div className='mr-auto flex w-24 items-center justify-center bg-white/25'>
+            <ActivityIcon className='h-10 w-10' />
+          </div>
+        </div>
+      </div>
+      <p className='my-4'>ملحوظة: بيانات غير حقيقية، تحت العمل</p>
+    </>
+  )
 }
 
 // const ReportsPage = ({ user }: Props) => {

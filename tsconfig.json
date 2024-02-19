@@ -19,7 +19,6 @@
   // },
   // "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", "**/*.cjs", "**/*.mjs"],
   // "exclude": ["node_modules"]
-
   "ts-node": {
     // It is faster to skip typechecking.
     // Remove if you want ts-node to do typechecking.
@@ -29,7 +28,6 @@
       "module": "CommonJS"
     }
   },
-
   "compilerOptions": {
     "target": "es2017",
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -51,7 +49,12 @@
     "paths": {
       "~/*": ["./src/*"]
     },
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ]
   },
   "include": [
     ".eslintrc.cjs",
@@ -60,6 +63,7 @@
     "**/*.tsx",
     "**/*.cjs",
     "**/*.mjs"
+    // ".next/types/**/*.ts"
   ],
   "exclude": ["node_modules"]
 }

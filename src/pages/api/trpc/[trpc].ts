@@ -1,5 +1,4 @@
 import { createNextApiHandler } from '@trpc/server/adapters/next'
-
 import { env } from '~/env.mjs'
 import { createTRPCContext } from '~/server/api/trpc'
 import { appRouter } from '~/server/api/root'
@@ -20,11 +19,3 @@ export default createNextApiHandler({
           if (error.code === 'INTERNAL_SERVER_ERROR') logErrorToLogtail(error)
         },
 })
-
-// TODO: please check this "responseLimit" thing
-export const config = {
-  bodyParser: {
-    sizeLimit: '100mb',
-  },
-  responseLimit: '100mb',
-}

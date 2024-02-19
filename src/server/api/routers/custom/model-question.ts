@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { createTRPCRouter, protectedProcedure } from '../../trpc'
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from '../../trpc'
 import { ExpressionBuilder, SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
@@ -28,7 +32,7 @@ function applyInclude<O>(
 }
 
 export const modelQuestionRouter = createTRPCRouter({
-  get: protectedProcedure
+  get: publicProcedure
     .input(z.object({ id: z.string(), include: includeSchema.optional() }))
     .query(async ({ input, ctx }) => {
       const query = applyInclude(

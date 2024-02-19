@@ -1,4 +1,4 @@
-import { FieldPath, FieldValues, UseFormReturn } from 'react-hook-form'
+import { FieldValues, Path, PathValue, UseFormReturn } from 'react-hook-form'
 import { api } from '~/utils/api'
 import { Button } from './ui/button'
 import {
@@ -19,25 +19,20 @@ import {
 import { RefreshCwIcon } from 'lucide-react'
 import { cn } from '~/lib/utils'
 import { useEffect } from 'react'
+import { Fields } from '~/types'
 
-type Fields = {
-  url: string
-  sheetName: string
-}
+type FieldKeys = 'url' | 'sheetName'
 
-const DEFAULT_FIELDS: Fields = {
-  url: 'url',
-  sheetName: 'sheetName',
-}
+type FormFields<T extends FieldValues> = Fields<FieldKeys, T>
 
 type Props<T extends FieldValues> = {
-  fields?: Fields
+  fields: FormFields<T>
   form: UseFormReturn<T>
 }
 
 export const ImportFormFields = <T extends FieldValues>({
   form,
-  fields = DEFAULT_FIELDS,
+  fields,
 }: Props<T>) => {
   const { control, getValues, resetField } = form
   const utils = api.useUtils()
@@ -48,7 +43,7 @@ export const ImportFormFields = <T extends FieldValues>({
     error,
     refetch,
   } = api.sheet.listSheetNames.useQuery(
-    { url: getValues(fields.url as FieldPath<T>) },
+    { url: getValues(fields.url) },
     {
       enabled: false,
       refetchOnMount: false,
@@ -57,13 +52,13 @@ export const ImportFormFields = <T extends FieldValues>({
   )
 
   useEffect(() => {
-    form.setError(fields.url as FieldPath<T>, {
+    form.setError(fields.url, {
       message: error?.message,
     })
   }, [form, error])
 
   const updateSpreadsheet = async () => {
-    const isValidUrl = await form.trigger(fields.url as FieldPath<T>)
+    const isValidUrl = await form.trigger(fields.url)
 
     // error messages will show already, so no need to show anything
     if (!isValidUrl) return
@@ -74,7 +69,9 @@ export const ImportFormFields = <T extends FieldValues>({
 
   const clearSheetNames = () => {
     // clear value
-    resetField(fields.sheetName as FieldPath<T>)
+    resetField(fields.sheetName, {
+      defaultValue: null as PathValue<T, Path<T>>,
+    })
     // clear options
     utils.sheet.listSheetNames.reset()
   }
@@ -83,7 +80,7 @@ export const ImportFormFields = <T extends FieldValues>({
     <>
       <FormField
         control={control}
-        name={fields.url as FieldPath<T>}
+        name={fields.url}
         render={({ field }) => (
           <FormItem>
             <FormLabel>رابط الإكسل الشيت</FormLabel>
@@ -108,7 +105,7 @@ export const ImportFormFields = <T extends FieldValues>({
       />
       <FormField
         control={control}
-        name={fields.sheetName as FieldPath<T>}
+        name={fields.sheetName}
         render={({ field }) => (
           <FormItem>
             <FormLabel>الورقة</FormLabel>

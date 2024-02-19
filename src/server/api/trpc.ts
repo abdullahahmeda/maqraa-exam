@@ -40,7 +40,7 @@ type CreateContextOptions = {
  *
  * @see https://create.t3.gg/en/usage/trpc#-servertrpccontextts
  */
-const createInnerTRPCContext = async (opts: CreateContextOptions) => {
+export const createInnerTRPCContext = async (opts: CreateContextOptions) => {
   return {
     session: opts.session,
     db,
@@ -78,9 +78,10 @@ import { ZodError, ZodIssue } from 'zod'
 import { env } from '~/env.mjs'
 import { Kysely } from 'kysely'
 import { DB } from '~/kysely/types'
-import { replaceEmptyStringsWithUndefined } from '~/utils/replaceEmptyStringsWithUndefined'
+import { coerceEmptyStringsToUndefined } from '~/utils/replaceEmptyStringsWithUndefined'
+import { coerceStringsToBoolean } from '~/utils/coerceStringsToBoolean'
 
-const t = initTRPC.context<typeof createTRPCContext>().create({
+export const t = initTRPC.context<typeof createTRPCContext>().create({
   transformer: superjson,
   errorFormatter(opts) {
     const { shape, error } = opts
@@ -122,6 +123,15 @@ export const createTRPCRouter = t.router
 
 export const mergeRouters = t.mergeRouters
 
+// Default Procedure
+const defaultProcedure = t.procedure.use(async ({ next, getRawInput }) => {
+  const input = await getRawInput()
+  const newInput = coerceStringsToBoolean(coerceEmptyStringsToUndefined(input))
+  return next({
+    input: newInput,
+  })
+})
+
 /**
  * Public (unauthenticated) procedure
  *
@@ -129,15 +139,7 @@ export const mergeRouters = t.mergeRouters
  * tRPC API. It does not guarantee that a user querying is authorized, but you
  * can still access user session data if they are logged in.
  */
-export const publicProcedure = t.procedure.use(
-  async function replaceEmptyStringsWithUndefinedMiddleware(opts) {
-    const input = await opts.getRawInput()
-    const newInput = replaceEmptyStringsWithUndefined(input)
-    return opts.next({
-      input: newInput,
-    })
-  }
-)
+export const publicProcedure = defaultProcedure
 
 /**
  * Reusable middleware that enforces users are logged in before running the
@@ -167,7 +169,7 @@ const enforceUserIsAuthed = t.middleware(({ ctx, next }) => {
  *
  * @see https://trpc.io/docs/procedures
  */
-export const protectedProcedure = t.procedure.use(enforceUserIsAuthed)
+export const protectedProcedure = defaultProcedure.use(enforceUserIsAuthed)
 
 const enforceUserIsAdmin = t.middleware(({ ctx, next }) => {
   if (

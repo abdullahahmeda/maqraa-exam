@@ -14,11 +14,14 @@ export const db =
           }),
         }),
         plugins: [new DeduplicateJoinsPlugin()],
-        // log: ['query', 'error'],
         log(event) {
           if (event.level === 'query') {
-            console.log(event.query.sql)
-            console.log(event.query.parameters)
+            console.log(`
+-------------------
+${event.query.sql}
+* Parametrs: ${event.query.parameters}
+* Took: ${event.queryDurationMillis} ms
+`)
           } else {
             console.log(event)
           }

@@ -19,21 +19,18 @@ import { forgotPasswordSchema } from '~/validation/forgotPasswordSchema'
 import { add } from 'date-fns'
 import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
 import { UserRole } from '~/kysely/enums'
-import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
+import { paginationSchema } from '~/utils/db'
 import { ExpressionBuilder, SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
 import bcrypt from 'bcryptjs'
-import { importFromGoogleSheet } from '~/services/sheet'
+import { importFromGoogleSheet, getRowsFromSheet } from '~/services/sheet'
 import { Client } from '@upstash/qstash'
 import { env } from '~/env.mjs'
 import { sleep } from '~/utils/sleep'
 import { jsonArrayFrom } from 'kysely/helpers/postgres'
-
-const userFiltersSchema = z.object({
-  email: z.string().optional(),
-  role: z.nativeEnum(UserRole).optional(),
-  cycleId: z.string().optional(),
-})
+import { UserService } from '~/services/user'
+import { filtersSchema, includeSchema } from '~/validation/queries/user'
+import { hashPassword } from '~/utils/server/password'
 
 function restrictUsersRows<O>(
   query: SelectQueryBuilder<DB, 'User', O>,
@@ -43,10 +40,6 @@ function restrictUsersRows<O>(
   if (user.role !== 'ADMIN') return query.where('User.id', '=', user.id) // non admins
   return query // admins
 }
-
-const userIncludeSchema = z.object({
-  cycles: z.boolean().optional(),
-})
 
 function withCycles(eb: ExpressionBuilder<DB, 'User'>) {
   return jsonArrayFrom(
@@ -68,32 +61,14 @@ function withCycles(eb: ExpressionBuilder<DB, 'User'>) {
 
 function applyInclude<O>(
   query: SelectQueryBuilder<DB, 'User', O>,
-  includes: z.infer<typeof userIncludeSchema> | undefined
+  includes: z.infer<typeof includeSchema> | undefined
 ) {
   return query.$if(!!includes?.cycles, (qb) => qb.select(withCycles))
 }
 
-function applyUserFilters<O>(
-  query: SelectQueryBuilder<DB, 'User', O>,
-  filters: z.infer<typeof userFiltersSchema>
-) {
-  return applyFilters(query, filters, {
-    email: (query, email) =>
-      query.where('email', 'like', `${email as string}%`),
-    cycleId: (query, cycleId) =>
-      query.where(({ selectFrom, exists }) =>
-        exists(
-          selectFrom('UserCycle')
-            .whereRef('UserCycle.userId', '=', 'User.id')
-            .where('UserCycle.cycleId', '=', cycleId as string)
-        )
-      ),
-  })
-}
-
 export const userRouter = createTRPCRouter({
   get: protectedProcedure
-    .input(z.object({ id: z.string(), include: userIncludeSchema.optional() }))
+    .input(z.object({ id: z.string(), include: includeSchema.optional() }))
     .query(async ({ ctx, input }) => {
       const user = applyInclude(
         ctx.db
@@ -113,42 +88,39 @@ export const userRouter = createTRPCRouter({
 
   list: protectedProcedure
     .input(
-      z.object({
-        filters: userFiltersSchema,
-        pagination: paginationSchema.optional(),
-        include: userIncludeSchema.optional(),
-      })
+      z
+        .object({
+          filters: filtersSchema.optional(),
+          pagination: paginationSchema.optional(),
+          include: includeSchema.optional(),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
-      const query = restrictUsersRows(
-        applyInclude(
-          applyPagination(
-            applyUserFilters(
-              ctx.db.selectFrom('User').select(['id', 'email', 'name', 'role']),
-              input.filters
-            ),
-            input.pagination
-          ),
-          input.include
-        ),
-        ctx.session?.user
-      )
-      return await query.execute()
+      const userService = new UserService(ctx.db)
+      const count = await userService.getCount(input?.filters)
+
+      let query = await userService.getListQuery({
+        filters: input?.filters,
+        include: input?.include,
+      })
+      if (input?.pagination) {
+        const { pageSize, pageIndex } = input.pagination
+        query = query.limit(pageSize).offset(pageIndex * pageSize)
+      }
+      const rows = await query.execute()
+
+      return {
+        data: rows,
+        count,
+      }
     }),
   count: protectedProcedure
-    .input(z.object({ filters: userFiltersSchema.optional().default({}) }))
+    .input(z.object({ filters: filtersSchema.optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const query = restrictUsersRows(
-        applyUserFilters(
-          ctx.db
-            .selectFrom('User')
-            .select(({ fn }) => fn.count('id').as('total')),
-          input.filters
-        ),
-        ctx.session?.user
-      )
-      const total = Number((await query.executeTakeFirst())?.total)
-      return total
+      const userService = new UserService(ctx.db)
+      const count = await userService.getCount(input?.filters)
+      return count
     }),
   create: protectedProcedure
     .input(newUserSchema)
@@ -159,51 +131,9 @@ export const userRouter = createTRPCRouter({
           message: 'ليس لديك الصلاحيات لهذه العملية',
         })
 
-      const { email, password, name, role, phone } = input
-      const hashedPassword = bcrypt.hashSync(password, 12)
-      await ctx.db.transaction().execute(async (trx) => {
-        const user = await trx
-          .insertInto('User')
-          .values({
-            name,
-            email,
-            password: hashedPassword,
-            role,
-            phone,
-          })
-          .returning('id')
-          .executeTakeFirstOrThrow()
-        if (role === 'CORRECTOR') {
-          await trx
-            .insertInto('UserCycle')
-            .values(
-              Object.entries(input.corrector.cycles).flatMap(
-                ([cycleId, { curricula }]) =>
-                  curricula.map((curriculumId) => ({
-                    cycleId,
-                    curriculumId,
-                    userId: user.id,
-                  }))
-              )
-            )
-            .returning('id')
-            .executeTakeFirstOrThrow()
-        } else if (role === 'STUDENT') {
-          await trx
-            .insertInto('UserCycle')
-            .values(
-              Object.entries(input.student.cycles).map(
-                ([cycleId, { curriculumId }]) => ({
-                  cycleId,
-                  curriculumId,
-                  userId: user.id,
-                })
-              )
-            )
-            .execute()
-        }
-      })
-
+      const { email, password } = input
+      const userService = new UserService(ctx.db)
+      await userService.create(input)
       await sendMail({
         subject: 'تم إضافة حسابك في المقرأة!',
         to: [{ email }],
@@ -234,14 +164,15 @@ export const userRouter = createTRPCRouter({
         curriculumName: string
       }[]
       try {
+        // const rows = await getRowsFromSheet(spreadsheetId, sheetName)
         data = await importFromGoogleSheet({
           spreadsheetId,
           sheetName,
           mapper: (row) => ({
-            name: row[0],
-            phone: row[1],
-            courseName: row[2],
-            trackName: row[3],
+            name: row[0] as string,
+            phone: row[1] as string,
+            courseName: row[2] as string,
+            trackName: row[3] as string,
             curriculumName: row[4],
             email: row[5],
           }),
@@ -295,6 +226,12 @@ export const userRouter = createTRPCRouter({
   update: protectedProcedure
     .input(editUserSchema)
     .mutation(async ({ ctx, input }) => {
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
       const { id: userId, email, name, role, password, phone } = input
       await ctx.db.transaction().execute(async (trx) => {
         await trx
@@ -306,7 +243,7 @@ export const userRouter = createTRPCRouter({
             role,
           })
           .$if(!!password, (qb) => {
-            const hashedPassword = bcrypt.hashSync(password as string)
+            const hashedPassword = hashPassword(password as string)
             return qb.set({ password: hashedPassword })
           })
           .where('id', '=', userId)
@@ -489,7 +426,7 @@ export const userRouter = createTRPCRouter({
       await ctx.db.transaction().execute(async (trx) => {
         await trx
           .updateTable('User')
-          .set({ password: hashSync(password, 12) })
+          .set({ password: hashPassword(password) })
           .where('id', '=', passwordToken.userId)
           .execute()
         await trx
@@ -504,7 +441,14 @@ export const userRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.deleteFrom('User').where('id', '=', input).execute()
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      const userService = new UserService(ctx.db)
+      await userService.delete(input)
       return true
     }),
 
@@ -517,12 +461,19 @@ export const userRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      await ctx.db.deleteFrom('User').where('id', 'in', input).execute()
+      const userService = new UserService(ctx.db)
+      await userService.delete(input)
       return true
     }),
 
-  deleteAll: protectedProcedure.mutation(async ({ctx}) => {
-    await ctx.db.deleteFrom('User').execute()
+  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
+    if (ctx.session.user.role !== 'ADMIN')
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'لا تملك الصلاحيات لهذه العملية',
+      })
+    const userService = new UserService(ctx.db)
+    await userService.delete(undefined)
     return true
-  })
+  }),
 })

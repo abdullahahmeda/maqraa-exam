@@ -243,7 +243,7 @@ const ExamsPage = ({
                   )}
                   <TooltipProvider>
                     <Tooltip>
-                      <TooltipTrigger>
+                      <TooltipTrigger asChild>
                         <Button
                           size='icon'
                           variant='ghost'

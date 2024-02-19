@@ -121,7 +121,7 @@ const QuestionsPage = () => {
     {},
     {
       select: (styles) =>
-        styles.reduce((acc, s) => ({ ...acc, [s.id]: s }), {}) as Record<
+        styles?.data.reduce((acc, s) => ({ ...acc, [s.id]: s }), {}) as Record<
           string,
           {
             id: string
@@ -143,14 +143,11 @@ const QuestionsPage = () => {
       { networkMode: 'always', enabled: !!questionStyles }
     )
 
-  const { data: count, isLoading: isCountLoading } =
-    api.question.count.useQuery({ filters }, { networkMode: 'always' })
-
   const questionsExport = api.question.export.useMutation()
 
   const pageCount =
-    questions !== undefined && typeof count === 'number'
-      ? Math.ceil(count / pageSize)
+    questions?.data !== undefined && typeof questions?.count === 'number'
+      ? Math.ceil(questions?.count / pageSize)
       : -1
 
   const columns = useMemo(
@@ -344,7 +341,8 @@ const QuestionsPage = () => {
           tdClassName: 'truncate max-w-[200px]',
         },
       }),
-      columnHelper.accessor('courseName', {
+      // TODO: please check this
+      columnHelper.accessor('course.name' as any, {
         id: 'courseId',
         header: ({ column }) => {
           const { data: courses, isLoading } = api.course.list.useQuery()
@@ -434,6 +432,9 @@ const QuestionsPage = () => {
       }),
       columnHelper.accessor('styleId', {
         header: ({ column }) => {
+          const { data: styles, isLoading } = api.questionStyle.list.useQuery(
+            {}
+          )
           const filterValue = column.getFilterValue() as string | undefined
           return (
             <div className='flex items-center'>
@@ -448,22 +449,16 @@ const QuestionsPage = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent>
-                  <Select
-                    value={filterValue === undefined ? '' : filterValue}
-                    onValueChange={column.setFilterValue}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value=''>الكل</SelectItem>
-                      {Object.entries(styleMapping).map(([label, value]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Combobox
+                    items={[{ name: 'الكل', id: '' }, ...(styles?.data || [])]}
+                    loading={isLoading}
+                    labelKey='name'
+                    valueKey='id'
+                    onSelect={column.setFilterValue}
+                    value={filterValue}
+                    triggerText='الكل'
+                    triggerClassName='w-full'
+                  />
                 </PopoverContent>
               </Popover>
             </div>
@@ -589,7 +584,7 @@ const QuestionsPage = () => {
   )
 
   const table = useReactTable({
-    data: (questions as any[]) ?? [],
+    data: (questions?.data as any[]) ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -675,12 +670,12 @@ const QuestionsPage = () => {
         <DataTableActions
           deleteAll={{
             handle: handleDeleteAll,
-            data: { disabled: !questions || questions?.length === 0 },
+            data: { disabled: questions?.count === 0 },
           }}
           bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
           excelExport={{
             handle: handleExcelExport,
-            data: { disabled: !questions || questions.length === 0 },
+            data: { disabled: questions?.count === 0 },
           }}
         />
         <DataTable table={table} fetching={isFetchingQuestions} />

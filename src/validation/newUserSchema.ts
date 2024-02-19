@@ -3,11 +3,7 @@ import { UserRole } from '~/kysely/enums'
 
 const baseSchema = z.object({
   name: z.string().min(1),
-  email: z
-    .string()
-    .email()
-    .min(1)
-    .transform((val) => val.toLowerCase()),
+  email: z.string().trim().toLowerCase().min(1).email(),
   password: z.string().min(4),
   phone: z.string().optional(),
 })
@@ -47,9 +43,10 @@ const correctorSchema = baseSchema.extend({
   }),
 })
 
-// baseSchema is basically the studentSchema
 export const newUserSchema = z.discriminatedUnion('role', [
   adminSchema,
   correctorSchema,
   studentSchema,
 ])
+
+export type NewUserSchema = z.infer<typeof newUserSchema>

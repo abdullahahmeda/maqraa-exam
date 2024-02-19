@@ -125,7 +125,7 @@ const columns = [
       const filterValue = column.getFilterValue() as string | undefined
 
       return (
-        <div className='flex items-center'>
+        <div className='flex items-center justify-center'>
           المسار
           <Popover>
             <PopoverTrigger className='mr-4' asChild>

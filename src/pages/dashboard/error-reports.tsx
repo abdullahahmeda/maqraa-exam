@@ -30,6 +30,7 @@ import { cn } from '~/lib/utils'
 import { Checkbox } from '~/components/ui/checkbox'
 import { deleteRows } from '~/utils/client/deleteRows'
 import { DataTableActions } from '~/components/ui/data-table-actions'
+import { Badge } from '~/components/ui/badge'
 
 const DeleteErrorReportDialog = ({ id }: { id: string }) => {
   const deleteMutation = api.errorReport.delete.useMutation()
@@ -128,18 +129,30 @@ const ErrorReportsPage = () => {
           />
         ),
       }),
-      columnHelper.accessor('name', {
+      columnHelper.accessor('userName', {
         header: 'اسم المبلغ',
         meta: {
           textAlign: 'center',
         },
       }),
-      columnHelper.accessor('email', {
+      columnHelper.accessor('userEmail', {
         header: 'البريد الإلكتروني',
         meta: {
           textAlign: 'center',
         },
         cell: (info) => info.getValue(),
+      }),
+      columnHelper.accessor('userId', {
+        header: 'نوع المبلغ',
+        meta: {
+          textAlign: 'center',
+        },
+        cell: (info) =>
+          info.getValue() === null ? (
+            <Badge variant='outline'>زائر</Badge>
+          ) : (
+            <Badge>عضو</Badge>
+          ),
       }),
       columnHelper.accessor('questionNumber', {
         header: 'رقم السؤال',

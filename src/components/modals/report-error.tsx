@@ -20,6 +20,7 @@ import { useSession } from 'next-auth/react'
 import { populateFormWithErrors } from '~/utils/errors'
 
 type FieldValues = {
+  quizId: string
   modelQuestionId: string
   name: string
   email: string
@@ -28,10 +29,13 @@ type FieldValues = {
 
 export const ReportErrorDialog = ({
   closeDialog,
-  questionId: modelQuestionId,
+  data,
 }: {
   closeDialog: () => void
-  questionId: string
+  data: {
+    questionId: string
+    quizId: string
+  } | null
 }) => {
   const { status } = useSession()
   const utils = api.useUtils()
@@ -43,19 +47,25 @@ export const ReportErrorDialog = ({
     data: modelQ,
     isLoading: modelQLoading,
     error,
-  } = api.modelQuestion.get.useQuery({
-    id: modelQuestionId,
-    include: { question: true },
-  })
+  } = api.modelQuestion.get.useQuery(
+    {
+      id: data?.questionId!,
+      include: { question: true },
+    },
+    {
+      enabled: !!data?.questionId,
+    }
+  )
 
   const isLoading = modelQLoading || status === 'loading'
 
   const mutation = api.errorReport.create.useMutation()
 
-  const onSubmit = (data: FieldValues) => {
+  const onSubmit = (formData: FieldValues) => {
     const promise = mutation.mutateAsync({
-      ...data,
-      modelQuestionId: modelQuestionId,
+      ...formData,
+      quizId: data?.quizId!,
+      modelQuestionId: data?.questionId!,
     })
     toast.promise(promise, {
       loading: 'جاري الإبلاغ عن الخطأ...',
@@ -92,8 +102,13 @@ export const ReportErrorDialog = ({
           <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
             <input
               type='hidden'
+              {...form.register('quizId')}
+              value={data?.quizId}
+            />
+            <input
+              type='hidden'
               {...form.register('modelQuestionId')}
-              value={modelQuestionId}
+              value={data?.questionId}
             />
             {status === 'unauthenticated' && (
               <>

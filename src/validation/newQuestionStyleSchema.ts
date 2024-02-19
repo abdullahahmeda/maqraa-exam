@@ -25,3 +25,5 @@ export const newQuestionStyleSchema = z.discriminatedUnion('type', [
   withColumnsSchema,
   withoutColumnsSchema,
 ])
+
+export type NewQuestionStyleSchema = z.infer<typeof newQuestionStyleSchema>

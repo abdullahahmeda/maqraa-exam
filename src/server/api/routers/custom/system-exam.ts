@@ -6,24 +6,13 @@ import { percentage } from '~/utils/percentage'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
 import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
 import { z } from 'zod'
-import { QuizType } from '~/kysely/enums'
-import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
+import { paginationSchema } from '~/utils/db'
 import { SelectQueryBuilder } from 'kysely'
 import { DB } from '~/kysely/types'
 import { User } from 'next-auth'
-
-const systemExamFilterSchema = z.object({
-  type: z.nativeEnum(QuizType).optional(),
-  cycleId: z.string().optional(),
-  curriculumId: z.string().optional(),
-})
-
-function applySystemExamFilters<O>(
-  query: SelectQueryBuilder<DB, 'SystemExam', O>,
-  filters: z.infer<typeof systemExamFilterSchema>
-) {
-  return applyFilters(query, filters)
-}
+import { UserService } from '~/services/user'
+import { SystemExamService } from '~/services/system-exam'
+import { filtersSchema, includeSchema } from '~/validation/queries/system-exam'
 
 function applyAccessControl<O>(
   query: SelectQueryBuilder<DB, 'SystemExam', O>,
@@ -54,32 +43,44 @@ export const systemExamRouter = createTRPCRouter({
           message: 'أنت لا تملك الصلاحيات لهذه العملية',
         })
 
-      const { groups, trackId, courseId, ...data } = input
+      const {
+        groups,
+        trackId,
+        courseId,
+        questions: _questions,
+        ...data
+      } = input
 
-      let total = 0
-      let questions: { questionId: string; weight: number }[] = []
-      let usedQuestions = new Set()
-      for (const group of groups) {
-        for (const question of Object.values(group.questions)) {
-          total += question.weight
-          if (usedQuestions.has(question.id))
-            throw new TRPCError({
-              code: 'BAD_REQUEST',
-              message: 'هناك أسئلة مكررة',
-            })
-          questions.push({ questionId: question.id, weight: question.weight })
-          usedQuestions.add(question.id)
-        }
+      const questions = _questions.reduce((acc, q) => ({ ...acc, ...q }), {})
+      const questionsCount = Object.keys(questions).length
+      const groupsQuestionsCount = groups.reduce(
+        (acc, g) => acc + Object.values(g.questions).length,
+        0
+      )
+
+      if (questionsCount !== groupsQuestionsCount) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: 'هناك أسئلة مكررة، قم بحذفها ثم حاول مجدداً',
+        })
       }
 
-      const students = await ctx.db
-        .selectFrom('UserCycle')
-        .leftJoin('User', 'UserCycle.userId', 'User.id')
-        .where('User.role', '=', 'STUDENT')
-        .where('cycleId', '=', data.cycleId)
-        .where('curriculumId', '=', data.curriculumId)
-        .select('UserCycle.userId')
-        .execute()
+      const total = Object.values(questions).reduce(
+        (acc, q) => acc + q.grade,
+        0
+      )
+
+      const userService = new UserService(ctx.db)
+
+      const students = await userService.getList({
+        filters: {
+          role: 'STUDENT',
+          userCycle: {
+            cycleId: data.cycleId,
+            curriculumId: data.curriculumId,
+          },
+        },
+      })
 
       if (students.length === 0) {
         throw new TRPCError({
@@ -104,8 +105,9 @@ export const systemExamRouter = createTRPCRouter({
         await trx
           .insertInto('ModelQuestion')
           .values(
-            questions.map((question, index) => ({
-              ...question,
+            Object.values(questions).map((question, index) => ({
+              questionId: question.id,
+              weight: question.grade,
               modelId: model.id,
               order: index + 1,
             }))
@@ -115,13 +117,13 @@ export const systemExamRouter = createTRPCRouter({
         await trx
           .insertInto('Quiz')
           .values(
-            students.map(({ userId }) => ({
+            students.map(({ id }) => ({
               curriculumId: data.curriculumId,
               modelId: model!.id,
               endsAt: data.endsAt,
               total,
               type: data.type,
-              examineeId: userId,
+              examineeId: id,
               systemExamId: systemExam.id,
             }))
           )
@@ -133,76 +135,40 @@ export const systemExamRouter = createTRPCRouter({
 
   list: protectedProcedure
     .input(
-      z.object({
-        filters: systemExamFilterSchema.optional(),
-        include: z
-          .record(
-            z.union([
-              z.literal('cycle'),
-              z.literal('curriculum'),
-              z.literal('quizzesCount'),
-            ]),
-            z.boolean().optional()
-          )
-          .optional(),
-        pagination: paginationSchema.optional(),
-      })
+      z
+        .object({
+          filters: filtersSchema.optional(),
+          include: includeSchema.optional(),
+          pagination: paginationSchema.optional(),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
-      const query = applyAccessControl(
-        applyPagination(
-          applySystemExamFilters(
-            ctx.db
-              .selectFrom('SystemExam')
-              .selectAll('SystemExam')
-              .$if(!!input.include?.curriculum, (qb) =>
-                qb
-                  .leftJoin(
-                    'Curriculum',
-                    'SystemExam.curriculumId',
-                    'Curriculum.id'
-                  )
-                  .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-                  .leftJoin('Course', 'Track.courseId', 'Course.id')
-                  .select([
-                    'Course.name as courseName',
-                    'Curriculum.name as curriculumName',
-                  ])
-              )
-              .$if(!!input.include?.cycle, (qb) =>
-                qb
-                  .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
-                  .select('Cycle.name as cycleName')
-              )
-              .$if(!!input.include?.quizzesCount, (qb) =>
-                qb.select(({ selectFrom }) => [
-                  selectFrom('Quiz')
-                    .whereRef('SystemExam.id', '=', 'Quiz.systemExamId')
-                    .select(({ fn }) => [
-                      fn.count('Quiz.id').as('quizzesCount'),
-                    ])
-                    .as('quizzesCount'),
-                ])
-              ),
-            input.filters || {}
-          ),
-          input.pagination
-        ),
-        ctx.session.user
-      )
-      return await query.execute()
+      const systemExamService = new SystemExamService(ctx.db)
+      const count = await systemExamService.getCount(input?.filters)
+
+      let query = await systemExamService.getListQuery({
+        filters: input?.filters,
+        include: input?.include,
+      })
+      query = applyAccessControl(query, ctx.session.user)
+      if (input?.pagination) {
+        const { pageSize, pageIndex } = input.pagination
+        query = query.limit(pageSize).offset(pageIndex * pageSize)
+      }
+      const rows = await query.execute()
+
+      return {
+        data: rows,
+        count,
+      }
     }),
   count: protectedProcedure
-    .input(z.object({ filters: systemExamFilterSchema.optional().default({}) }))
+    .input(z.object({ filters: filtersSchema.optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const query = applySystemExamFilters(
-        ctx.db
-          .selectFrom('SystemExam')
-          .select(({ fn }) => fn.count('id').as('total')),
-        input.filters
-      )
-      const total = Number((await query.executeTakeFirst())?.total)
-      return total
+      const systemExamService = new SystemExamService(ctx.db)
+      const count = await systemExamService.getCount(input?.filters)
+      return count
     }),
 
   export: protectedProcedure
@@ -258,7 +224,14 @@ export const systemExamRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.deleteFrom('SystemExam').where('id', '=', input).execute()
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      const systemExamService = new SystemExamService(ctx.db)
+      await systemExamService.delete(input)
       return true
     }),
 
@@ -271,12 +244,20 @@ export const systemExamRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      await ctx.db.deleteFrom('SystemExam').where('id', 'in', input).execute()
+      const systemExamService = new SystemExamService(ctx.db)
+      await systemExamService.delete(input)
       return true
     }),
 
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    await ctx.db.deleteFrom('SystemExam').execute()
+    if (ctx.session.user.role !== 'ADMIN')
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'لا تملك الصلاحيات لهذه العملية',
+      })
+
+    const systemExamService = new SystemExamService(ctx.db)
+    await systemExamService.delete(undefined)
     return true
   }),
 })

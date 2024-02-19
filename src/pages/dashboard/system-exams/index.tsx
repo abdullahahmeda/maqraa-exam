@@ -141,7 +141,7 @@ const SystemExamsPage = () => {
         },
       }),
       columnHelper.accessor(
-        (row) => `${row.courseName} :${row.curriculumName}`,
+        (row) => `${row.curriculum.track.course.name} :${row.curriculum.name}`,
         {
           id: 'curriculumId',
           header: ({ column }) => {
@@ -229,7 +229,7 @@ const SystemExamsPage = () => {
         cell: ({ getValue }) => enExamTypeToAr(getValue()),
       }),
 
-      columnHelper.accessor('cycleName', {
+      columnHelper.accessor('cycle.name', {
         id: 'cycleId',
         header: ({ column }) => {
           const { data: cycles, isLoading } = api.cycle.list.useQuery()
@@ -294,13 +294,13 @@ const SystemExamsPage = () => {
           textAlign: 'center',
         },
       }),
-      columnHelper.accessor('quizzesCount', {
-        header: 'الطلاب المستحقين للإختبار',
-        cell: (info) => Number(info.getValue()),
-        meta: {
-          textAlign: 'center',
-        },
-      }),
+      // columnHelper.accessor('quizzesCount', {
+      //   header: 'الطلاب المستحقين للإختبار',
+      //   cell: (info) => Number(info.getValue()),
+      //   meta: {
+      //     textAlign: 'center',
+      //   },
+      // }),
       columnHelper.display({
         id: 'actions',
         header: 'الإجراءات',
@@ -353,22 +353,26 @@ const SystemExamsPage = () => {
   const { data: exams, isFetching } = api.systemExam.list.useQuery(
     {
       pagination,
-      include: { curriculum: true, cycle: true, quizzesCount: true },
+      include: {
+        curriculum: {
+          track: {
+            course: true,
+          },
+        },
+        cycle: true,
+      },
       filters,
     },
     { networkMode: 'always' }
   )
 
-  const { data: count, isLoading: isCountLoading } =
-    api.systemExam.count.useQuery({ filters }, { networkMode: 'always' })
-
   const pageCount =
-    exams !== undefined && typeof count === 'number'
-      ? Math.ceil((count as number) / pageSize)
+    exams?.data !== undefined && typeof exams?.count === 'number'
+      ? Math.ceil((exams?.count as number) / pageSize)
       : -1
 
   const table = useReactTable({
-    data: (exams as any[]) || [],
+    data: (exams?.data as any[]) || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     pageCount,
@@ -430,7 +434,7 @@ const SystemExamsPage = () => {
       <div>
         <div className='mb-4 flex items-center gap-4'>
           <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
-          {session!.user.role === UserRole.ADMIN && (
+          {session?.user.role === UserRole.ADMIN && (
             <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
               <DialogTrigger asChild>
                 <Button className='flex items-center gap-2'>
@@ -449,11 +453,11 @@ const SystemExamsPage = () => {
           bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
           deleteAll={{
             handle: handleDeleteAll,
-            data: { disabled: !exams || exams.length === 0 },
+            data: { disabled: exams?.count === 0 },
           }}
           excelExport={{
             handle: () => setExportDialogOpen(true),
-            data: { disabled: !exams || exams.length === 0 },
+            data: { disabled: exams?.count === 0 },
           }}
         />
         <DataTable table={table} fetching={isFetching} />

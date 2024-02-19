@@ -29,6 +29,7 @@ function applyErrorReportIncludes<O>(
       )
       .leftJoin('Question', 'ModelQuestion.questionId', 'Question.id')
       .select([
+        'Question.id as questionId',
         'Question.number as questionNumber',
         'Question.partNumber as questionPartNumber',
         'Question.pageNumber as questionPageNumber',
@@ -40,6 +41,7 @@ export const errorReportRouter = createTRPCRouter({
   create: publicProcedure
     .input(reportErrorSchema)
     .mutation(async ({ ctx, input }) => {
+      console.log(ctx.session)
       if (ctx.session) {
         await db
           .insertInto('ErrorReport')
@@ -71,7 +73,26 @@ export const errorReportRouter = createTRPCRouter({
     .query(async ({ ctx, input }) => {
       const query = applyErrorReportIncludes(
         applyPagination(
-          ctx.db.selectFrom('ErrorReport').selectAll('ErrorReport'),
+          ctx.db
+            .selectFrom('ErrorReport')
+            .selectAll('ErrorReport')
+            .leftJoin('User', 'ErrorReport.userId', 'User.id')
+            .select((eb) => [
+              eb
+                .case()
+                .when('ErrorReport.userId', 'is not', null)
+                .then(eb.ref('User.name'))
+                .else(eb.ref('ErrorReport.name'))
+                .end()
+                .as('userName'),
+              eb
+                .case()
+                .when('ErrorReport.userId', 'is not', null)
+                .then(eb.ref('User.email'))
+                .else(eb.ref('ErrorReport.email'))
+                .end()
+                .as('userEmail'),
+            ]),
           input.pagination
         ),
         input.include

@@ -1,5 +1,9 @@
 import { ZodError, z } from 'zod'
-import { createTRPCRouter, protectedProcedure } from '../../trpc'
+import {
+  createTRPCRouter,
+  protectedProcedure,
+  publicProcedure,
+} from '../../trpc'
 import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
 import { questionSchema } from '~/validation/questionSchema'
 import { getSpreadsheetIdFromURL } from '~/utils/sheets'
@@ -8,54 +12,13 @@ import { GaxiosError } from 'gaxios'
 import { db } from '~/server/db'
 import { enColumnToAr, enDifficultyToAr, enTypeToAr } from '~/utils/questions'
 import { exportSheet, importFromGoogleSheet } from '~/services/sheet'
-import { applyFilters, applyPagination, paginationSchema } from '~/utils/db'
+import { paginationSchema } from '~/utils/db'
 import { QuestionDifficulty, QuestionType, QuizType } from '~/kysely/enums'
 import { SelectQueryBuilder, sql } from 'kysely'
 import { DB } from '~/kysely/types'
-
-const questionFilterSchema = z.object({
-  id: z.string().optional(),
-  number: z
-    .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
-    .optional(),
-  partNumber: z
-    .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
-    .optional(),
-  pageNumber: z
-    .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
-    .optional(),
-  hadithNumber: z
-    .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
-    .optional(),
-  courseId: z.string().optional(),
-  text: z.string().optional(),
-  curriculum: z
-    .object({
-      id: z.string(),
-      type: z.nativeEnum(QuizType),
-    })
-    .optional(),
-  type: z.nativeEnum(QuestionType).optional(),
-  styleId: z.string().optional(),
-  isInsideShaded: z.boolean().optional(),
-  difficulty: z.nativeEnum(QuestionDifficulty).optional(),
-})
-
-function applyQuestionFilters<O>(
-  query: SelectQueryBuilder<DB, 'Question', O>,
-  filters: z.infer<typeof questionFilterSchema>
-) {
-  return applyFilters(query, filters, {
-    id: (query, id) => query.where('Question.id', '=', id as string),
-    curriculum: (query, curriculum) => query, // Custom handler below in `list`
-    text: (query, text) => query.where('text', 'like', `%${text}%`),
-  })
-}
-
-const includeSchema = z.record(
-  z.union([z.literal('course'), z.literal('style')]),
-  z.boolean().optional()
-)
+import { numberInput } from '~/validation/common'
+import { QuestionService } from '~/services/question'
+import { filtersSchema, includeSchema } from '~/validation/queries/question'
 
 function withCourse<O>(qb: SelectQueryBuilder<DB, 'Question', O>) {
   return qb
@@ -82,69 +45,101 @@ export const questionRouter = createTRPCRouter({
   list: protectedProcedure
     .input(
       z.object({
-        filters: questionFilterSchema,
+        filters: filtersSchema,
         include: includeSchema.optional(),
         pagination: paginationSchema.optional(),
       })
     )
     .query(async ({ ctx, input }) => {
-      let query = applyInclude(
-        applyPagination(
-          applyQuestionFilters(
-            ctx.db.selectFrom('Question').selectAll('Question'),
-            input.filters
-          ),
-          input.pagination
-        ),
-        input.include
-      )
+      const questionService = new QuestionService(ctx.db)
+      const count = await questionService.getCount(input?.filters)
 
-      if (input.filters.curriculum) {
-        const parts = await db
-          .selectFrom('CurriculumPart')
-          .where('curriculumId', '=', input.filters.curriculum.id)
-          .select(['from', 'mid', 'to', 'number'])
-          .execute()
+      let query = await questionService.getListQuery({
+        filters: input?.filters,
+        include: input?.include,
+      })
+      if (input?.pagination) {
+        const { pageSize, pageIndex } = input.pagination
+        query = query.limit(pageSize).offset(pageIndex * pageSize)
+      }
+      const rows = await query.execute()
 
-        const courseId = await db
-          .selectFrom('Curriculum')
-          .where('Curriculum.id', '=', input.filters.curriculum.id)
-          .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-          .leftJoin('Course', 'Track.courseId', 'Course.id')
-          .select('Course.id')
-          .executeTakeFirst()
+      return {
+        data: rows,
+        count,
+      }
+    }),
 
-        query = query.where((eb) =>
-          eb.or(
-            parts.map((part) => {
-              let minLimit: number
-              let maxLimit: number
-              switch (input.filters.curriculum!.type) {
-                case 'FIRST_MEHWARY':
-                  minLimit = part.from
-                  maxLimit = part.mid
-                  break
-                case 'SECOND_MEHWARY':
-                  minLimit = Math.max(part.from, part.mid)
-                  maxLimit = part.to
-                  break
-                case 'WHOLE_CURRICULUM':
-                  minLimit = part.from
-                  maxLimit = part.to
-                  break
-              }
-              return eb.and([
-                eb('hadithNumber', '>=', minLimit),
-                eb('hadithNumber', '<=', maxLimit),
-                eb('partNumber', '=', part.number),
-                eb('courseId', '=', courseId!.id),
-              ])
-            })
-          )
-        )
+  infiniteList: protectedProcedure
+    .input(
+      z
+        .object({
+          cursor: z.string().optional(),
+          filters: filtersSchema.optional(),
+          include: includeSchema.optional(),
+        })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const limit = 100 // default limit
+      const questionService = new QuestionService(ctx.db)
+      const questions = await questionService.getList({
+        limit: limit + 1,
+        filters: input?.filters,
+        cursor: input?.cursor,
+        include: input?.include,
+      })
+
+      let nextCursor: string | undefined = undefined
+      if (questions.length > limit) {
+        const nextItem = questions.pop() as { id: string }
+        nextCursor = nextItem.id
       }
 
-      return await query.execute()
+      return {
+        data: questions,
+        nextCursor,
+      }
+    }),
+
+  listRandom: publicProcedure
+    .input(
+      z.object({
+        limit: numberInput.pipe(z.number().positive().safe()),
+        filters: z.object({
+          difficulty: z
+            .nativeEnum(QuestionDifficulty)
+            .or(z.literal('').transform(() => undefined))
+            .optional(),
+          type: z
+            .nativeEnum(QuestionType)
+            .or(z.literal('').transform(() => undefined))
+            .optional(),
+          isInsideShaded: z
+            .boolean()
+            .or(z.literal('').transform(() => undefined))
+            .optional(),
+          courseId: z
+            .string()
+            .or(z.literal('').transform(() => undefined))
+            .optional(),
+          curriculum: z
+            .object({
+              id: z.string(),
+              type: z
+                .nativeEnum(QuizType)
+                .or(z.literal('').transform(() => undefined))
+                .optional()
+                .default(QuizType.WHOLE_CURRICULUM),
+            })
+            .optional(),
+        }),
+        include: includeSchema.optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const questionService = new QuestionService(ctx.db)
+      return questionService.getRandom(input)
     }),
 
   get: protectedProcedure
@@ -162,16 +157,11 @@ export const questionRouter = createTRPCRouter({
     }),
 
   count: protectedProcedure
-    .input(z.object({ filters: questionFilterSchema.optional().default({}) }))
+    .input(z.object({ filters: filtersSchema.optional() }).optional())
     .query(async ({ ctx, input }) => {
-      const query = applyQuestionFilters(
-        ctx.db
-          .selectFrom('Question')
-          .select(({ fn }) => fn.count<number>('id').as('total')),
-        input.filters
-      )
-      const total = Number((await query.executeTakeFirst())?.total)
-      return total
+      const questionService = new QuestionService(ctx.db)
+      const count = await questionService.getCount(input?.filters)
+      return count
     }),
 
   import: protectedProcedure
@@ -368,7 +358,7 @@ export const questionRouter = createTRPCRouter({
     }),
 
   export: protectedProcedure
-    .input(z.object({ filters: questionFilterSchema }).optional())
+    .input(z.object({ filters: filtersSchema }).optional())
     .mutation(async ({ input, ctx }) => {
       if (ctx.session.user.role !== 'ADMIN')
         throw new TRPCError({
@@ -376,13 +366,13 @@ export const questionRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      const questions = await ctx.db
-        .selectFrom('Question')
-        .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
-        .selectAll('Question')
-        .select('QuestionStyle.name as styleName')
-        .orderBy('Question.number', 'asc')
-        .execute()
+      const questionService = new QuestionService(ctx.db)
+      const questions = await questionService.getList({
+        include: { style: true },
+        orderBy: {
+          expression: 'number',
+        },
+      })
 
       return exportSheet(questions, (q) => ({
         'رقم السؤال': q.number,
@@ -390,7 +380,7 @@ export const questionRouter = createTRPCRouter({
         'رقم الجزء': q.partNumber,
         'رقم الحديث': q.hadithNumber,
         'نوع السؤال': enTypeToAr(q.type),
-        'طريقة السؤال': q.styleName,
+        'طريقة السؤال': (q as any).style.name,
         'مستوى السؤال': enDifficultyToAr(q.difficulty),
         السؤال: q.text,
         صح: q.textForTrue,
@@ -409,7 +399,14 @@ export const questionRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ input, ctx }) => {
-      await ctx.db.deleteFrom('Question').where('id', '=', input).execute()
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      const questionService = new QuestionService(ctx.db)
+      await questionService.delete(input)
       return true
     }),
 
@@ -422,12 +419,19 @@ export const questionRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      await ctx.db.deleteFrom('Question').where('id', 'in', input).execute()
+      const questionService = new QuestionService(ctx.db)
+      await questionService.delete(input)
       return true
     }),
 
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    await ctx.db.deleteFrom('Question').execute()
+    if (ctx.session.user.role !== 'ADMIN')
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'لا تملك الصلاحيات لهذه العملية',
+      })
+    const questionService = new QuestionService(ctx.db)
+    await questionService.delete(undefined)
     return true
   }),
 })

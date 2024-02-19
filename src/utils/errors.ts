@@ -9,7 +9,6 @@ export function populateFormWithErrors<T extends FieldValues>(
   if (error instanceof TRPCClientError) {
     const zodError = error.data?.zodError as inferFlattenedErrors<any, ZodIssue>
     if (zodError) {
-      console.log(zodError)
       if (zodError.formErrors.length > 0) {
         form.setError('root.serverError', {
           message: zodError.formErrors[0]!.message,

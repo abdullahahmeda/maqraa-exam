@@ -1,8 +1,13 @@
 import mapValues from 'lodash.mapvalues'
 
-export function replaceEmptyStringsWithUndefined(o: unknown): any {
-  if (typeof o === 'object' && !Array.isArray(o) && o !== null) {
-    return mapValues(o, replaceEmptyStringsWithUndefined)
+// Note: not working with arrays
+export function coerceEmptyStringsToUndefined(o: unknown): any {
+  if (typeof o === 'object' && o !== null) {
+    if (Array.isArray(o)) {
+      // return something here if you want it to work with arrays
+    } else {
+      return mapValues(o, coerceEmptyStringsToUndefined)
+    }
   }
   return o === '' ? undefined : o
 }

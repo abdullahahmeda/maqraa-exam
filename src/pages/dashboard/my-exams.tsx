@@ -81,9 +81,8 @@ const MyExamsPage = () => {
       columnHelper.accessor('systemExamName', {
         id: 'systemExamId',
         header: ({ column }) => {
-          const { data: systemExams, isLoading } = api.systemExam.list.useQuery(
-            {}
-          )
+          const { data: systemExams, isLoading } =
+            api.systemExam.list.useQuery()
 
           const filterValue = column.getFilterValue() as string | undefined
 
@@ -103,7 +102,7 @@ const MyExamsPage = () => {
                   <Combobox
                     items={[
                       { name: 'الكل', id: 'not_null' },
-                      ...(systemExams || []),
+                      ...(systemExams?.data || []),
                     ]}
                     loading={isLoading}
                     labelKey='name'

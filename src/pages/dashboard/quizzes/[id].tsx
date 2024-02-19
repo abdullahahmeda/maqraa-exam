@@ -4,7 +4,7 @@ import { useRouter } from 'next/router'
 import { ReactNode, useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { compareTwoStrings } from 'string-similarity'
-import { Button } from '~/components/ui/button'
+import { Button, buttonVariants } from '~/components/ui/button'
 import DashboardLayout from '~/components/dashboard/layout'
 import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
@@ -30,7 +30,10 @@ import { toast } from 'sonner'
 import { Input } from '~/components/ui/input'
 import { Separator } from '~/components/ui/separator'
 import { Checkbox } from '~/components/ui/checkbox'
-import { jsonArrayFrom } from 'kysely/helpers/postgres'
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { ArrowLeftIcon } from 'lucide-react'
+import Link from 'next/link'
+import { cn } from '~/lib/utils'
 
 type FieldValues = {
   id: string
@@ -82,6 +85,7 @@ const MCQQuestionCorrector = ({ weight, field }: any) => {
 
 const CorrectQuizPage = ({
   quiz,
+  nextQuiz,
 }: InferGetServerSidePropsType<typeof getServerSideProps>) => {
   const form = useForm<FieldValues>({
     resolver: zodResolver(correctQuizSchema),
@@ -120,6 +124,8 @@ const CorrectQuizPage = ({
   }
 
   const isOfficiallyCorrected = !!quiz.correctorId
+
+  console.log(quiz)
 
   return (
     <>
@@ -245,6 +251,16 @@ const CorrectQuizPage = ({
                               )
                             }
                           />
+                          {question.errorReport && (
+                            <div className='mt-2'>
+                              <p>
+                                <span className='font-semibold'>
+                                  تم الإبلاغ عن هذا السؤال:
+                                </span>{' '}
+                                {question.errorReport.note}
+                              </p>
+                            </div>
+                          )}
                         </div>
                       )
                     )}
@@ -265,6 +281,17 @@ const CorrectQuizPage = ({
           <p>هذا الإختبار لم يتم تسليمه</p>
         )}
       </div>
+      {nextQuiz && (
+        <div className='mt-4 flex justify-end'>
+          <Link
+            href={`/dashboard/quizzes/${nextQuiz.id}`}
+            className={cn(buttonVariants({ variant: 'ghost' }), 'gap-2')}
+          >
+            الاختبار التالي
+            <ArrowLeftIcon className='h-4 w-4' />
+          </Link>
+        </div>
+      )}
     </>
   )
 }
@@ -297,7 +324,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
           .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
           .whereRef('Answer.quizId', '=', 'Quiz.id')
           .whereRef('ModelQuestion.modelId', '=', 'Quiz.modelId')
-          .select([
+          .select((eb) => [
             'Answer.id',
             'Answer.answer as examineeAnswer',
             'Answer.grade',
@@ -313,6 +340,17 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             'QuestionStyle.name as style',
             'Question.type',
             'Question.answer as correctAnswer',
+            jsonObjectFrom(
+              eb
+                .selectFrom('ErrorReport')
+                .selectAll('ErrorReport')
+                .whereRef(
+                  'ErrorReport.modelQuestionId',
+                  '=',
+                  'ModelQuestion.id'
+                )
+                .where('ErrorReport.quizId', '=', ctx.params!.id as string)
+            ).as('errorReport'),
           ])
           .orderBy('ModelQuestion.order', 'asc')
       ).as('answers'),
@@ -325,8 +363,18 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
       notFound: true,
     }
 
+  const nextQuiz = await db
+    .selectFrom('Quiz')
+    .select('id')
+    .where('id', '!=', ctx.params!.id as string)
+    .where('correctedAt', 'is', null)
+    .where('systemExamId', '=', quiz.systemExamId)
+    .orderBy('id')
+    .limit(1)
+    .executeTakeFirst()
+
   return {
-    props: { quiz },
+    props: { quiz, nextQuiz },
   }
 }
 

@@ -145,17 +145,15 @@ const QuestionsStylesPage = () => {
 
   const invalidate = utils.questionStyle.invalidate
 
-  const { data: count, isLoading: isCountLoading } =
-    api.questionStyle.count.useQuery(undefined, { networkMode: 'always' })
-
   const pageCount =
-    questionStyles !== undefined && typeof count === 'number'
-      ? Math.ceil(count / pageSize)
+    questionStyles?.data !== undefined &&
+    typeof questionStyles?.count === 'number'
+      ? Math.ceil(questionStyles?.count / pageSize)
       : -1
 
   const table = useReactTable({
     columns,
-    data: (questionStyles as any[]) ?? [],
+    data: (questionStyles?.data as any[]) ?? [],
     getCoreRowModel: getCoreRowModel(),
     state: { pagination, rowSelection },
     pageCount,
@@ -213,7 +211,7 @@ const QuestionsStylesPage = () => {
       <DataTableActions
         deleteAll={{
           handle: handleDeleteAll,
-          data: { disabled: !questionStyles || questionStyles?.length === 0 },
+          data: { disabled: questionStyles?.count === 0 },
         }}
         bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
       />

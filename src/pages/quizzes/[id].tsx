@@ -9,17 +9,7 @@ import WebsiteLayout from '~/components/layout'
 import { GetServerSidePropsContext, InferGetServerSidePropsType } from 'next'
 import { db } from '~/server/db'
 import { getServerAuthSession } from '~/server/auth'
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '~/components/ui/form'
-import { Textarea } from '~/components/ui/textarea'
-import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
-import { cn } from '~/lib/utils'
+import { Form } from '~/components/ui/form'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,21 +20,20 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '~/components/ui/tooltip'
 import { toast } from 'sonner'
 import { useSession } from 'next-auth/react'
-import { AlertTriangleIcon } from 'lucide-react'
-import { Dialog, DialogTrigger, DialogContent } from '~/components/ui/dialog'
+import { AlertCircleIcon, AlertTriangleIcon } from 'lucide-react'
+import { Dialog, DialogContent } from '~/components/ui/dialog'
 import { ReportErrorDialog } from '~/components/modals/report-error'
 import { Alert, AlertTitle } from '~/components/ui/alert'
-import { QuestionType } from '~/kysely/enums'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
-import { formatNumber } from '~/utils/strings'
+import { QuestionCard } from '~/components/ui/question-card'
+import {
+  Tooltip,
+  TooltipProvider,
+  TooltipContent,
+  TooltipTrigger,
+} from '~/components/ui/tooltip'
 
 type FieldValues = {
   id: string
@@ -59,7 +48,10 @@ const ExamPage = ({
   const form = useForm<FieldValues>()
   const { data: session } = useSession()
 
-  const [selectedQuestion, setSelectedQuestion] = useState<string | null>(null)
+  const [errorReportData, setErrorReportData] = useState<{
+    quizId: string
+    questionId: string
+  } | null>(null)
 
   const quizSubmit = api.quiz.submit.useMutation()
 
@@ -129,19 +121,20 @@ const ExamPage = ({
       <div className='container mx-auto py-4'>
         {!!exam.submittedAt ||
           (session?.user.id != exam.examineeId && (
-            <Alert className='border-orange-300 bg-orange-300'>
-              <AlertTitle>
+            <Alert className='mb-4 border-orange-300 bg-orange-300 shadow'>
+              <AlertTitle className='flex items-center gap-2'>
+                <AlertCircleIcon className='h-4 w-4' />
                 هذا لعرض الإختبار فقط ولا يمكنك تسليم الإختبار.
               </AlertTitle>
             </Alert>
           ))}
 
-        <div className='rounded-md bg-white p-4 shadow'>
+        <div className='rounded-md bg-gray-50 p-4 shadow'>
           <h3 className='mb-4 text-center text-lg font-semibold'>
             {!!exam.systemExamId ? exam.systemExamName : 'إختبار تجريبي'}
           </h3>
           {exam.grade !== null && (
-            <div className='sticky top-3 z-10 float-left'>
+            <div className='mb-4 flex justify-end'>
               <Badge className='shadow'>
                 الدرجة{!isOfficiallyCorrected && ' التقريبية'}: {exam.grade} من{' '}
                 {totalGrade}
@@ -150,16 +143,17 @@ const ExamPage = ({
           )}
           {!isOfficiallyCorrected && exam.submittedAt && (
             <Alert className='mb-2 border-orange-300 bg-orange-300'>
-              <AlertTitle>
+              <AlertTitle className='flex items-center gap-2'>
+                <AlertCircleIcon className='h-4 w-4' />
                 هذه النتيجة تقريبية وليست النتيجة النهائية. سيتم اعتماد النتيجة
                 النهائية بعد التصحيح اليدوي
               </AlertTitle>
             </Alert>
           )}
           <Dialog
-            open={selectedQuestion !== null}
+            open={errorReportData !== null}
             onOpenChange={(open) =>
-              setSelectedQuestion(open ? selectedQuestion : null)
+              setErrorReportData(open ? errorReportData : null)
             }
           >
             <Form {...form}>
@@ -170,139 +164,65 @@ const ExamPage = ({
                     : form.handleSubmit(onSubmit)
                 }
               >
-                {exam.questions.map(
-                  ({ id, order, userAnswer, weight, ...question }) => (
-                    <div
-                      key={id}
-                      className={cn(
-                        'mb-4 rounded-md py-2',
-                        exam.submittedAt && 'px-4',
-                        exam.grade !== null &&
-                          userAnswer?.grade === weight &&
-                          'bg-success/20',
-                        exam.grade !== null &&
-                          typeof userAnswer?.grade === 'number' &&
-                          0 < userAnswer?.grade &&
-                          userAnswer?.grade < weight &&
-                          'bg-orange-500/20',
-                        exam.grade !== null &&
-                          userAnswer?.grade === 0 &&
-                          'bg-destructive/20'
-                      )}
-                    >
-                      <div className='flex items-center'>
-                        {order}.
-                        <Badge className='ml-2 mr-1'>{question.style}</Badge>
-                        <p>
-                          {question.text} (
-                          {formatNumber(weight, {
-                            zero: '',
-                            few: 'درجات',
-                            many: 'درجة',
-                            other: 'درجة',
-                            one: 'درجة واحدة',
-                            two: 'درجتان',
-                          })}
-                          )
-                        </p>
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button
-                                size='icon'
-                                variant='ghost'
-                                className='mr-2'
-                                onClick={() => setSelectedQuestion(id)}
-                                type='button'
-                              >
-                                <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>الإبلاغ عن خطأ</p>
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      </div>
-                      <div className='mt-2'>
-                        <FormField
-                          control={form.control}
-                          name={`answers.${id}`}
-                          render={({ field }) => (
-                            <FormItem
-                              className={cn(
-                                question.type === QuestionType.MCQ &&
-                                  'space-y-2'
-                              )}
-                            >
-                              <FormLabel>
-                                {exam.submittedAt
-                                  ? 'الإجابة الخاصة بك'
-                                  : 'الإجابة'}
-                              </FormLabel>
-                              {question.type === 'WRITTEN' ? (
-                                <FormControl>
-                                  <Textarea
-                                    {...field}
-                                    disabled={!!exam.submittedAt}
-                                    className='bg-white'
-                                  />
-                                </FormControl>
-                              ) : (
-                                <FormControl>
-                                  <RadioGroup
-                                    value={field.value}
-                                    onValueChange={field.onChange}
-                                    disabled={!!exam.submittedAt}
-                                  >
-                                    {question.choicesColumns?.map((column) => (
-                                      <FormItem
-                                        key={column}
-                                        className='flex items-center space-x-3 space-y-0 space-x-reverse'
-                                      >
-                                        <FormControl>
-                                          <RadioGroupItem
-                                            value={
-                                              question[
-                                                column as keyof typeof question
-                                              ] as string
-                                            }
-                                          />
-                                        </FormControl>
-                                        <FormLabel>
-                                          {
-                                            question[
-                                              column as keyof typeof question
-                                            ] as string
-                                          }
-                                        </FormLabel>
-                                      </FormItem>
-                                    ))}
-                                  </RadioGroup>
-                                </FormControl>
-                              )}
-                              <FormMessage />
-                            </FormItem>
-                          )}
+                <div className='space-y-4'>
+                  {exam.questions.map(
+                    ({ id, order, userAnswer, weight, ...question }) => (
+                      <div className='flex gap-2' key={id}>
+                        <div className='text-center'>
+                          <p>{order}) </p>
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  size='icon'
+                                  variant='ghost'
+                                  className='mt-2'
+                                  onClick={() =>
+                                    setErrorReportData({
+                                      quizId: exam.id,
+                                      questionId: id,
+                                    })
+                                  }
+                                  type='button'
+                                >
+                                  <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>الإبلاغ عن خطأ</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        <QuestionCard
+                          question={question as any}
+                          form={form}
+                          style={question.style as any}
+                          fields={{
+                            answer: `answers.${id}`,
+                          }}
+                          weight={weight}
+                          className='flex-1'
                         />
                       </div>
-                      {!!exam.correctedAt && (
-                        <p className='mt-2'>
-                          الإجابة الصحيحة: {(question as any).correctAnswer}
-                        </p>
-                      )}
-                    </div>
-                  )
-                )}
+                    )
+                  )}
+                </div>
                 {!exam.submittedAt && session?.user.id == exam.examineeId && (
-                  <Button loading={quizSubmit.isPending}>تسليم</Button>
+                  <Button
+                    loading={quizSubmit.isPending}
+                    className='mt-4'
+                    size='lg'
+                  >
+                    تسليم
+                  </Button>
                 )}
               </form>
             </Form>
             <DialogContent>
               <ReportErrorDialog
-                questionId={selectedQuestion as string}
-                closeDialog={() => setSelectedQuestion(null)}
+                data={errorReportData!}
+                closeDialog={() => setErrorReportData(null)}
               />
             </DialogContent>
           </Dialog>
@@ -329,8 +249,7 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
         eb
           .selectFrom('ModelQuestion')
           .leftJoin('Question', 'ModelQuestion.questionId', 'Question.id')
-          .leftJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
-          .select(({ eb, selectFrom }) => [
+          .select(({ eb, selectFrom, ref }) => [
             'Question.id as questionId',
             'ModelQuestion.id',
             'ModelQuestion.order',
@@ -342,10 +261,18 @@ export async function getServerSideProps(ctx: GetServerSidePropsContext) {
             'Question.option4',
             'Question.textForFalse',
             'Question.textForTrue',
-            'QuestionStyle.name as style',
-            'QuestionStyle.choicesColumns',
             'Question.type',
-            'Question.answer as correctAnswer',
+            eb
+              .case()
+              .when('Quiz.submittedAt', 'is not', null)
+              .then(ref('Question.answer'))
+              .end()
+              .as('correctAnswer'),
+            jsonObjectFrom(
+              selectFrom('QuestionStyle')
+                .selectAll('QuestionStyle')
+                .whereRef('Question.styleId', '=', 'QuestionStyle.id')
+            ).as('style'),
             jsonObjectFrom(
               selectFrom('Answer')
                 .select(['Answer.answer', 'Answer.grade'])

@@ -9,17 +9,7 @@
 /** @type {import("next").NextConfig} */
 const config = {
   reactStrictMode: true,
-
-  /**
-   * If you have the "experimental: { appDir: true }" setting enabled, then you
-   * must comment the below `i18n` config out.
-   *
-   * @see https://github.com/vercel/next.js/issues/41980
-   */
-  // i18n: {
-  //   locales: ['ar'],
-  //   defaultLocale: 'ar'
-  // },
+  // TODO: uncomment this
   experimental: {
     swcPlugins: [['next-superjson-plugin', {}]],
   },

@@ -352,13 +352,31 @@ export const quizRouter = createTRPCRouter({
             ])
         })
 
-      if (ctx.session.user.role !== 'ADMIN')
-        query = query.where(({ or, eb }) =>
-          or([
-            eb('examineeId', '=', ctx.session.user.id),
-            eb('correctorId', '=', ctx.session.user.id),
-          ])
-        )
+      // TODO: quizzes does not show for correctors
+      if (ctx.session.user.role === 'STUDENT')
+        query = query.where('examineeId', '=', ctx.session.user.id)
+      else if (ctx.session.user.role === 'CORRECTOR') {
+        const userCycles = await db
+          .selectFrom('UserCycle')
+          .selectAll('UserCycle')
+          .where('userId', '=', ctx.session.user.id)
+          .execute()
+
+        // TODO: untested
+        query = query
+          .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
+          .where(({ or, eb, and }) =>
+            or([
+              eb('correctorId', '=', ctx.session.user.id),
+              ...userCycles.map((c) =>
+                and([
+                  eb('Quiz.curriculumId', '=', c.curriculumId),
+                  eb('SystemExam.cycleId', '=', c.cycleId),
+                ])
+              ),
+            ])
+          )
+      }
 
       const rows = await applyPagination(
         applyQuizFilters(query, input.filters),

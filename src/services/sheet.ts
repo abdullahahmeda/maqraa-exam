@@ -29,7 +29,10 @@ export async function getGoogleSheetsNames(spreadsheetId: string) {
   ) as string[]
 }
 
-async function getGoogleSheetRows(spreadsheetId: string, sheetName: string) {
+export async function getRowsFromSheet(
+  spreadsheetId: string,
+  sheetName: string
+) {
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: spreadsheetId,
     range: `'${sheetName}'!A:R`,
@@ -49,7 +52,7 @@ export async function importFromGoogleSheet<Z extends z.ZodType>({
   mapper: (row: any[]) => any
   validationSchema: Z
 }) {
-  const rows = await getGoogleSheetRows(spreadsheetId, sheetName)
+  const rows = await getRowsFromSheet(spreadsheetId, sheetName)
   const results: z.infer<Z>[] = []
   for (const [i, row] of rows.entries()) {
     if (i === 0) continue // ignore headers

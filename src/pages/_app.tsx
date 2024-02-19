@@ -21,6 +21,7 @@ const fontFamily = Rubik({
 
 import '../styles/globals.css'
 import { SettingKey } from '~/kysely/enums'
+import { DialogProvider } from '~/lib/dialog'
 
 z.setErrorMap(errorMap)
 setDefaultOptions({ locale: arSA })
@@ -42,21 +43,23 @@ const MyApp /*: AppType<{ session: Session | null }>*/ = ({
     <>
       <DirectionProvider dir='rtl'>
         <SessionProvider session={session}>
-          {getLayout(
-            <>
-              <style jsx global>
-                {`
-                  * {
-                    font-family: ${fontFamily.style.fontFamily};
-                  }
-                `}
-              </style>
-              {/* TODO: siteName is loaded at client side (not good for seo) */}
-              <Component {...pageProps} siteName={siteName} />
-              <SpeedInsights />
-              <Toaster richColors closeButton />
-            </>
-          )}
+          <DialogProvider>
+            {getLayout(
+              <>
+                <style jsx global>
+                  {`
+                    * {
+                      font-family: ${fontFamily.style.fontFamily};
+                    }
+                  `}
+                </style>
+                {/* TODO: siteName is loaded at client side (not good for seo) */}
+                <Component {...pageProps} siteName={siteName} />
+                <SpeedInsights />
+                <Toaster richColors closeButton />
+              </>
+            )}
+          </DialogProvider>
         </SessionProvider>
       </DirectionProvider>
     </>

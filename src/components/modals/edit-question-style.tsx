@@ -66,7 +66,7 @@ export const EditQuestionStyleDialog = ({
   return (
     <>
       <DialogHeader className='mb-2 text-lg font-bold'>
-        إضافة نوع سؤال
+        تعديل نوع سؤال
       </DialogHeader>
       <QuestionStyleForm
         form={form as any}

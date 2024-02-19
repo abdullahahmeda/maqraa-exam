@@ -6,7 +6,6 @@ import {
   FormLabel,
   FormMessage,
 } from '~/components/ui/form'
-import { Input } from '../ui/input'
 import {
   Select,
   SelectItem,
@@ -18,8 +17,7 @@ import { DialogFooter } from '../ui/dialog'
 import { Button } from '../ui/button'
 import { UseFormReturn } from 'react-hook-form'
 import { api } from '~/utils/api'
-import { useEffect } from 'react'
-import { ImportFormFields } from '../import-form'
+import { ImportFormFields } from '../import-form-fields'
 
 export type ImportStudentsFieldValues = {
   url: string
@@ -43,7 +41,13 @@ export const ImportStudentsForm = ({
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <ImportFormFields form={form} />
+        <ImportFormFields
+          form={form}
+          fields={{
+            url: 'url',
+            sheetName: 'sheetName',
+          }}
+        />
         <FormField
           control={form.control}
           name='cycleId'

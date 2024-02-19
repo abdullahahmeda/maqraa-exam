@@ -22,7 +22,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '~/components/ui/popover'
-import { Pencil, Filter, Eye, Trash, UserPlus } from 'lucide-react'
+import { Pencil, Filter, Trash, UserPlus, InfoIcon } from 'lucide-react'
 import { Combobox } from '~/components/ui/combobox'
 import { EditUserDialog } from '~/components/modals/edit-user'
 import {
@@ -49,10 +49,11 @@ import { Selectable } from 'kysely'
 import { deleteRows } from '~/utils/client/deleteRows'
 import { DataTableActions } from '~/components/ui/data-table-actions'
 import { RowActions } from '~/components/ui/row-actions'
+import { showDialog } from '~/lib/dialog'
 
 type Row = Selectable<User> & {
-  student: { cycles: (UserCycle & { cycle: Cycle })[] }
-  cycles: { cycleName: string }[]
+  // student: { cycles: (UserCycle & { cycle: Cycle })[] }
+  cycles: UserCycle & { cycle: Cycle }[]
 }
 
 const columnFiltersValidators = {
@@ -101,21 +102,20 @@ const UsersPage = () => {
     {
       pagination,
       filters,
-      include: { cycles: true },
+      include: {
+        cycles: {
+          cycle: true,
+        },
+      },
     },
-    { networkMode: 'always' }
-  )
-
-  const { data: count, isLoading: isCountLoading } = api.user.count.useQuery(
-    { filters },
     { networkMode: 'always' }
   )
 
   const invalidate = utils.user.invalidate
 
   const pageCount =
-    users !== undefined && typeof count === 'number'
-      ? Math.ceil(count / pageSize)
+    users?.data !== undefined && typeof users?.count === 'number'
+      ? Math.ceil(users?.count / pageSize)
       : -1
 
   const columns = useMemo(
@@ -223,7 +223,7 @@ const UsersPage = () => {
         },
       }),
       columnHelper.accessor(
-        (row) => row.cycles.map((c) => c.cycleName).join('، '),
+        (row) => row.cycles?.map((c) => c.cycle.name).join('، '),
         {
           id: 'cycleId',
           header: ({ column }) => {
@@ -273,6 +273,17 @@ const UsersPage = () => {
           const [dialogOpen, setDialogOpen] = useState(false)
 
           return (
+            // <RowActions
+            //   infoButton={{
+            //     onClick: () =>
+            //       showDialog({
+            //         title: 'tew',
+            //       }),
+            //   }}
+            //   editButton={{}}
+            //   deleteButton={{}}
+            // />
+            //
             <div className='flex justify-center gap-2'>
               <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
                 <DialogTrigger asChild>
@@ -281,7 +292,7 @@ const UsersPage = () => {
                     size='icon'
                     className='hover:bg-blue-50'
                   >
-                    <Eye className='h-4 w-4 text-blue-500' />
+                    <InfoIcon className='h-4 w-4 text-blue-500' />
                   </Button>
                 </DialogTrigger>
                 <DialogContent>
@@ -331,7 +342,7 @@ const UsersPage = () => {
   )
 
   const table = useReactTable({
-    data: (users as any[]) ?? [],
+    data: (users?.data as any[]) ?? [],
     columns,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -403,7 +414,7 @@ const UsersPage = () => {
       <DataTableActions
         deleteAll={{
           handle: handleDeleteAll,
-          data: { disabled: !users || users?.length === 0 },
+          data: { disabled: users?.count === 0 },
         }}
         bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
       />

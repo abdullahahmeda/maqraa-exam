@@ -5,6 +5,7 @@ import { db } from '~/server/db'
 import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
 import { editQuestionStyleSchema } from '~/validation/editQuestionStyleSchema'
 import { applyPagination, paginationSchema } from '~/utils/db'
+import { QuestionStyleService } from '~/services/question-style'
 
 export const questionStyleRouter = createTRPCRouter({
   list: protectedProcedure
@@ -14,11 +15,20 @@ export const questionStyleRouter = createTRPCRouter({
       })
     )
     .query(async ({ ctx, input }) => {
-      const query = applyPagination(
-        ctx.db.selectFrom('QuestionStyle').selectAll(),
-        input.pagination
-      )
-      return await query.execute()
+      const questionStyleService = new QuestionStyleService(ctx.db)
+      const count = await questionStyleService.getCount()
+
+      let query = await questionStyleService.getListQuery()
+      if (input?.pagination) {
+        const { pageSize, pageIndex } = input.pagination
+        query = query.limit(pageSize).offset(pageIndex * pageSize)
+      }
+      const rows = await query.execute()
+
+      return {
+        data: rows,
+        count,
+      }
     }),
 
   get: protectedProcedure
@@ -32,29 +42,15 @@ export const questionStyleRouter = createTRPCRouter({
     ),
 
   count: protectedProcedure.query(async ({ ctx, input }) => {
-    const query = ctx.db
-      .selectFrom('QuestionStyle')
-      .select(({ fn }) => fn.count('id').as('total'))
-
-    const total = Number((await query.executeTakeFirst())?.total)
-    return total
+    const questionStyleService = new QuestionStyleService(ctx.db)
+    return questionStyleService.getCount()
   }),
 
   create: protectedProcedure
     .input(newQuestionStyleSchema)
     .mutation(async ({ ctx, input }) => {
-      try {
-        await db
-          .insertInto('QuestionStyle')
-          .values(input as any)
-          .execute()
-      } catch (error) {
-        console.log(error)
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'حدث خطأ أثناء إضافة نوع السؤال',
-        })
-      }
+      const questionStyleService = new QuestionStyleService(ctx.db)
+      await questionStyleService.create(input)
       return true
     }),
 
@@ -80,7 +76,13 @@ export const questionStyleRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ input, ctx }) => {
-      await ctx.db.deleteFrom('QuestionStyle').where('id', '=', input).execute()
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+      const questionStyleService = new QuestionStyleService(ctx.db)
+      await questionStyleService.delete(input)
       return true
     }),
 
@@ -93,15 +95,19 @@ export const questionStyleRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      await ctx.db
-        .deleteFrom('QuestionStyle')
-        .where('id', 'in', input)
-        .execute()
+      const questionStyleService = new QuestionStyleService(ctx.db)
+      await questionStyleService.delete(input)
       return true
     }),
 
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    await ctx.db.deleteFrom('QuestionStyle').execute()
+    if (ctx.session.user.role !== 'ADMIN')
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'لا تملك الصلاحيات لهذه العملية',
+      })
+    const questionStyleService = new QuestionStyleService(ctx.db)
+    await questionStyleService.delete(undefined)
     return true
   }),
 })
