@@ -462,7 +462,7 @@ export const NewSystemExamDialog = ({
                         <div className='flex-1 space-y-2'>
                           <QuestionCard
                             question={q}
-                            style={q.style as any}
+                            style={(q as any).style}
                             showPartNumber
                             showPageNumber
                             showHadithNumber
