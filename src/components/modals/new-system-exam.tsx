@@ -115,6 +115,7 @@ export const NewSystemExamDialog = ({
     const newQuestions = groups.map((g: Group) => {
       return { ...g.questions }
     })
+
     setValue('questions', newQuestions)
   }
 
@@ -470,17 +471,13 @@ export const NewSystemExamDialog = ({
                           <FormField
                             control={control}
                             name={
-                              `questions.${q.id}.grade` as FieldPath<FieldValues>
+                              `questions.${gIndex}.${q.id}.grade` as FieldPath<FieldValues>
                             }
                             render={({ field }) => (
                               <FormItem>
                                 <FormLabel>الدرجة</FormLabel>
                                 <FormControl>
-                                  <Input
-                                    type='number'
-                                    {...field}
-                                    defaultValue={1}
-                                  />
+                                  <Input type='number' {...field} />
                                 </FormControl>
                                 <FormMessage />
                               </FormItem>

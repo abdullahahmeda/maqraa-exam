@@ -82,7 +82,10 @@ export const AutomaticQuestionsFormFields = <T extends FieldValues>({
         include: { style: true },
       })
       .then((data) => {
-        setGroupQuestions(data.map((q) => ({ ...q, grade: gradePerQuestion })))
+        setGroupQuestions(
+          data.map((q) => ({ ...q, grade: Number(gradePerQuestion) }))
+          // data.reduce((acc, q) => ({ ...acc, [q.id]: gradePerQuestion }), {})
+        )
       })
       .catch((error) => {
         toast.error(error.message)
