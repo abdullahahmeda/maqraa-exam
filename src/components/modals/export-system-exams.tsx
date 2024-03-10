@@ -80,7 +80,7 @@ export const ExportSystemExamsDialog = ({
           />
           <DialogFooter>
             <Button type='submit' loading={mutation.isPending}>
-              <DownloadIcon />
+              <DownloadIcon className='ml-2 h-4 w-4' />
               تحميل
             </Button>
           </DialogFooter>

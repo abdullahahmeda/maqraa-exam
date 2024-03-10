@@ -64,6 +64,7 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { deleteRows } from '~/utils/client/deleteRows'
 import { DataTableActions } from '~/components/ui/data-table-actions'
 import { Selectable } from 'kysely'
+import { ExportSystemExamsDialog } from '~/components/modals/export-system-exams'
 
 type Row = Selectable<SystemExam> & {
   cycle: Cycle
@@ -460,6 +461,11 @@ const SystemExamsPage = () => {
             data: { disabled: exams?.count === 0 },
           }}
         />
+        <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+          <DialogContent>
+            <ExportSystemExamsDialog setDialogOpen={setExportDialogOpen} />
+          </DialogContent>
+        </Dialog>
         <DataTable table={table} fetching={isFetching} />
       </div>
     </>
