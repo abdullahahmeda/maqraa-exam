@@ -48,6 +48,7 @@ export const systemExamRouter = createTRPCRouter({
         trackId,
         courseId,
         questions: _questions,
+        isInsideShaded,
         ...data
       } = input
 
