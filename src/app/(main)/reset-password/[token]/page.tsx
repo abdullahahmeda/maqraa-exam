@@ -14,11 +14,7 @@ export async function generateMetadata() {
 
 type Params = { token: string }
 
-export const PasswordTokenPage = async ({
-  params: { token },
-}: {
-  params: Params
-}) => {
+const PasswordTokenPage = async ({ params: { token } }: { params: Params }) => {
   const session = await getServerAuthSession()
   if (session?.user) return redirect('/')
 
