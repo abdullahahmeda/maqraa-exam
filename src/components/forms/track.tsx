@@ -17,7 +17,7 @@ import { Input } from '../ui/input'
 import { DialogFooter } from '../ui/dialog'
 import { Button } from '../ui/button'
 import { UseFormReturn } from 'react-hook-form'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 
 export type NewTrackFieldValues = { name: string; courseId: string }
 

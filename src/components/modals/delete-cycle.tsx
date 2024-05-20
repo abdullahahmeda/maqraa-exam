@@ -6,7 +6,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { toast } from 'sonner'
 
 export const DeleteCycleDialog = ({ id }: { id: string }) => {

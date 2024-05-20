@@ -1,5 +1,5 @@
 import { toast } from 'sonner'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import {
   AlertDialogHeader,
   AlertDialogAction,

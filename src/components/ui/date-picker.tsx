@@ -3,9 +3,10 @@ import { Button } from './button'
 import { Calendar } from './calendar'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '~/lib/utils'
-import { ActiveModifiers, DayPickerSingleProps } from 'react-day-picker'
+import type { ActiveModifiers, DayPickerSingleProps } from 'react-day-picker'
 import { format } from 'date-fns'
 import { useState } from 'react'
+import { ar } from 'date-fns/locale'
 
 type Props = DayPickerSingleProps & { placeholder?: string }
 
@@ -24,11 +25,11 @@ export const DatePicker = ({
           variant='outline'
           className={cn(
             'pl-4 text-right font-normal',
-            !selected && 'text-muted-foreground'
+            !selected && 'text-muted-foreground',
           )}
         >
           {selected ? (
-            format(selected, 'dd MMMM yyyy hh:mm a')
+            format(selected, 'dd MMMM yyyy hh:mm a', { locale: ar })
           ) : (
             <span>{placeholder}</span>
           )}
@@ -43,7 +44,7 @@ export const DatePicker = ({
             day: Date | undefined,
             selectedDay: Date,
             activeModifiers: ActiveModifiers,
-            e: any
+            e: any,
           ) => {
             if (onSelect) {
               onSelect(day, selectedDay, activeModifiers, e)

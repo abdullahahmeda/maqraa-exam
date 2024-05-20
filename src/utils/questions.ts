@@ -16,12 +16,12 @@ export const difficultyMapping = {
 }
 
 export const columnMapping = {
-  'خيار 1': 'option1',
-  'خيار 2': 'option2',
-  'خيار 3': 'option3',
-  'خيار 4': 'option4',
-  صح: 'textForTrue',
-  خطأ: 'textForFalse',
+  'خيار 1': 'option1' as const,
+  'خيار 2': 'option2' as const,
+  'خيار 3': 'option3' as const,
+  'خيار 4': 'option4' as const,
+  صح: 'textForTrue' as const,
+  خطأ: 'textForFalse' as const,
 }
 
 // export const styleMapping = {

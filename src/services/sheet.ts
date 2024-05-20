@@ -1,7 +1,7 @@
 import { google } from 'googleapis'
 import XLSX from 'xlsx'
 import { z } from 'zod'
-import { env } from '~/env.mjs'
+import { env } from '~/env.js'
 
 const sheets = google.sheets({
   version: 'v4',

@@ -1,5 +1,5 @@
 import { Input } from '~/components/ui/input'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { useState, useEffect, useRef } from 'react'
 import { Loader2, Loader2Icon, SearchIcon } from 'lucide-react'
 import { Button } from './ui/button'
@@ -11,10 +11,9 @@ import { Selectable } from 'kysely'
 import { FormItem, FormLabel, FormControl } from './ui/form'
 import { Question } from '~/kysely/types'
 
-type Props =
-  | FormFieldsCommonProps & {
-      groupQuestions: Record<string, Selectable<Question>>
-    }
+type Props = FormFieldsCommonProps & {
+  groupQuestions: Record<string, Selectable<Question>>
+}
 
 export const ManualQuestionsFormFields = ({
   setGroupQuestions,
@@ -60,7 +59,7 @@ export const ManualQuestionsFormFields = ({
     {
       enabled: false,
       getNextPageParam: (lastPage) => lastPage.nextCursor,
-    }
+    },
   )
 
   const searchQuestions = async () => {
@@ -169,7 +168,7 @@ export const ManualQuestionsFormFields = ({
                   className='flex-1'
                 />
               </div>
-            ))
+            )),
           )}
         </div>
         <div ref={ref} />

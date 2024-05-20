@@ -1,5 +1,5 @@
 import { UseFormReturn } from 'react-hook-form'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { Button } from '../ui/button'
 import { DialogFooter } from '../ui/dialog'
 import {
@@ -48,7 +48,7 @@ export const ImportQuestionsForm = ({
       enabled: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-    }
+    },
   )
 
   useEffect(() => {

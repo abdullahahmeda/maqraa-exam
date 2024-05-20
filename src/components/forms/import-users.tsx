@@ -15,8 +15,8 @@ import {
 } from '../ui/select'
 import { DialogFooter } from '../ui/dialog'
 import { Button } from '../ui/button'
-import { UseFormReturn } from 'react-hook-form'
-import { api } from '~/utils/api'
+import { type UseFormReturn } from 'react-hook-form'
+import { api } from '~/trpc/react'
 import { ImportFormFields } from '../import-form-fields'
 
 export type ImportStudentsFieldValues = {

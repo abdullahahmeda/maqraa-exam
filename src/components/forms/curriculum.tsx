@@ -1,5 +1,5 @@
 import { UseFormReturn, useFieldArray } from 'react-hook-form'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import {
   FormField,
   Form,

@@ -2,7 +2,7 @@ import { NewCourseFieldValues, CourseForm } from '../forms/course'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { newCourseSchema } from '~/validation/newCourseSchema'
 import { DialogHeader } from '../ui/dialog'
 

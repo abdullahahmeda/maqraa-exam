@@ -19,10 +19,11 @@ type Props<T> = {
   items: T[]
   loading?: boolean
   value: string | undefined
-  onSelect: (newValue: any) => void
+  onSelect: (newValue: unknown) => void
   triggerText: string
   triggerClassName?: string
   popoverClassName?: string
+  containerClassName?: string
 }
 
 export const Combobox = <T,>({
@@ -35,6 +36,7 @@ export const Combobox = <T,>({
   triggerText,
   triggerClassName,
   popoverClassName,
+  containerClassName,
 }: Props<T>) => {
   const [open, setOpen] = useState(false)
   const [searchValue, setSearchValue] = useState('')
@@ -45,17 +47,17 @@ export const Combobox = <T,>({
   }
 
   const filteredItems = searchValue
-    ? // @ts-ignore
-      fuzzysort
+    ? fuzzysort
+        // @ts-expect-error No error but TS complains.
         .go(searchValue, items, { key: labelKey })
-        // @ts-ignore
+        // @ts-expect-error No error but TS complains.
         .map((item) => item.obj)
     : items
 
   const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   return (
-    <div>
+    <div className={containerClassName}>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -66,11 +68,13 @@ export const Combobox = <T,>({
             disabled={loading}
             ref={triggerRef}
           >
-            {value
-              ? filteredItems.find((item) => item[valueKey] === value)?.[
-                  labelKey
-                ]
-              : triggerText}
+            <p className='truncate'>
+              {value
+                ? filteredItems.find((item) => item[valueKey] === value)?.[
+                    labelKey
+                  ]
+                : triggerText}
+            </p>
             {loading ? (
               <Loader2 className='mr-2 h-4 w-4 shrink-0 animate-spin opacity-50' />
             ) : (
@@ -101,7 +105,7 @@ export const Combobox = <T,>({
                     <Check
                       className={cn(
                         'mr-auto h-4 w-4',
-                        value === item[valueKey] ? 'opacity-100' : 'opacity-0'
+                        value === item[valueKey] ? 'opacity-100' : 'opacity-0',
                       )}
                     />
                   </CommandItem>

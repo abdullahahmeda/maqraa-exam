@@ -1,16 +1,15 @@
-import { ReferenceExpression, SelectQueryBuilder } from 'kysely'
-import { z } from 'zod'
+import type { ReferenceExpression, SelectQueryBuilder } from 'kysely'
+import type { PaginationSchema } from '~/validation/pagination'
 
 function defaultFilterHandler<DB, TB extends keyof DB, O>(
   query: SelectQueryBuilder<DB, TB, O>,
   col: ReferenceExpression<DB, TB>,
-  value: unknown
+  value: unknown,
 ) {
   if ((typeof value === 'string' && !value) || typeof value === 'undefined')
     return query
-  if (value === 'not_null')
-    return query.where(col as ReferenceExpression<DB, TB>, 'is not', null)
-  return query.where(col as ReferenceExpression<DB, TB>, '=', value)
+  if (value === 'not_null') return query.where(col, 'is not', null)
+  return query.where(col, '=', value)
 }
 
 export function applyFilters<
@@ -18,7 +17,7 @@ export function applyFilters<
   TB extends keyof DB,
   O,
   F extends Record<string, unknown>,
-  K extends keyof F
+  K extends keyof F,
 >(
   query: SelectQueryBuilder<DB, TB, O>,
   filters: F,
@@ -27,10 +26,10 @@ export function applyFilters<
       K,
       (
         query: SelectQueryBuilder<DB, TB, O>,
-        value: F[K]
+        value: F[K],
       ) => SelectQueryBuilder<DB, TB, O>
     >
-  >
+  >,
 ) {
   if (filters === undefined) return query
 
@@ -41,21 +40,16 @@ export function applyFilters<
       query = defaultFilterHandler(
         query,
         col as ReferenceExpression<DB, TB>,
-        value as F[K]
+        value as F[K],
       )
   }
 
   return query
 }
 
-export const paginationSchema = z.object({
-  pageIndex: z.number().int().safe().finite().min(0),
-  pageSize: z.number().int().safe().finite().positive(),
-})
-
 export function applyPagination<DB, TB extends keyof DB, O>(
   query: SelectQueryBuilder<DB, TB, O>,
-  pagination: z.infer<typeof paginationSchema> | undefined
+  pagination: PaginationSchema | undefined,
 ) {
   if (pagination === undefined) return query
 

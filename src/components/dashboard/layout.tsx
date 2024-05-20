@@ -1,18 +1,10 @@
 import { type ReactNode, useState } from 'react'
-import { signOut, useSession } from 'next-auth/react'
-import { getFirstName } from '~/utils/users'
+import { signOut } from 'next-auth/react'
 import { Sidebar } from '~/components/ui/sidebar'
 import { cn } from '~/lib/utils'
 import { Button } from '../ui/button'
-import {
-  Menu,
-  Construction,
-  Home,
-  Settings,
-  Users,
-  HelpCircle,
-} from 'lucide-react'
-import { api } from '~/utils/api'
+import { Menu } from 'lucide-react'
+import { api } from '~/trpc/react'
 
 export const menuLinks = {
   ADMIN: [
@@ -43,7 +35,7 @@ export const menuLinks = {
     {
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-construction"><rect x="2" y="6" width="20" height="8" rx="1"/><path d="M17 14v7"/><path d="M7 14v7"/><path d="M17 3v3"/><path d="M7 3v3"/><path d="M10 14 2.3 6.3"/><path d="m14 6 7.7 7.7"/><path d="m8 6 8 8"/></svg>',
       label: 'إختبارات النظام',
-      key: '/dashboard/system-exams',
+      key: '/dashboard/exams',
       order: 5,
     },
     {
@@ -123,11 +115,8 @@ export const menuLinks = {
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-  const {
-    data: menu,
-    isLoading: isMenuLoading,
-    error,
-  } = api.setting.getMenuItems.useQuery()
+  const { data: menu, isLoading: isMenuLoading } =
+    api.setting.getMenuItems.useQuery()
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen)
 
   return (
@@ -159,7 +148,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           setIsSidebarOpen={setIsSidebarOpen}
           className={cn(
             'fixed top-16 z-10 h-[calc(100vh-4rem)] w-full translate-x-full border-l bg-background transition-transform md:w-72',
-            isSidebarOpen && 'translate-x-0'
+            isSidebarOpen && 'translate-x-0',
           )}
           links={menu ?? []}
           loading={isMenuLoading}
@@ -167,7 +156,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <main
           className={cn(
             'min-h-screen flex-1 border-r bg-[#f8f9fa] pb-4 pl-4 pr-4 pt-20 transition-[padding]',
-            isSidebarOpen && 'md:pr-[19rem]'
+            isSidebarOpen && 'md:pr-[19rem]',
           )}
         >
           {children}

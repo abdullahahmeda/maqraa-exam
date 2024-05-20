@@ -1,10 +1,9 @@
-import type { GetServerSidePropsContext } from 'next'
 import {
   getServerSession,
   type NextAuthOptions,
   type DefaultSession,
 } from 'next-auth'
-import { env } from '../env.mjs'
+import { env } from '../env.js'
 import { db } from './db'
 import Credentials from 'next-auth/providers/credentials'
 import { loginSchema } from '~/validation/loginSchema'
@@ -107,9 +106,4 @@ export const authOptions: NextAuthOptions = {
  *
  * @see https://next-auth.js.org/configuration/nextjs
  **/
-export const getServerAuthSession = (ctx: {
-  req: GetServerSidePropsContext['req']
-  res: GetServerSidePropsContext['res']
-}) => {
-  return getServerSession(ctx.req, ctx.res, authOptions)
-}
+export const getServerAuthSession = () => getServerSession(authOptions)

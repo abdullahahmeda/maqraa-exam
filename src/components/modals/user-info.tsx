@@ -1,4 +1,4 @@
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { DialogHeader } from '../ui/dialog'
 import { Loader2 } from 'lucide-react'
 import { enUserRoleToAr } from '~/utils/users'

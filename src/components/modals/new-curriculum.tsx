@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { newCurriculumSchema } from '~/validation/newCurriculumSchema'
 import { z } from 'zod'
 import { toast } from 'sonner'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { DialogHeader } from '../ui/dialog'
 
 export const NewCurriculumDialog = ({

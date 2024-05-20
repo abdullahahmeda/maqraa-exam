@@ -1,18 +1,21 @@
-import { createTRPCRouter } from './trpc'
-import { questionRouter } from './routers/custom/question'
-import { sheetRouter } from './routers/custom/sheet'
-import { quizRouter } from './routers/custom/quiz'
-import { courseRouter } from './routers/custom/course'
-import { cycleRouter } from './routers/custom/cycle'
-import { trackRouter } from './routers/custom/track'
-import { curriculumRouter } from './routers/custom/curriculum'
-import { userRouter } from './routers/custom/user'
-// import { studentRouter } from './routers/custom/student'
-import { errorReportRouter } from './routers/custom/error-report'
-import { systemExamRouter } from './routers/custom/system-exam'
-import { questionStyleRouter } from './routers/custom/question-style'
-import { modelQuestionRouter } from './routers/custom/model-question'
-import { settingRouter } from './routers/custom/setting'
+import { createTRPCRouter, createCallerFactory } from './trpc'
+
+import { courseRouter } from './routers/course'
+import { cycleRouter } from './routers/cycle'
+import { trackRouter } from './routers/track'
+import { curriculumRouter } from './routers/curriculum'
+import { settingRouter } from './routers/setting'
+import { userRouter } from './routers/user'
+import { sheetRouter } from './routers/sheet'
+import { questionRouter } from './routers/question'
+import { questionStyleRouter } from './routers/question-style'
+import { errorReportRouter } from './routers/error-report'
+import { systemExamRouter } from './routers/system-exam'
+import { quizRouter } from './routers/quiz'
+import { modelQuestionRouter } from './routers/model-question'
+import { notificationRouter } from './routers/notification'
+
+// import { studentRouter } from './routers/student'
 
 /**
  * This is the primary router for your server.
@@ -25,16 +28,19 @@ export const appRouter = createTRPCRouter({
   cycle: cycleRouter,
   track: trackRouter,
   curriculum: curriculumRouter,
-  // student: studentRouter,
+  setting: settingRouter,
   user: userRouter,
-  quiz: quizRouter,
   sheet: sheetRouter,
   question: questionRouter,
-  modelQuestion: modelQuestionRouter,
-  errorReport: errorReportRouter,
-  systemExam: systemExamRouter,
   questionStyle: questionStyleRouter,
-  setting: settingRouter,
+  errorReport: errorReportRouter,
+  exam: systemExamRouter,
+  quiz: quizRouter,
+  modelQuestion: modelQuestionRouter,
+  notification: notificationRouter,
+  // student: studentRouter,
 })
 
 export type AppRouter = typeof appRouter
+
+export const createCaller = createCallerFactory(appRouter)

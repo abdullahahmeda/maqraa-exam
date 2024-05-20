@@ -26,7 +26,7 @@ const Navbar = () => {
               {
                 hidden: !isMenuOpen,
                 flex: isMenuOpen,
-              }
+              },
             )}
           >
             {status === 'authenticated' ? (

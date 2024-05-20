@@ -18,9 +18,9 @@ import {
   SelectContent,
 } from '../ui/select'
 import { DialogFooter } from '../ui/dialog'
-import { generateRandomPassword, userRoleMapping } from '~/utils/users'
+import { userRoleMapping } from '~/utils/users'
 import { Button } from '../ui/button'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { MultiSelect } from '../ui/multi-select'
 import {
   Accordion,
@@ -37,6 +37,7 @@ import {
   TooltipTrigger,
   Tooltip,
 } from '../ui/tooltip'
+import { generateRandomPassword } from '~/utils/strings'
 
 export type AddUserFieldValues = {
   name: string
@@ -117,7 +118,7 @@ const StudentCycleForm = ({
     fetchStatus: tracksFetchStatus,
   } = api.track.list.useQuery(
     { filters: { courseId } },
-    { enabled: !!courseId }
+    { enabled: !!courseId },
   )
 
   const {
@@ -126,7 +127,7 @@ const StudentCycleForm = ({
     fetchStatus: curriculaFetchStatus,
   } = api.curriculum.list.useQuery(
     { filters: { trackId } },
-    { enabled: !!trackId }
+    { enabled: !!trackId },
   )
 
   return (
@@ -233,7 +234,7 @@ const CorrectorCycleForm = ({
       {
         select: (data) =>
           data.map((c) => ({ ...c, label: `${c.courseName}: ${c.name}` })),
-      }
+      },
     )
 
   return (
@@ -330,7 +331,7 @@ export const UserForm = ({
                       type={showPassword ? 'text' : 'password'}
                       {...field}
                     />
-                    <TooltipProvider>
+                    <TooltipProvider delayDuration={100}>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <Button
@@ -429,7 +430,7 @@ export const UserForm = ({
                         if (newValue.length > currentValue.length) {
                           const diff = difference(
                             newValue,
-                            currentValue
+                            currentValue,
                           )[0] as string
                           field.onChange({
                             ...studentCycles,
@@ -438,7 +439,7 @@ export const UserForm = ({
                         } else if (currentValue.length > newValue.length) {
                           const diff = difference(
                             currentValue,
-                            newValue
+                            newValue,
                           )[0] as string
                           const obj = { ...studentCycles }
                           delete obj[diff]
@@ -487,7 +488,7 @@ export const UserForm = ({
                         if (newValue.length > currentValue.length) {
                           const diff = difference(
                             newValue,
-                            currentValue
+                            currentValue,
                           )[0] as string
                           field.onChange({
                             ...correctorCycles,
@@ -496,7 +497,7 @@ export const UserForm = ({
                         } else if (currentValue.length > newValue.length) {
                           const diff = difference(
                             currentValue,
-                            newValue
+                            newValue,
                           )[0] as string
                           const obj = { ...correctorCycles }
                           delete obj[diff]

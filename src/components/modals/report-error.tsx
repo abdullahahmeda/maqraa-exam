@@ -1,3 +1,5 @@
+'use client'
+
 import {
   Form,
   FormItem,
@@ -10,7 +12,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { reportErrorSchema } from '~/validation/reportErrorSchema'
 import { toast } from 'sonner'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { DialogHeader } from '../ui/dialog'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -54,7 +56,7 @@ export const ReportErrorDialog = ({
     },
     {
       enabled: !!data?.questionId,
-    }
+    },
   )
 
   const isLoading = modelQLoading || status === 'loading'

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { CurriculumForm, EditCurriculumFieldValues } from '../forms/curriculum'
 import { DialogHeader } from '../ui/dialog'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { Loader2Icon } from 'lucide-react'
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'

@@ -1,4 +1,4 @@
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { FieldPath, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
@@ -40,8 +40,8 @@ import { useEffect, useState } from 'react'
 import { DatePicker } from '~/components/ui/date-picker'
 import { PlusIcon, TrashIcon } from 'lucide-react'
 import { CourseTrackCurriculumFormFields } from '../course-track-curriculum-form-fields'
-import { Question } from '~/kysely/types'
-import { Selectable } from 'kysely'
+import type { Question } from '~/kysely/types'
+import { type Selectable } from 'kysely'
 import { inferRouterInputs } from '@trpc/server'
 import { AppRouter } from '~/server/api/root'
 import { QuestionCard } from '../ui/question-card'
@@ -96,7 +96,7 @@ export const NewSystemExamDialog = ({
 
   const questions = useWatch({ control, name: 'questions' })
 
-  const mutation = api.systemExam.create.useMutation()
+  const mutation = api.exam.create.useMutation()
 
   const {
     fields: groups,
@@ -125,8 +125,8 @@ export const NewSystemExamDialog = ({
         | Selectable<Question>[]
         | Selectable<Question>
         | ((
-            oldGroupQuestions: Record<string, Selectable<Question>>
-          ) => Selectable<Question>[] | Selectable<Question>)
+            oldGroupQuestions: Record<string, Selectable<Question>>,
+          ) => Selectable<Question>[] | Selectable<Question>),
     ) => {
       const groupPath = getGroupPath(groupIndex)
       const path = `${groupPath}.questions` as FieldPath<FieldValues>
@@ -158,7 +158,7 @@ export const NewSystemExamDialog = ({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: { distance: 10 },
-    })
+    }),
   )
 
   const onDragEnd = (event: DragEndEvent) => {
@@ -175,7 +175,7 @@ export const NewSystemExamDialog = ({
     setSubmitting(true)
     mutation
       // TODO: check this type and fix it
-      .mutateAsync(data as any)
+      .mutateAsync(data)
       .then(() => {
         toast.success('تم إضافة الإختبار بنجاح لكل الطلاب')
         setDialogOpen(false)
@@ -248,7 +248,7 @@ export const NewSystemExamDialog = ({
 
   const questionsCount = questions.reduce(
     (acc, objs) => acc + Object.keys(objs).length,
-    0
+    0,
   )
 
   const removeQuestion = (groupIndex: number, questionId: string) => {
@@ -397,22 +397,22 @@ export const NewSystemExamDialog = ({
                     validateCommonFilters={validateCommonFilters}
                     fields={{
                       type: `${getGroupPath(
-                        index
+                        index,
                       )}.type` as FieldPath<FieldValues>,
                       groupQuestions: `${getGroupPath(
-                        index
+                        index,
                       )}.questions` as FieldPath<FieldValues>,
                       questionsNumber: `${getGroupPath(
-                        index
+                        index,
                       )}.questionsNumber` as FieldPath<FieldValues>,
                       styleOrType: `${getGroupPath(
-                        index
+                        index,
                       )}.styleOrType` as FieldPath<FieldValues>,
                       difficulty: `${getGroupPath(
-                        index
+                        index,
                       )}.difficulty` as FieldPath<FieldValues>,
                       gradePerQuestion: `${getGroupPath(
-                        index
+                        index,
                       )}.gradePerQuestion` as FieldPath<FieldValues>,
                     }}
                     index={index}

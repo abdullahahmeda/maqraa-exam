@@ -6,7 +6,7 @@ import { Service } from './Service'
 import { SelectQueryBuilder } from 'kysely'
 import { NewUserSchema } from '~/validation/newUserSchema'
 import { hashPassword } from '~/utils/server/password'
-import { FiltersInput, IncludeInput } from '~/validation/queries/user'
+import { FiltersInput, IncludeInput } from '~/validation/backend/queries/user'
 
 export type UsersQuery = Query<FiltersInput, any, IncludeInput>
 
@@ -34,9 +34,9 @@ export class UserService extends Service<DB, 'User'> {
                     jsonObjectFrom(
                       selectFrom('Cycle')
                         .selectAll('Cycle')
-                        .whereRef('UserCycle.cycleId', '=', 'Cycle.id')
-                    ).as('cycle')
-                  )
+                        .whereRef('UserCycle.cycleId', '=', 'Cycle.id'),
+                    ).as('cycle'),
+                  ),
               )
               .$if(
                 typeof include!.cycles !== 'boolean' &&
@@ -49,13 +49,13 @@ export class UserService extends Service<DB, 'User'> {
                         .whereRef(
                           'UserCycle.curriculumId',
                           '=',
-                          'Curriculum.id'
-                        )
-                    ).as('curriculum')
-                  )
-              )
-          ).as('cycles')
-        )
+                          'Curriculum.id',
+                        ),
+                    ).as('curriculum'),
+                  ),
+              ),
+          ).as('cycles'),
+        ),
       )
 
     return query
@@ -87,8 +87,8 @@ export class UserService extends Service<DB, 'User'> {
                   cycleId,
                   curriculumId,
                   userId: user.id,
-                }))
-            )
+                })),
+            ),
           )
           .returning('id')
           .executeTakeFirstOrThrow()
@@ -101,8 +101,8 @@ export class UserService extends Service<DB, 'User'> {
                 cycleId,
                 curriculumId,
                 userId: user.id,
-              })
-            )
+              }),
+            ),
           )
           .execute()
       }
@@ -113,7 +113,7 @@ export class UserService extends Service<DB, 'User'> {
 
   public async applyFilters<O>(
     query: SelectQueryBuilder<DB, 'User', O>,
-    filters: FiltersInput | undefined
+    filters: FiltersInput | undefined,
   ): Promise<SelectQueryBuilder<DB, 'User', O>> {
     if (filters !== undefined) {
       const { email, role, userCycle } = filters
@@ -132,8 +132,8 @@ export class UserService extends Service<DB, 'User'> {
               selectFrom('UserCycle')
                 .select('UserCycle.id')
                 .where('UserCycle.id', '=', id)
-                .whereRef('UserCycle.userId', '=', 'User.id')
-            )
+                .whereRef('UserCycle.userId', '=', 'User.id'),
+            ),
           )
         }
         if (cycleId !== undefined) {
@@ -142,8 +142,8 @@ export class UserService extends Service<DB, 'User'> {
               selectFrom('UserCycle')
                 .select('UserCycle.cycleId')
                 .where('UserCycle.cycleId', '=', cycleId)
-                .whereRef('UserCycle.userId', '=', 'User.id')
-            )
+                .whereRef('UserCycle.userId', '=', 'User.id'),
+            ),
           )
         }
         if (curriculumId !== undefined) {
@@ -152,8 +152,8 @@ export class UserService extends Service<DB, 'User'> {
               selectFrom('UserCycle')
                 .select('UserCycle.curriculumId')
                 .where('UserCycle.curriculumId', '=', curriculumId)
-                .whereRef('UserCycle.userId', '=', 'User.id')
-            )
+                .whereRef('UserCycle.userId', '=', 'User.id'),
+            ),
           )
         }
       }

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { editQuestionStyleSchema } from '~/validation/editQuestionStyleSchema'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import {
   EditQuestionStyleFieldValues,
   QuestionStyleForm,

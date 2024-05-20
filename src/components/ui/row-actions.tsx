@@ -55,7 +55,7 @@ const RowActionButton = ({
   ...props
 }: RowActionButtonProps) => {
   return (
-    <TooltipProvider>
+    <TooltipProvider delayDuration={100}>
       <Tooltip>
         <TooltipTrigger asChild>
           <Button variant='ghost' size='icon' {...props}>

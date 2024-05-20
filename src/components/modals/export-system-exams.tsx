@@ -1,7 +1,7 @@
 import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { DialogFooter, DialogHeader } from '../ui/dialog'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
 import {

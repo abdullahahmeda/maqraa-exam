@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from './ui/select'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { toast } from 'sonner'
 import { FormFieldsCommonProps } from './questions-group'
 import { useState } from 'react'
@@ -83,7 +83,7 @@ export const AutomaticQuestionsFormFields = <T extends FieldValues>({
       })
       .then((data) => {
         setGroupQuestions(
-          data.map((q) => ({ ...q, grade: Number(gradePerQuestion) }))
+          data.map((q) => ({ ...q, grade: Number(gradePerQuestion) })),
           // data.reduce((acc, q) => ({ ...acc, [q.id]: gradePerQuestion }), {})
         )
       })

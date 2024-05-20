@@ -1,20 +1,20 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { CycleForm, EditCycleFieldValues } from '../forms/cycle'
 import { DialogHeader } from '../ui/dialog'
-import { editCycleSchema } from '~/validation/editCycleSchema'
 import { toast } from 'sonner'
 import { useEffect } from 'react'
 import { Loader2Icon } from 'lucide-react'
+import { updateCycleSchema } from '~/validation/backend/mutations/cycle/update'
 
 export const EditCycleDialog = ({ id }: { id: string }) => {
   const form = useForm<EditCycleFieldValues>({
-    resolver: zodResolver(editCycleSchema),
+    resolver: zodResolver(updateCycleSchema),
   })
 
   const utils = api.useUtils()
-  const { data: cycle, isLoading, error } = api.cycle.get.useQuery(id)
+  const { data: cycle, isLoading, error } = api.cycle.get.useQuery({ id })
 
   useEffect(() => {
     if (cycle) form.reset(cycle)

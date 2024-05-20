@@ -1,5 +1,5 @@
 import { Loader2 } from 'lucide-react'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { enDifficultyToAr, enTypeToAr } from '~/utils/questions'
 import { DialogHeader } from '../ui/dialog'
 

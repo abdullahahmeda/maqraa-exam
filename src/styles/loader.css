@@ -1,0 +1,5 @@
+#nprogress .spinner {
+  right: unset !important;
+  left: 15px !important;
+  top: 5rem !important;
+}

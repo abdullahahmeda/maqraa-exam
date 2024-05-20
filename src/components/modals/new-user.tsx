@@ -2,7 +2,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { UserRole } from '~/kysely/enums'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { importUsersSchema } from '~/validation/importUsersSchema'
 import { newUserSchema } from '~/validation/newUserSchema'
 import {
@@ -14,7 +14,7 @@ import { DialogHeader } from '../ui/dialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs'
 import { toast } from 'sonner'
 import { User, Users } from 'lucide-react'
-import { generateRandomPassword } from '~/utils/users'
+import { generateRandomPassword } from '~/utils/strings'
 
 type Props = {
   setDialogOpen: (state: boolean) => void

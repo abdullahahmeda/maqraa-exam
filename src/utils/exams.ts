@@ -1,5 +1,9 @@
 import { QuizType as EnType } from '~/kysely/enums'
 import invert from 'lodash.invert'
+import {
+  EditExamFieldValues,
+  NewExamFieldValues,
+} from '~/app/dashboard/exams/_components/form-fields'
 
 export const typeMapping = {
   'محوري 1': EnType.FIRST_MEHWARY,
@@ -13,4 +17,12 @@ export const arTypeToEn = (arType: string): EnType | string =>
 export const enTypeToAr = (enType: string): ArType | string => {
   const inverted = invert(typeMapping)
   return inverted[enType as keyof typeof inverted] ?? enType
+}
+
+export function toExamInput(input: NewExamFieldValues | EditExamFieldValues) {
+  const { groups, courseId, trackId, ...data } = input
+  return {
+    ...data,
+    questions: groups.flatMap((questions) => questions.questions.map((q) => q)),
+  }
 }

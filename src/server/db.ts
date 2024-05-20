@@ -1,8 +1,8 @@
 import { DeduplicateJoinsPlugin, Kysely, PostgresDialect } from 'kysely'
 import { NeonDialect } from 'kysely-neon'
 import ws from 'ws'
-import { env } from '~/env.mjs'
-import { DB } from '~/kysely/types'
+import { env } from '~/env.js'
+import type { DB } from '~/kysely/types'
 import { Pool } from 'pg'
 
 export const db =

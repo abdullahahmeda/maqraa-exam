@@ -1,7 +1,10 @@
 import { db } from '~/server/db'
 import { Service } from './Service'
 import { DB } from '~/kysely/types'
-import { FiltersInput, IncludeInput } from '~/validation/queries/system-exam'
+import {
+  FiltersInput,
+  IncludeInput,
+} from '~/validation/backend/queries/system-exam'
 import { SelectQueryBuilder } from 'kysely'
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
 
@@ -36,31 +39,31 @@ export class SystemExamService extends Service<DB, 'SystemExam'> {
                               jsonObjectFrom(
                                 selectFrom('Course')
                                   .selectAll('Course')
-                                  .whereRef('Track.courseId', '=', 'Course.id')
-                              ).as('course')
-                            )
-                        )
-                    ).as('track')
-                  )
-              )
-          ).as('curriculum')
-        )
+                                  .whereRef('Track.courseId', '=', 'Course.id'),
+                              ).as('course'),
+                            ),
+                        ),
+                    ).as('track'),
+                  ),
+              ),
+          ).as('curriculum'),
+        ),
       )
       .$if(!!include?.cycle, (qb) =>
         qb.select(({ selectFrom }) =>
           jsonObjectFrom(
             selectFrom('Cycle')
               .selectAll('Cycle')
-              .whereRef('SystemExam.cycleId', '=', 'Cycle.id')
-          ).as('cycle')
-        )
+              .whereRef('SystemExam.cycleId', '=', 'Cycle.id'),
+          ).as('cycle'),
+        ),
       )
     return query
   }
 
   public async applyFilters<O>(
     query: SelectQueryBuilder<DB, 'SystemExam', O>,
-    filters: FiltersInput | undefined
+    filters: FiltersInput | undefined,
   ): Promise<SelectQueryBuilder<DB, 'SystemExam', O>> {
     if (filters !== undefined) {
       const { curriculumId, cycleId, type } = filters

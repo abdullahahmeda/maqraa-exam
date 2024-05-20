@@ -1,11 +1,11 @@
 import {
-  FieldValues,
-  Path,
-  PathValue,
-  UseFormReturn,
+  type FieldValues,
+  type Path,
+  type PathValue,
+  type UseFormReturn,
   useWatch,
 } from 'react-hook-form'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import {
   FormField,
   FormItem,
@@ -22,7 +22,7 @@ import {
   SelectValue,
 } from './ui/select'
 import { useEffect } from 'react'
-import { Fields } from '~/types'
+import type { Fields } from '~/types'
 
 type FieldKeys = 'course' | 'track' | 'curriculum'
 
@@ -37,7 +37,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
   form,
   fields,
 }: Props<T>) => {
-  const { control, resetField, getValues } = form
+  const { control, resetField } = form
 
   const course = useWatch({ control, name: fields.course })
   const track = useWatch({ control, name: fields.track })
@@ -47,7 +47,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
   const tracksDisabled = !course
   const { data: tracks } = api.track.list.useQuery(
     { filters: { courseId: course } },
-    { enabled: !tracksDisabled }
+    { enabled: !tracksDisabled },
   )
 
   const curriculaDisabled = !course || !track
@@ -56,7 +56,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
       filters: { trackId: track },
       include: { parts: true },
     },
-    { enabled: !curriculaDisabled }
+    { enabled: !curriculaDisabled },
   )
 
   useEffect(() => {
@@ -79,9 +79,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
             <FormLabel>المقرر</FormLabel>
             <Select onValueChange={field.onChange} value={field.value}>
               <FormControl>
-                <SelectTrigger
-                // loading={isCoursesLoading}
-                >
+                <SelectTrigger>
                   <SelectValue placeholder='اختر المقرر' />
                 </SelectTrigger>
               </FormControl>
@@ -118,7 +116,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {tracks?.map((track) => (
+                {tracks?.data.map((track) => (
                   <SelectItem key={track.id} value={track.id}>
                     {track.name}
                   </SelectItem>
@@ -154,7 +152,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {curricula?.map((curriculum) => (
+                {curricula?.data.map((curriculum) => (
                   <SelectItem key={curriculum.id} value={curriculum.id}>
                     {curriculum.name}
                   </SelectItem>

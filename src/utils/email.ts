@@ -1,4 +1,4 @@
-import { env } from '../env.mjs'
+import { env } from '../env.js'
 import { createTransport } from 'nodemailer'
 
 const transport = createTransport({

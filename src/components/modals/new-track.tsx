@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { z } from 'zod'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { newTrackSchema } from '~/validation/newTrackSchema'
 import { NewTrackFieldValues, TrackForm } from '../forms/track'
 import { DialogHeader } from '../ui/dialog'

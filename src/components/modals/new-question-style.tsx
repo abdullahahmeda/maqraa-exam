@@ -1,6 +1,6 @@
 import { toast } from 'sonner'
 import { DialogHeader } from '../ui/dialog'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'

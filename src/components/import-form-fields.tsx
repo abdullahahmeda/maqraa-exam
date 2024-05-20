@@ -1,5 +1,10 @@
-import { FieldValues, Path, PathValue, UseFormReturn } from 'react-hook-form'
-import { api } from '~/utils/api'
+import type {
+  FieldValues,
+  Path,
+  PathValue,
+  UseFormReturn,
+} from 'react-hook-form'
+import { api } from '~/trpc/react'
 import { Button } from './ui/button'
 import {
   FormField,
@@ -19,7 +24,7 @@ import {
 import { RefreshCwIcon } from 'lucide-react'
 import { cn } from '~/lib/utils'
 import { useEffect } from 'react'
-import { Fields } from '~/types'
+import { type Fields } from '~/types'
 
 type FieldKeys = 'url' | 'sheetName'
 
@@ -48,14 +53,15 @@ export const ImportFormFields = <T extends FieldValues>({
       enabled: false,
       refetchOnMount: false,
       refetchOnReconnect: false,
-    }
+    },
   )
 
   useEffect(() => {
-    form.setError(fields.url, {
-      message: error?.message,
-    })
-  }, [form, error])
+    if (error)
+      form.setError(fields.url, {
+        message: error?.message,
+      })
+  }, [error, form, fields.url])
 
   const updateSpreadsheet = async () => {
     const isValidUrl = await form.trigger(fields.url)
@@ -64,7 +70,7 @@ export const ImportFormFields = <T extends FieldValues>({
     if (!isValidUrl) return
 
     clearSheetNames()
-    refetch()
+    void refetch()
   }
 
   const clearSheetNames = () => {
@@ -73,7 +79,7 @@ export const ImportFormFields = <T extends FieldValues>({
       defaultValue: null as PathValue<T, Path<T>>,
     })
     // clear options
-    utils.sheet.listSheetNames.reset()
+    void utils.sheet.listSheetNames.reset()
   }
 
   return (

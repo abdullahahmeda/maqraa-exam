@@ -4,7 +4,10 @@ import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { DB } from '~/kysely/types'
 import { db } from '~/server/db'
 import { OrderBy, Query } from '~/types'
-import { IncludeInput, FiltersInput } from '~/validation/queries/question'
+import {
+  IncludeInput,
+  FiltersInput,
+} from '~/validation/backend/queries/question'
 import { Service } from './Service'
 
 export class QuestionService extends Service<DB, 'Question'> {
@@ -22,18 +25,18 @@ export class QuestionService extends Service<DB, 'Question'> {
           jsonObjectFrom(
             selectFrom('Course')
               .selectAll('Course')
-              .whereRef('Question.courseId', '=', 'Course.id')
-          ).as('course')
-        )
+              .whereRef('Question.courseId', '=', 'Course.id'),
+          ).as('course'),
+        ),
       )
       .$if(!!include?.style, (qb) =>
         qb.select(({ selectFrom }) =>
           jsonObjectFrom(
             selectFrom('QuestionStyle')
               .selectAll('QuestionStyle')
-              .whereRef('Question.styleId', '=', 'QuestionStyle.id')
-          ).as('style')
-        )
+              .whereRef('Question.styleId', '=', 'QuestionStyle.id'),
+          ).as('style'),
+        ),
       )
 
     return query
@@ -41,7 +44,7 @@ export class QuestionService extends Service<DB, 'Question'> {
 
   public async applyFilters<O>(
     query: SelectQueryBuilder<DB, 'Question', O>,
-    filters: FiltersInput | undefined
+    filters: FiltersInput | undefined,
   ): Promise<SelectQueryBuilder<DB, 'Question', O>> {
     if (filters !== undefined) {
       const {
@@ -105,8 +108,8 @@ export class QuestionService extends Service<DB, 'Question'> {
                   eb('hadithNumber', '>=', from),
                   eb('hadithNumber', '<=', to),
                 ])
-              })
-            )
+              }),
+            ),
           )
         }
       }

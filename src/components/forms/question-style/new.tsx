@@ -1,7 +1,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm, UseFormReturn } from 'react-hook-form'
 import { z } from 'zod'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
 import { NewQuestionStyleFieldValues, QuestionStyleForm } from '.'
 

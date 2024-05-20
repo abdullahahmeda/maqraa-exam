@@ -2,7 +2,7 @@ import { toast } from 'sonner'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { EditUserFieldValues, UserForm } from '../forms/user'
-import { api } from '~/utils/api'
+import { api } from '~/trpc/react'
 import { editUserSchema } from '~/validation/editUserSchema'
 import { Loader2Icon } from 'lucide-react'
 import { useEffect } from 'react'
@@ -31,7 +31,7 @@ export const EditUserDialog = ({
       id,
       include: { cycles: true },
     },
-    { enabled: id != null }
+    { enabled: id != null },
   )
   const mutation = api.user.update.useMutation()
 
@@ -53,7 +53,7 @@ export const EditUserDialog = ({
                   curriculumId: cycle.curriculumId,
                 },
               }),
-              {}
+              {},
             ),
           },
           corrector: { cycles: {} },
@@ -73,7 +73,7 @@ export const EditUserDialog = ({
                       .map((c) => c.curriculumId) ?? [],
                 },
               }),
-              {}
+              {},
             ),
           },
           student: { cycles: {} },
@@ -83,8 +83,8 @@ export const EditUserDialog = ({
         form.reset(
           mapValues(
             { ...user, corrector: { cycles: {} }, student: { cycles: {} } },
-            (value: any) => value ?? undefined
-          )
+            (value: any) => value ?? undefined,
+          ),
         )
     }
   }, [user, form])
