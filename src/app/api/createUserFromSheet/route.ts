@@ -112,5 +112,3 @@ async function handler(req: Request) {
 
 export const POST =
   env.NODE_ENV === 'development' ? handler : verifySignatureAppRouter(handler)
-
-export const config = {}
