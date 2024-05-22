@@ -5,6 +5,7 @@ export const includeSchema = z.record(
   z.union([z.literal('course'), z.literal('style')]),
   z.boolean().optional(),
 )
+export type IncludeSchema = z.infer<typeof includeSchema>
 
 export const filtersSchema = z.object({
   id: z.string().optional(),

@@ -19,7 +19,7 @@ export const db =
             console.log(`
 -------------------
 ${event.query.sql}
-* Parametrs: ${event.query.parameters}
+* Parametrs: ${event.query.parameters.toString()}
 * Took: ${event.queryDurationMillis} ms
 `)
           } else {

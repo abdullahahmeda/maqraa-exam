@@ -113,43 +113,7 @@ export const errorReportRouter = createTRPCRouter({
         data: rows,
         count,
       }
-
-      // const query = applyErrorReportIncludes(
-      //   applyPagination(
-      //     ctx.db
-      //       .selectFrom('ErrorReport')
-      //       .selectAll('ErrorReport')
-      //       .leftJoin('User', 'ErrorReport.userId', 'User.id')
-      //       .select((eb) => [
-      //         eb
-      //           .case()
-      //           .when('ErrorReport.userId', 'is not', null)
-      //           .then(eb.ref('User.name'))
-      //           .else(eb.ref('ErrorReport.name'))
-      //           .end()
-      //           .as('userName'),
-      //         eb
-      //           .case()
-      //           .when('ErrorReport.userId', 'is not', null)
-      //           .then(eb.ref('User.email'))
-      //           .else(eb.ref('ErrorReport.email'))
-      //           .end()
-      //           .as('userEmail'),
-      //       ]),
-      //     input?.pagination,
-      //   ),
-      //   input?.include,
-      // )
-      // return await query.execute()
     }),
-  // count: protectedProcedure.query(async ({ ctx, input }) => {
-  //   const query = ctx.db
-  //     .selectFrom('ErrorReport')
-  //     .select(({ fn }) => fn.count('id').as('total'))
-  //
-  //   const total = Number((await query.executeTakeFirst())?.total)
-  //   return total
-  // }),
 
   delete: protectedProcedure
     .input(z.string())

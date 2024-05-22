@@ -65,15 +65,6 @@ export const cycleRouter = createTRPCRouter({
       }
     }),
 
-  // count: protectedProcedure.query(async ({ ctx, input }) => {
-  //   const query = ctx.db
-  //     .selectFrom('Cycle')
-  //     .select(({ fn }) => fn.count('id').as('total'))
-
-  //   const total = Number((await query.executeTakeFirst())?.total)
-  //   return total
-  // }),
-
   update: protectedProcedure
     .input(updateCycleSchema)
     .mutation(async ({ ctx, input }) => {

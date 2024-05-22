@@ -1,15 +1,14 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
-import { db } from '~/server/db'
 import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
 import { editQuestionStyleSchema } from '~/validation/editQuestionStyleSchema'
 import { QuestionStyleService } from '~/services/question-style'
 import { listQuestionStyleSchema } from '~/validation/backend/queries/question-style/list'
 import { applyPagination } from '~/utils/db'
 import { getQuestionStylyeSchema } from '~/validation/backend/queries/question-style/get'
-import { FiltersSchema } from '~/validation/backend/queries/question-style/common'
-import { SqlBool, type Expression, type ExpressionBuilder } from 'kysely'
+import { type FiltersSchema } from '~/validation/backend/queries/question-style/common'
+import { type SqlBool, type Expression, type ExpressionBuilder } from 'kysely'
 import type { DB } from '~/kysely/types'
 
 function applyFilters(filters: FiltersSchema | undefined) {
@@ -77,7 +76,7 @@ export const questionStyleRouter = createTRPCRouter({
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
       try {
-        await db
+        await ctx.db
           .updateTable('QuestionStyle')
           .set(data)
           .where('id', '=', id)

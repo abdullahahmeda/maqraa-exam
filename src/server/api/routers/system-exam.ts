@@ -4,24 +4,17 @@ import { exportSheet } from '~/services/sheet'
 import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
-import { newSystemExamSchema } from '~/validation/newSystemExamSchema'
 import { z } from 'zod'
-import { applyPagination, paginationSchema } from '~/utils/db'
+import { applyPagination } from '~/utils/db'
 import {
   type ExpressionBuilder,
-  SelectQueryBuilder,
   sql,
-  Expression,
-  SqlBool,
+  type Expression,
+  type SqlBool,
 } from 'kysely'
 import type { DB } from '~/kysely/types'
-import { type User } from 'next-auth'
 import { UserService } from '~/services/user'
 import { SystemExamService } from '~/services/system-exam'
-import {
-  filtersSchema,
-  includeSchema,
-} from '~/validation/backend/queries/system-exam'
 import { listExamsSchema } from '~/validation/backend/queries/exam/list'
 import {
   type IncludeSchema,
@@ -29,25 +22,6 @@ import {
 } from '~/validation/backend/queries/exam/common'
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { createExamSchema } from '~/validation/backend/mutations/exam/create'
-
-function applyAccessControl<O>(
-  query: SelectQueryBuilder<DB, 'SystemExam', O>,
-  user: User,
-) {
-  if (user.role !== 'ADMIN')
-    return query
-      .whereRef('SystemExam.curriculumId', 'in', ({ selectFrom }) =>
-        selectFrom('UserCycle')
-          .select('UserCycle.curriculumId')
-          .where('UserCycle.userId', '=', user.id),
-      )
-      .whereRef('SystemExam.cycleId', 'in', ({ selectFrom }) =>
-        selectFrom('UserCycle')
-          .select('UserCycle.cycleId')
-          .where('UserCycle.userId', '=', user.id),
-      )
-  return query
-}
 
 function applyInclude(include: IncludeSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'SystemExam'>) => {
@@ -293,10 +267,10 @@ export const systemExamRouter = createTRPCRouter({
         الدرجة: q.correctedAt ? q.grade : '',
         'النسبة المئوية المتوقعة':
           !q.correctedAt && typeof q.grade === 'number'
-            ? `${percentage(q.grade, q.total as number)}%`
+            ? `${percentage(q.grade, q.total)}%`
             : '',
         'النسبة المئوية': q.correctedAt
-          ? `${percentage(q.grade as number, q.total as number)}%`
+          ? `${percentage(q.grade!, q.total)}%`
           : '',
         'إجمالي الدرجات': q.total,
         'وقت القفل': q.endsAt ? formatDate(q.endsAt) : '',

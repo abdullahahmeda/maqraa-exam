@@ -23,6 +23,7 @@ declare module 'next-auth' {
     user: {
       id: string
       role: UserRole
+      phone: string | null
     } & DefaultSession['user']
   }
 
@@ -57,17 +58,20 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user, session, trigger }) {
       if (trigger === 'update') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
         token.name = session.name
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
         token.phone = session.phone
       }
       if (user) {
-        token.name = user!.name
-        token.email = user!.email
-        token.role = user!.role
+        token.name = user.name
+        token.email = user.email
+        token.role = user.role
       }
       return token
     },
   },
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-explicit-any
   adapter: KyselyAdapter(db as any) as any,
   providers: [
     Credentials({

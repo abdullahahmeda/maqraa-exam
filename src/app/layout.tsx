@@ -4,7 +4,7 @@ import { Toaster } from '~/components/ui/sonner'
 import { Noto_Sans_Arabic } from 'next/font/google'
 
 import { TRPCReactProvider } from '~/trpc/react'
-import SessionProvider from './_components/session-provider'
+import { SessionProvider } from './_components/session-provider'
 
 import { getServerAuthSession } from '~/server/auth'
 import { DirectionProvider } from './_components/direction-provider'
@@ -31,12 +31,12 @@ export default async function RootLayout({
         <body className={`${font.className}`}>
           <TRPCReactProvider>
             <SessionProvider session={session}>{children}</SessionProvider>
+            <Toaster
+              richColors
+              closeButton
+              toastOptions={{ className: `${font.className}` }}
+            />
           </TRPCReactProvider>
-          <Toaster
-            richColors
-            closeButton
-            toastOptions={{ className: `${font.className}` }}
-          />
         </body>
       </DirectionProvider>
     </html>

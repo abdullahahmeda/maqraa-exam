@@ -131,19 +131,6 @@ export const curriculumRouter = createTRPCRouter({
         count,
       }
     }),
-  // count: protectedProcedure
-  //   .input(z.object({ filters: curriculumFiltersSchema.optional().default({}) }))
-  //   .query(async ({ ctx, input }) => {
-  //     const query = applyCurriculumFilters(
-  //       ctx.db
-  //         .selectFrom('Curriculum')
-  //         .select(({ fn }) => fn.count('id').as('total')),
-  //       input.filters,
-  //     )
-
-  //     const total = Number((await query.executeTakeFirst())?.total)
-  //     return total
-  //   }),
 
   update: protectedProcedure
     .input(updateCurriculumSchema)

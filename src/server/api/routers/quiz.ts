@@ -10,7 +10,7 @@ import { editQuizSchema } from '~/validation/editQuizSchema'
 import { exportSheet } from '~/services/sheet'
 import { percentage } from '~/utils/percentage'
 import { formatDate } from '~/utils/formatDate'
-import type { DB, Quiz, User } from '~/kysely/types'
+import type { DB, Quiz } from '~/kysely/types'
 import {
   type Expression,
   type ExpressionBuilder,
@@ -21,7 +21,7 @@ import {
 import { applyPagination } from '~/utils/db'
 import { correctQuestion } from '~/utils/strings'
 import sampleSize from 'lodash.samplesize'
-import { QuestionDifficulty } from '~/kysely/enums'
+import { QuestionDifficulty, QuestionType, UserRole } from '~/kysely/enums'
 import { getQuestions } from '~/services/quiz'
 import { db } from '~/server/db'
 import { createQuizSchema } from '~/validation/backend/mutations/quiz/create'
@@ -34,7 +34,10 @@ import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { submitQuizSchema } from '~/validation/backend/mutations/quiz/submit'
 import { getQuizSchema } from '~/validation/backend/queries/quiz/get'
 
-async function canUserRead(user: Selectable<User>, quiz: Selectable<Quiz>) {
+async function canUserRead(
+  user: { role: UserRole; id: string },
+  quiz: Selectable<Quiz>,
+) {
   if (user.role === 'ADMIN') return true
   if (quiz.examineeId === user.id) return true
   if (quiz.systemExamId) {
@@ -127,18 +130,6 @@ function applyFilters(filters: FiltersSchema | undefined) {
     return eb.and(where)
   }
 }
-
-// function applyFilters<O>(
-//   query: SelectQueryBuilder<DB, 'Quiz', O>,
-//   filters: z.infer<typeof quizFiltersSchema>,
-// ) {
-//   return applyFilters(query, filters, {
-//     examineeName: (query, examineeName) =>
-//       query
-//         .innerJoin('User', 'Quiz.examineeId', 'User.id')
-//         .where('User.name', 'like', `${examineeName}%`),
-//   })
-// }
 
 export const quizRouter = createTRPCRouter({
   create: publicProcedure
@@ -381,20 +372,7 @@ export const quizRouter = createTRPCRouter({
       const whereCanRead = (eb: ExpressionBuilder<DB, 'Quiz'>) => {
         const conds = []
         if (ctx.session.user.role === 'STUDENT') {
-          conds.push(
-            eb('Quiz.examineeId', '=', ctx.session.user.id),
-            //   eb.exists(
-            //     eb
-            //       .selectFrom('UserCycle')
-            //       .where('UserCycle.userId', '=', ctx.session.user.id)
-            //       .whereRef(
-            //         'UserCycle.curriculumId',
-            //         '=',
-            //         'SystemExam.curriculumId',
-            //       )
-            //       .whereRef('UserCycle.cycleId', '=', 'SystemExam.cycleId'),
-            //   ),
-          )
+          conds.push(eb('Quiz.examineeId', '=', ctx.session.user.id))
         } else if (ctx.session.user.role === 'CORRECTOR') {
           conds.push(
             eb('Quiz.systemExamId', 'is not', null),
@@ -570,6 +548,7 @@ export const quizRouter = createTRPCRouter({
           'Question.type',
         ])
         .where('ModelQuestion.modelId', '=', quiz.modelId)
+        .$narrowType<{ type: QuestionType; answer: string }>()
         .execute()
 
       await ctx.db.transaction().execute(async (trx) => {
