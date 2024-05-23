@@ -1,59 +1,7 @@
-export const UNUSED = true
+import { db } from '~/server/db'
 
-// import { PrismaClient } from '@prisma/client'
-// import { editCurriculumSchema } from '~/validation/editCurriculumSchema'
-
-// export class CurriculumService {
-//   private db
-
-//   public constructor(db: PrismaClient) {
-//     this.db = db
-//   }
-
-//   public async create(input: any) {
-//     throw new Error('not implemented')
-//   }
-
-//   public async update(input: any) {
-//     const { id, parts, ...data } = editCurriculumSchema.parse(input)
-
-//     return await this.db.$transaction(async (tx) => {
-//       await checkMutate(
-//         tx.curriculumPart.deleteMany({ where: { curriculumId: id } })
-//       )
-//       return await checkMutate(
-//         tx.curriculum.update({
-//           where: { id },
-//           data: {
-//             ...data,
-//             parts: { create: parts },
-//           },
-//         })
-//       )
-//     })
-//   }
-
-//   public async getAllQuestions(id: string) {
-//     const parts = await this.db.curriculumPart.findMany({
-//       where: { curriculumId: id },
-//       select: { from: true, to: true, number: true },
-//     })
-//     const questions = await this.db.question.findMany({
-//       where: {
-//         course: {
-//           tracks: {
-//             some: { curricula: { some: { id } } },
-//           },
-//         },
-//         OR: parts.map((part) => ({
-//           partNumber: part.number,
-//           hadithNumber: {
-//             gte: part.from,
-//             lte: part.to,
-//           },
-//         })),
-//       },
-//     })
-//     return questions
-//   }
-// }
+export function deleteCurricula(ids: string | string[] | undefined) {
+  let query = db.deleteFrom('Curriculum')
+  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  return query.execute()
+}

@@ -1,4 +1,4 @@
-import { verifySignatureAppRouter } from '@upstash/qstash/dist/nextjs'
+import { verifySignatureAppRouter } from '@upstash/qstash/nextjs'
 import { db } from '~/server/db'
 import { sendMail } from '~/utils/email'
 import { hashPassword } from '~/utils/server/password'
@@ -107,8 +107,10 @@ async function handler(req: Request) {
       })
       .execute()
   })
-  return Response.json({ ok: true })
+  return Response.json({ success: true })
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
 export const POST =
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-call
   env.NODE_ENV === 'development' ? handler : verifySignatureAppRouter(handler)

@@ -17,6 +17,7 @@ import { createCurriculumSchema } from '~/validation/backend/mutations/curriculu
 import { getCurriculumSchema } from '~/validation/backend/queries/curriculum/get'
 import { listCurriculumSchema } from '~/validation/backend/queries/curriculum/list'
 import { updateCurriculumSchema } from '~/validation/backend/mutations/curriculum/update'
+import { deleteCurricula } from '~/services/curriculum'
 
 function applyInclude(include: IncludeSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'Curriculum'>) => {
@@ -158,7 +159,12 @@ export const curriculumRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.deleteFrom('Curriculum').where('id', '=', input).execute()
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+      await deleteCurricula(input)
       return true
     }),
 
@@ -171,11 +177,16 @@ export const curriculumRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      await ctx.db.deleteFrom('Curriculum').where('id', 'in', input).execute()
+      await deleteCurricula(input)
       return true
     }),
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    await ctx.db.deleteFrom('Curriculum').execute()
+    if (ctx.session.user.role !== 'ADMIN')
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'لا تملك الصلاحيات لهذه العملية',
+      })
+    await deleteCurricula(undefined)
     return true
   }),
 })
