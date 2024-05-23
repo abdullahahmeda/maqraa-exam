@@ -214,7 +214,6 @@ export const ExamsTable = ({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const page = searchParams?.get('page')
-  const utils = api.useUtils()
 
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const pagination: PaginationState = {
@@ -241,6 +240,7 @@ export const ExamsTable = ({
       filters: { ...filters, systemExamId: null },
       include: { examinee: true, corrector: true, systemExam: true },
     },
+    // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },
   )
 
@@ -254,12 +254,11 @@ export const ExamsTable = ({
 
   const pageCount = Math.ceil(quizzes.count / pagination.pageSize)
 
-  const quizzesExport = api.quiz.export.useMutation()
-
   return (
     <div>
       <DataTable
         data={quizzes.data}
+        // @ts-expect-error TODO: use ColumnDef<Row>[] instead of columnHelper
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

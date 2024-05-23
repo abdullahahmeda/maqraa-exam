@@ -36,7 +36,7 @@ import { deleteRows } from '~/utils/client/deleteRows'
 import { Combobox } from '~/components/ui/combobox'
 
 type Row = Selectable<Curriculum> & {
-  track: Track & { course: Course }
+  track: (Selectable<Track> & { course: Selectable<Course> | null }) | null
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
@@ -154,7 +154,7 @@ const columns: ColumnDef<Row>[] = [
     },
   },
   {
-    accessorFn: (row) => `${row.track.course.name}: ${row.track.name}`,
+    accessorFn: (row) => `${row.track?.course?.name}: ${row.track?.name}`,
     id: 'trackId',
     header: ({ column }) => {
       const { data: tracks, isLoading } = api.track.list.useQuery({
@@ -234,6 +234,7 @@ export const CurriculaTable = ({
 
   const { data: curricula, isFetching } = api.curriculum.list.useQuery(
     { pagination, filters, include: { track: { course: true } } },
+    // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },
   )
 

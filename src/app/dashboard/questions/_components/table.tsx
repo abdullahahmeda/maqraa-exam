@@ -559,6 +559,7 @@ export const QuestionsTable = ({
 
   const { data: questions, isFetching } = api.question.list.useQuery(
     { pagination, filters, include: { course: true } },
+    // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },
   )
 

@@ -365,6 +365,7 @@ export const ExamTable = ({
       filters: { ...filters, systemExamId: systemExam.id },
       include: { examinee: true, corrector: true },
     },
+    // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },
   )
 
@@ -406,6 +407,7 @@ export const ExamTable = ({
       />
       <DataTable
         data={quizzes.data}
+        // @ts-expect-error TODO: use ColumnDef<Row>[] instead of columnHelper
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

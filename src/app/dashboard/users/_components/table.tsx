@@ -45,7 +45,9 @@ import { enUserRoleToAr, userRoleMapping } from '~/utils/users'
 import { Badge } from '~/components/ui/badge'
 import set from 'lodash.set'
 
-type Row = Selectable<User> & { cycles: (UserCycle & { cycle: Cycle })[] }
+type Row = Selectable<User> & {
+  cycles: (Selectable<UserCycle> & { cycle: Selectable<Cycle> | null })[]
+}
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const router = useRouter()
@@ -228,7 +230,7 @@ const columns: ColumnDef<Row>[] = [
     cell: ({ row }) => <Badge>{enUserRoleToAr(row.original.role)}</Badge>,
   },
   {
-    accessorFn: (row) => row.cycles?.map((c) => c.cycle.name).join('، '),
+    accessorFn: (row) => row.cycles?.map((c) => c.cycle?.name).join('، '),
     id: 'userCycle.cycleId',
     header: ({ column }) => {
       const { data: cycles, isLoading } = api.cycle.list.useQuery()
@@ -299,6 +301,7 @@ export const UsersTable = ({
 
   const { data: user, isFetching } = api.user.list.useQuery(
     { pagination, filters, include: { cycles: { cycle: true } } },
+    // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },
   )
 

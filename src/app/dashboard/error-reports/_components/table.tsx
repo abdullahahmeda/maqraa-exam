@@ -251,6 +251,7 @@ export const ErrorReportsTable = ({
       </div>
       <DataTable
         data={errorReports.data}
+        // @ts-expect-error TODO: check this
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

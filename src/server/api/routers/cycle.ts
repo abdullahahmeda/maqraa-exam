@@ -9,6 +9,7 @@ import { createCycleSchema } from '~/validation/backend/mutations/cycle/create'
 import { updateCycleSchema } from '~/validation/backend/mutations/cycle/update'
 import { listCycleSchema } from '~/validation/backend/queries/cycle/list'
 import { getCycleSchema } from '~/validation/backend/queries/cycle/get'
+import { deleteCycles } from '~/services/cycle'
 
 function applyFilters(filters: FiltersSchema | undefined) {
   const where: Expression<SqlBool>[] = []
@@ -76,7 +77,12 @@ export const cycleRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ input, ctx }) => {
-      await ctx.db.deleteFrom('Cycle').where('id', '=', input).execute()
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+      await deleteCycles(input)
       return true
     }),
 
@@ -89,12 +95,17 @@ export const cycleRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      await ctx.db.deleteFrom('Cycle').where('id', 'in', input).execute()
+      await deleteCycles(input)
       return true
     }),
 
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    await ctx.db.deleteFrom('Cycle').execute()
+    if (ctx.session.user.role !== 'ADMIN')
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'لا تملك الصلاحيات لهذه العملية',
+      })
+    await deleteCycles(undefined)
     return true
   }),
 })
