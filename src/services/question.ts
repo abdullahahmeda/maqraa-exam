@@ -123,5 +123,7 @@ export async function listRandomQuestions(input: ListRandomQuestionsSchema) {
     .selectAll('Question')
     .select(applyQuestionsInclude(input.include))
     .where(where)
+    .limit(input.limit)
     .orderBy(sql`RANDOM()`)
+    .execute()
 }

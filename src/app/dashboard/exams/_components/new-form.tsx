@@ -25,7 +25,12 @@ export function NewExamForm({
   const form = useForm<NewExamFieldValues>({
     resolver: zodResolver(createExamSchema),
     defaultValues: {
-      groups: [],
+      groups: [
+        {
+          weight: 1,
+          questions: [],
+        },
+      ],
     },
   })
 

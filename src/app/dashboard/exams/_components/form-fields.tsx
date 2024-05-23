@@ -1,24 +1,22 @@
 'use client'
 
-import { DndContext, DragEndEvent, closestCenter } from '@dnd-kit/core'
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
-import { CheckedState } from '@radix-ui/react-checkbox'
 import { ar } from 'date-fns/locale'
-import { Selectable } from 'kysely'
-import { PlusIcon, SearchIcon, TrashIcon } from 'lucide-react'
+import { type Selectable } from 'kysely'
+import { SearchIcon, TrashIcon } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import {
-  type FieldValues,
-  type Control,
-  type FieldPath,
-  type UseFormReturn,
   useWatch,
   useFieldArray,
+  type FieldValues,
+  type FieldPath,
+  type UseFormReturn,
+  type Path,
+  type ArrayPath,
+  type FieldArray,
+  type PathValue,
 } from 'react-hook-form'
 import { useInView } from 'react-intersection-observer'
 import { CourseTrackCurriculumFormFields } from '~/components/course-track-curriculum-form-fields'
-import { type FormFieldsCommonProps } from '~/components/questions-group'
-import { Accordion } from '~/components/ui/accordion'
 import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Checkbox } from '~/components/ui/checkbox'
@@ -35,7 +33,6 @@ import {
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { QuestionCard, QuestionCardText } from '~/components/ui/question-card'
-import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -57,12 +54,6 @@ import { api } from '~/trpc/react'
 import { difficultyMapping, typeMapping } from '~/utils/questions'
 
 export type Group = {
-  // type: string
-  // questions: Record<string, Selectable<Question>>
-  // questionsNumber: number
-  // gradePerQuestion: number
-  // difficulty: string
-  // styleOrType: string
   weight: number
   questions: (Selectable<Question> & { weight: number })[]
 }
@@ -78,7 +69,6 @@ export type NewExamFieldValues = {
   // isInsideShaded: string
   // repeatFromSameHadith: CheckedState
   groups: Group[]
-  // questions: Record<string, Selectable<Question> & { weight: number }>[]
 }
 export type EditExamFieldValues = { id: string } & NewExamFieldValues
 
@@ -88,16 +78,12 @@ type FormProps<T extends FieldValues> = {
   courses: Selectable<Course>[]
 }
 
-// type Props = FormFieldsCommonProps & {
-//   groupQuestions: Record<string, Selectable<Question>>
-// }
-
 const AutomaticQuestionsFormFields = <T extends FieldValues>({
   filters,
   form,
   path,
 }: {
-  filters: { courseId: string; curriculumId: string; curriculumType: string }
+  filters: { courseId: string; curriculumId: string; curriculumType: QuizType }
   form: UseFormReturn<T>
   path: string
 }) => {
@@ -107,7 +93,7 @@ const AutomaticQuestionsFormFields = <T extends FieldValues>({
   )
   const [type, setType] = useState<'all' | QuestionType>('all')
 
-  const { data: questions, refetch: generateQuestions } =
+  const { refetch: fetchRandomQuestions, isFetching } =
     api.question.listRandom.useQuery(
       {
         filters: {
@@ -122,27 +108,58 @@ const AutomaticQuestionsFormFields = <T extends FieldValues>({
         include: { style: true },
         limit: numberOfQuestions,
       },
-      {
-        enabled: false,
-      },
+      { enabled: false },
     )
 
-  useEffect(() => {
-    console.log('questions changed')
-    if (questions) {
-      const weight = isNaN(form.getValues(`${path}.weight`))
-        ? 1
-        : Number(form.getValues(`${path}.weight`))
+  const generateQuestions = () => {
+    void fetchRandomQuestions().then(({ data: questions }) => {
+      if (questions) {
+        const weight = isNaN(form.getValues(`${path}.weight` as Path<T>))
+          ? 1
+          : Number(form.getValues(`${path}.weight` as Path<T>))
 
-      form.setValue(
-        `${path}.questions`,
-        questions.map((q) => ({ ...q, weight })),
-      )
-    }
-  }, [questions])
+        form.setValue(
+          `${path}.questions` as Path<T>,
+          questions.map((q) => ({ ...q, weight })) as PathValue<T, Path<T>>,
+        )
+      }
+    })
+  }
+
+  const defaultWeight = useWatch({
+    control: form.control,
+    name: `${path}.weight` as Path<T>,
+  })
+
+  useEffect(() => {
+    const groupQuestions = form.getValues(
+      `${path}.questions` as Path<T>,
+    ) as (Selectable<Question> & { weight: number })[]
+
+    form.setValue(
+      `${path}.questions` as Path<T>,
+      groupQuestions.map((g) => ({ ...g, weight: defaultWeight })) as PathValue<
+        T,
+        Path<T>
+      >,
+    )
+  }, [defaultWeight])
 
   return (
     <div className='space-y-4'>
+      <FormField
+        control={form.control}
+        name={`${path}.weight` as FieldPath<T>}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>الدرجة للسؤال الواحد</FormLabel>
+            <FormControl>
+              <Input type='number' min={1} {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
       <div>
         <Label>عدد الأسئلة المطلوب</Label>
         <Input
@@ -156,7 +173,10 @@ const AutomaticQuestionsFormFields = <T extends FieldValues>({
       </div>
       <div>
         <Label>المستوى</Label>
-        <Select onValueChange={setDifficulty} value={difficulty}>
+        <Select
+          onValueChange={(v) => setDifficulty(v as 'all' | QuestionDifficulty)}
+          value={difficulty}
+        >
           <SelectTrigger>
             <SelectValue placeholder='اختر المستوى' />
           </SelectTrigger>
@@ -172,7 +192,10 @@ const AutomaticQuestionsFormFields = <T extends FieldValues>({
       </div>
       <div>
         <Label>نوع الأسئلة</Label>
-        <Select onValueChange={setType} value={type}>
+        <Select
+          onValueChange={(v) => setType(v as 'all' | QuestionType)}
+          value={type}
+        >
           <SelectTrigger>
             <SelectValue placeholder='اختر طريقة الأسئلة' />
           </SelectTrigger>
@@ -186,7 +209,11 @@ const AutomaticQuestionsFormFields = <T extends FieldValues>({
           </SelectContent>
         </Select>
       </div>
-      <Button type='button' onClick={() => generateQuestions()}>
+      <Button
+        type='button'
+        onClick={() => generateQuestions()}
+        loading={isFetching}
+      >
         توليد
       </Button>
     </div>
@@ -198,7 +225,7 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
   path,
   form,
 }: {
-  filters: { courseId: string; curriculumId: string; curriculumType: string }
+  filters: { courseId: string; curriculumId: string; curriculumType: QuizType }
   path: FieldPath<T>
   form: UseFormReturn<T>
 }) => {
@@ -207,14 +234,10 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
   const [pageNumber, setPageNumber] = useState('')
   const [hadithNumber, setHadithNumber] = useState('')
 
-  const [validData, setValidData] = useState(false)
-
-  // const validateDataForFetching = validateCommonFilters
-
   const rootRef = useRef<HTMLDivElement>(null)
 
   const { ref, inView } = useInView({
-    rootMargin: '0px 0px 400px 0px',
+    // rootMargin: '0px 0px 0px 0px',
     root: rootRef.current,
   })
 
@@ -249,23 +272,12 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
 
   const groupQuestions = useWatch({
     control: form.control,
-    name: `${path}.questions`,
-  })
+    name: `${path}.questions` as Path<T>,
+  }) as (Selectable<Question> & { weight: number })[]
 
   const searchQuestions = async () => {
-    // const isValidData = await validateDataForFetching()
-    // if (!isValidData) {
-    //   setValidData(false)
-    //   return
-    // }
-    // setValidData(true)
-
     void refetch()
   }
-
-  useEffect(() => {
-    void searchQuestions()
-  }, [])
 
   useEffect(() => {
     if (inView && isFetched && hasNextPage && !isFetchingNextPage) {
@@ -274,22 +286,57 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
   }, [inView])
 
   const addOrRemoveQuestion = (question: Selectable<Question>) => {
-    let newGroupQuestions = [...groupQuestions]
+    const newGroupQuestions = [...groupQuestions]
     const qIndex = groupQuestions.findIndex((q) => q.id === question.id)
     if (qIndex > -1) {
       newGroupQuestions.splice(qIndex, 1)
     } else {
-      const weight = isNaN(form.getValues(`${path}.weight`))
+      const weight = isNaN(form.getValues(`${path}.weight` as Path<T>))
         ? 1
-        : Number(form.getValues(`${path}.weight`))
+        : Number(form.getValues(`${path}.weight` as Path<T>))
       newGroupQuestions.push({ ...question, weight })
     }
-    form.setValue(`${path}.questions`, newGroupQuestions)
+    form.setValue(
+      `${path}.questions` as Path<T>,
+      newGroupQuestions as PathValue<T, Path<T>>,
+    )
   }
+
+  const defaultWeight = useWatch({
+    control: form.control,
+    name: `${path}.weight` as Path<T>,
+  })
+
+  useEffect(() => {
+    const groupQuestions = form.getValues(
+      `${path}.questions` as Path<T>,
+    ) as (Selectable<Question> & { weight: number })[]
+
+    form.setValue(
+      `${path}.questions` as Path<T>,
+      groupQuestions.map((g) => ({ ...g, weight: defaultWeight })) as PathValue<
+        T,
+        Path<T>
+      >,
+    )
+  }, [defaultWeight])
 
   return (
     <div>
       <div className='mb-4 space-y-4'>
+        <FormField
+          control={form.control}
+          name={`${path}.weight` as FieldPath<T>}
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>الدرجة للسؤال الواحد</FormLabel>
+              <FormControl>
+                <Input type='number' min={1} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
         <div className='grid grid-cols-2 gap-4'>
           <div>
             <FormItem>
@@ -380,85 +427,60 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
             )),
           )}
         </div>
-        <div ref={ref} />
-        {validData ? (
-          (isLoading || hasNextPage) && (
-            <div className='m-4 flex justify-center'>
-              <Spinner />
-            </div>
-          )
-        ) : (
-          <p className='text-center'>
-            قم بتعبئة الحقول اللازمة أولاُ ثم اضغط على زر البحث
-          </p>
+        <div className='h-1' ref={ref} />
+        {(isLoading || hasNextPage) && (
+          <div className='m-4 flex justify-center'>
+            <Spinner />
+          </div>
         )}
       </div>
     </div>
   )
 }
 
-const ImportFromModelOrExamFormFields = <T extends FieldValues>({
-  form,
-}: {
-  form: UseFormReturn<T>
-}) => {
-  const [type, setType] = useState('exam')
+// const ImportFromModelOrExamFormFields = <T extends FieldValues>({
+//   form,
+// }: {
+//   form: UseFormReturn<T>
+// }) => {
+//   const [type, setType] = useState('exam')
 
-  const { data: exams, isLoading: isExamsLoading } = api.exam.list.useQuery()
-  // const { data: models } = api.model.list.useQuery()
+//   const { data: exams, isLoading: isExamsLoading } = api.exam.list.useQuery()
+//   // const { data: models } = api.model.list.useQuery()
 
-  return (
-    <RadioGroup value={type} onValueChange={(v) => setType(v)}>
-      <div className='flex items-center gap-2'>
-        <RadioGroupItem value='exam' id='from-exam' />
-        <Label htmlFor='from-exam'>من اختبار</Label>
-      </div>
-      {type === 'exam' && (
-        <FormField
-          control={form.control}
-          name={'import.examId' as FieldPath<T>}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>الاختبار</FormLabel>
-              <FormControl>
-                <Combobox
-                  items={exams?.data ?? []}
-                  loading={isExamsLoading}
-                  labelKey='name'
-                  valueKey='id'
-                  onSelect={field.onChange}
-                  value={field.value}
-                  triggerText='الكل'
-                  triggerClassName='w-full'
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      )}
-      {/* <div className='flex items-center gap-2'>
-        <RadioGroupItem value='model' id='from-model' />
-        <Label htmlFor='from-model'>من نموذج</Label>
-      </div>
-      {type === 'model' && (
-        <FormField
-          control={control}
-          name={'import.modelId' as FieldPath<T>}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>النموذج</FormLabel>
-              <FormControl>
-                <Combobox items={models?.data ?? []} value={field.value} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        /> 
-      )} */}
-    </RadioGroup>
-  )
-}
+//   return (
+//     <RadioGroup value={type} onValueChange={(v) => setType(v)}>
+//       <div className='flex items-center gap-2'>
+//         <RadioGroupItem value='exam' id='from-exam' />
+//         <Label htmlFor='from-exam'>من اختبار</Label>
+//       </div>
+//       {type === 'exam' && (
+//         <FormField
+//           control={form.control}
+//           name={'import.examId' as FieldPath<T>}
+//           render={({ field }) => (
+//             <FormItem>
+//               <FormLabel>الاختبار</FormLabel>
+//               <FormControl>
+//                 <Combobox
+//                   items={exams?.data ?? []}
+//                   loading={isExamsLoading}
+//                   labelKey='name'
+//                   valueKey='id'
+//                   onSelect={field.onChange}
+//                   value={field.value}
+//                   triggerText='الكل'
+//                   triggerClassName='w-full'
+//                 />
+//               </FormControl>
+//               <FormMessage />
+//             </FormItem>
+//           )}
+//         />
+//       )}
+//     </RadioGroup>
+//   )
+// }
 
 const GroupQuestions = <T extends FieldValues>({
   form,
@@ -469,46 +491,60 @@ const GroupQuestions = <T extends FieldValues>({
 }) => {
   const groupQuestions = useWatch({
     control: form.control,
-    name: `${path}.questions`,
-  })
+    name: `${path}.questions` as Path<T>,
+  }) as (Selectable<Question> & { weight: number })[]
 
   const deleteQuestion = (index: number) => {
-    // form.unregister(`${path}.questions.${index}`)
     form.setValue(
-      `${path}.questions`,
-      groupQuestions.filter((_, i) => i !== index),
+      `${path}.questions` as Path<T>,
+      groupQuestions.filter((_, i) => i !== index) as PathValue<T, Path<T>>,
     )
   }
 
+  const totalGroupWeight = groupQuestions.reduce((acc, q) => acc + +q.weight, 0)
+
   return (
     <div className='space-y-2'>
-      <p>الأسئلة ({groupQuestions.length})</p>
-      {groupQuestions.map((question, index) => (
-        <QuestionCard key={question.id}>
-          <Button
-            type='button'
-            size='icon'
-            variant='destructive'
-            onClick={() => deleteQuestion(index)}
-          >
-            <TrashIcon className='h-4 w-4' />
-          </Button>
-          <QuestionCardText text={question.text} />
-          <FormField
-            control={form.control}
-            name={`${path}.questions.${index}.weight`}
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>الدرجات للسؤال</FormLabel>
-                <FormControl>
-                  <Input type='number' {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </QuestionCard>
-      ))}
+      <p>
+        {groupQuestions.length} أسئلة ({totalGroupWeight} درجة)
+      </p>
+      <TooltipProvider delayDuration={100}>
+        {groupQuestions.map((question, index) => (
+          <QuestionCard key={question.id}>
+            <div className='flex justify-end'>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type='button'
+                    size='icon'
+                    variant='destructive'
+                    onClick={() => deleteQuestion(index)}
+                  >
+                    <TrashIcon className='h-4 w-4' />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>حذف السؤال من المجموعة</p>
+                </TooltipContent>
+              </Tooltip>
+            </div>
+            <QuestionCardText text={question.text} />
+            <FormField
+              control={form.control}
+              name={`${path}.questions.${index}.weight` as FieldPath<T>}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>الدرجات للسؤال</FormLabel>
+                  <FormControl>
+                    <Input type='number' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </QuestionCard>
+        ))}
+      </TooltipProvider>
     </div>
   )
 }
@@ -520,18 +556,18 @@ export const ExamFormFields = <T extends FieldValues>({
 }: FormProps<T>) => {
   const courseId = useWatch({
     control: form.control,
-    name: 'courseId',
-  })
+    name: 'courseId' as Path<T>,
+  }) as string
 
   const curriculumId = useWatch({
     control: form.control,
-    name: 'curriculumId',
-  })
+    name: 'curriculumId' as Path<T>,
+  }) as string
 
   const curriculumType = useWatch({
     control: form.control,
-    name: 'type',
-  })
+    name: 'type' as Path<T>,
+  }) as QuizType
 
   const {
     fields: groups,
@@ -539,14 +575,14 @@ export const ExamFormFields = <T extends FieldValues>({
     remove,
   } = useFieldArray({
     control: form.control,
-    name: 'groups',
+    name: 'groups' as ArrayPath<T>,
   })
 
   const addQuestionGroup = () => {
     append({
       weight: 1,
       questions: [],
-    } as Group)
+    } as FieldArray<T, ArrayPath<T>>)
   }
 
   const removeGroup = (index: number) => {
@@ -570,7 +606,7 @@ export const ExamFormFields = <T extends FieldValues>({
       />
       <FormField
         control={form.control}
-        name='type'
+        name={'type' as Path<T>}
         render={({ field }) => (
           <FormItem>
             <FormLabel>نوع الإختبار</FormLabel>
@@ -650,55 +686,36 @@ export const ExamFormFields = <T extends FieldValues>({
       />
       <h3>الأسئلة</h3>
       <Tabs defaultValue='generate'>
-        <TabsList>
+        <TabsList className='grid w-full grid-cols-1'>
           <TabsTrigger value='generate'>توليد أسئلة</TabsTrigger>
-          <TabsTrigger value='preset'>أسئلة من نموذج</TabsTrigger>
+          {/* <TabsTrigger value='preset'>أسئلة من نموذج</TabsTrigger> */}
         </TabsList>
         <TabsContent value='generate'>
           {groups.map((group, index) => {
             return (
               <div key={group.id} className='border rounded-md p-4'>
-                <p>المجموعة {index + 1}</p>
-                <TooltipProvider delayDuration={100}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type='button'
-                        size='icon'
-                        variant='destructive'
-                        onClick={() => removeGroup(index)}
-                        disabled={groups.length < 2}
-                      >
-                        <TrashIcon className='h-4 w-4' />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>حذف</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                <div className='flex justify-between mb-2'>
+                  <p>المجموعة {index + 1}</p>
+                  <Button
+                    type='button'
+                    variant='destructive'
+                    onClick={() => removeGroup(index)}
+                    disabled={groups.length < 2}
+                    className='gap-2'
+                  >
+                    <TrashIcon className='h-4 w-4' />
+                    حذف المجموعة
+                  </Button>
+                </div>
                 <Tabs defaultValue='automatic'>
-                  <TabsList className='grid grid-cols-3 w-full'>
+                  <TabsList className='grid grid-cols-2 w-full'>
                     <TabsTrigger value='automatic'>تلقائي</TabsTrigger>
                     <TabsTrigger value='manual'>يدوي</TabsTrigger>
                   </TabsList>
                   <TabsContent value='automatic'>
-                    <FormField
-                      control={form.control}
-                      name={`groups.${index}.weight`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>الدرجة للسؤال الواحد</FormLabel>
-                          <FormControl>
-                            <Input type='number' {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <AutomaticQuestionsFormFields
                       form={form}
-                      path={`groups.${index}`}
+                      path={`groups.${index}` as FieldPath<T>}
                       filters={{
                         courseId,
                         curriculumId,
@@ -707,22 +724,9 @@ export const ExamFormFields = <T extends FieldValues>({
                     />
                   </TabsContent>
                   <TabsContent value='manual'>
-                    <FormField
-                      control={form.control}
-                      name={`groups.${index}.weight`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>الدرجة للسؤال الواحد</FormLabel>
-                          <FormControl>
-                            <Input type='number' {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
                     <ManualQuestionsFormFields
                       form={form}
-                      path={`groups.${index}`}
+                      path={`groups.${index}` as FieldPath<T>}
                       filters={{
                         courseId,
                         curriculumId,
@@ -741,241 +745,10 @@ export const ExamFormFields = <T extends FieldValues>({
             إضافة مجموعة أسئلة
           </Button>
         </TabsContent>
-        <TabsContent value='preset'>
+        {/* <TabsContent value='preset'>
           <ImportFromModelOrExamFormFields form={form} />
-        </TabsContent>
+        </TabsContent> */}
       </Tabs>
-
-      {/* <FormField
-        control={form.control}
-        name={'type' as FieldPath<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>نوع الإختبار</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder='اختر نوع الإختبار' />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value={QuizType.WHOLE_CURRICULUM}>
-                  المنهج كامل
-                </SelectItem>
-                <SelectItem value={QuizType.FIRST_MEHWARY}>
-                  الإختبار المحوري الأول
-                </SelectItem>
-                <SelectItem value={QuizType.SECOND_MEHWARY}>
-                  الإختبار المحوري الثاني
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name={'isInsideShaded' as FieldPath<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>المظلل</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder='اختر' />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value=''>داخل وخارج المظلل</SelectItem>
-                <SelectItem value='INSIDE'>بداخل المظلل فقط</SelectItem>
-                <SelectItem value='OUTSIDE'>خارج المظلل فقط</SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <CourseTrackCurriculumFormFields
-        form={form}
-        fields={{
-          course: 'courseId',
-          track: 'trackId',
-          curriculum: 'curriculumId',
-        }}
-      />
-      <FormField
-        control={form.control}
-        name={'repeatFromSameHadith' as FieldPath<T>}
-        render={({ field }) => (
-          <FormItem className='flex flex-row items-start space-x-3 space-y-0 space-x-reverse'>
-            <FormControl>
-              <Checkbox
-                checked={field.value}
-                onCheckedChange={field.onChange}
-              />
-            </FormControl>
-            <div className='space-y-1 leading-none'>
-              <FormLabel>السماح بأكثر من سؤال في نفس الحديث</FormLabel>
-            </div>
-          </FormItem>
-        )}
-      />
-      <div>
-        <h3 className='text-lg font-semibold'>تقسيمة الأسئلة</h3>
-        <DndContext
-          sensors={sensors}
-          collisionDetection={closestCenter}
-          onDragEnd={onDragEnd}
-        >
-          <SortableContext
-            items={groups}
-            strategy={verticalListSortingStrategy}
-          >
-            <Accordion
-              type='single'
-              collapsible
-              className='overflow-hidden rounded-md shadow'
-            >
-              {groups.map(({ id }, index) => (
-                <QuestionGroup
-                  form={form}
-                  setGroupQuestions={setGroupQuestionsFactory(index)}
-                  getCommonFilters={getCommonFilters}
-                  validateCommonFilters={validateCommonFilters}
-                  fields={{
-                    type: `${getGroupPath(
-                      index,
-                    )}.type` as FieldPath<FieldValues>,
-                    groupQuestions: `${getGroupPath(
-                      index,
-                    )}.questions` as FieldPath<FieldValues>,
-                    questionsNumber: `${getGroupPath(
-                      index,
-                    )}.questionsNumber` as FieldPath<FieldValues>,
-                    styleOrType: `${getGroupPath(
-                      index,
-                    )}.styleOrType` as FieldPath<FieldValues>,
-                    difficulty: `${getGroupPath(
-                      index,
-                    )}.difficulty` as FieldPath<FieldValues>,
-                    gradePerQuestion: `${getGroupPath(
-                      index,
-                    )}.gradePerQuestion` as FieldPath<FieldValues>,
-                  }}
-                  index={index}
-                  removeGroup={() => removeGroup(index)}
-                  key={id}
-                />
-              ))}
-            </Accordion>
-          </SortableContext>
-        </DndContext>
-        <FormField
-          control={form.control}
-          name={'groups' as FieldPath<T>}
-          render={() => (
-            <FormItem>
-              <FormMessage className='mt-2'>يوجد خطأ</FormMessage>
-            </FormItem>
-          )}
-        />
-        <Button
-          type='button'
-          // variant='success'
-          className='mt-2 gap-2'
-          onClick={appendGroup}
-        >
-          <PlusIcon className='h-4 w-4' />
-          إضافة مجموعة
-        </Button>
-      </div>
-      <div className='space-y-4 rounded-lg bg-gray-100 p-4'>
-        <h3 className='text-lg font-semibold'>
-          الأسئلة المختارة ({questionsCount})
-        </h3>
-        {questions.length > 0 ? (
-          questions.map((questionsObj, gIndex) => {
-            const groupQuestionsCount = Object.keys(questionsObj).length
-            return (
-              <div key={gIndex} className='space-y-2'>
-                <h4 className='font-semibold'>
-                  أسئلة المجموعة {gIndex + 1} ({groupQuestionsCount})
-                </h4>
-                <div className='space-y-4'>
-                  {Object.values(questionsObj).map((q) => (
-                    <div
-                      className='flex items-center gap-4 rounded bg-gray-200 p-4'
-                      key={q.id}
-                    >
-                      <div className='flex-1 space-y-2'>
-                        <QuestionCard
-                          question={q}
-                          style={(q as any).style}
-                          showPartNumber
-                          showPageNumber
-                          showHadithNumber
-                        />
-                        <FormField
-                          control={control}
-                          name={
-                            `questions.${gIndex}.${q.id}.grade` as FieldPath<FieldValues>
-                          }
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>الدرجة</FormLabel>
-                              <FormControl>
-                                <Input type='number' {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <Button
-                        size='icon'
-                        type='button'
-                        variant='destructive'
-                        onClick={() => removeQuestion(gIndex, q.id)}
-                      >
-                        <TrashIcon className='h-4 w-4' />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })
-        ) : (
-          <p>لم يتم اختيار أسئلة</p>
-        )}
-      </div>
-      <FormField
-        control={form.control}
-        name={'cycleId' as FieldPath<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>الدورة</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger
-                // loading={isCyclesLoading}
-                >
-                  <SelectValue placeholder='اختر الدورة' />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                {cycles.map((cycle) => (
-                  <SelectItem key={cycle.id} value={cycle.id}>
-                    {cycle.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      /> */}
     </>
   )
 }
