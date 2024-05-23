@@ -1,7 +1,7 @@
 import mapValues from 'lodash.mapvalues'
 
 // Note: not working with arrays
-export function coerceStringsToBoolean(o: unknown): any {
+export function coerceStringsToBoolean(o: unknown): unknown {
   if (typeof o === 'object' && o !== null) {
     if (Array.isArray(o)) {
       // return something here if you want it to work with arrays
