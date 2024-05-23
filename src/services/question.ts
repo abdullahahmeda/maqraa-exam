@@ -1,6 +1,6 @@
 import {
-  type Selectable,
   sql,
+  type Selectable,
   type ExpressionBuilder,
   type SqlBool,
   type Expression,

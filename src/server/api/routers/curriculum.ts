@@ -5,68 +5,16 @@ import {
   publicProcedure,
 } from '~/server/api/trpc'
 import { applyPagination } from '~/utils/db'
-import { type DB } from '~/kysely/types'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
 import { TRPCError } from '@trpc/server'
-import {
-  type FiltersSchema,
-  type IncludeSchema,
-} from '~/validation/backend/queries/curriculum/common'
-import type { Expression, ExpressionBuilder, SqlBool } from 'kysely'
 import { createCurriculumSchema } from '~/validation/backend/mutations/curriculum/create'
 import { getCurriculumSchema } from '~/validation/backend/queries/curriculum/get'
 import { listCurriculumSchema } from '~/validation/backend/queries/curriculum/list'
 import { updateCurriculumSchema } from '~/validation/backend/mutations/curriculum/update'
-import { deleteCurricula } from '~/services/curriculum'
-
-function applyInclude(include: IncludeSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'Curriculum'>) => {
-    return [
-      ...(include?.parts
-        ? [
-            jsonArrayFrom(
-              eb
-                .selectFrom('CurriculumPart')
-                .selectAll('CurriculumPart')
-                .whereRef('CurriculumPart.curriculumId', '=', 'Curriculum.id'),
-            ).as('parts'),
-          ]
-        : []),
-
-      ...(include?.track
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('Track')
-                .selectAll('Track')
-                .whereRef('Curriculum.trackId', '=', 'Track.id')
-                .select((eb) => [
-                  ...(typeof include.track !== 'boolean' &&
-                  include.track?.course
-                    ? [
-                        jsonObjectFrom(
-                          eb
-                            .selectFrom('Course')
-                            .selectAll('Course')
-                            .whereRef('Track.courseId', '=', 'Course.id'),
-                        ).as('course'),
-                      ]
-                    : []),
-                ]),
-            ).as('track'),
-          ]
-        : []),
-    ]
-  }
-}
-
-function applyFilters(filters: FiltersSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'Curriculum'>) => {
-    const where: Expression<SqlBool>[] = []
-    if (filters?.trackId) where.push(eb('trackId', '=', filters.trackId))
-    return eb.and(where)
-  }
-}
+import {
+  applyCurriculaFilters,
+  applyCurriculaInclude,
+  deleteCurricula,
+} from '~/services/curriculum'
 
 export const curriculumRouter = createTRPCRouter({
   create: protectedProcedure
@@ -97,14 +45,14 @@ export const curriculumRouter = createTRPCRouter({
         .selectFrom('Curriculum')
         .selectAll('Curriculum')
         .where('id', '=', input.id)
-        .select(applyInclude(input.include))
+        .select(applyCurriculaInclude(input.include))
         .executeTakeFirst()
     }),
 
   list: publicProcedure
     .input(listCurriculumSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyFilters(input?.filters)
+      const where = applyCurriculaFilters(input?.filters)
 
       const count = Number(
         (
@@ -121,7 +69,7 @@ export const curriculumRouter = createTRPCRouter({
           .selectFrom('Curriculum')
           .selectAll()
           .where(where)
-          .select(applyInclude(input?.include)),
+          .select(applyCurriculaInclude(input?.include)),
         input?.pagination,
       )
 

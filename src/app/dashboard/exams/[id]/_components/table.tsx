@@ -407,7 +407,6 @@ export const ExamTable = ({
       />
       <DataTable
         data={quizzes.data}
-        // @ts-expect-error TODO: use ColumnDef<Row>[] instead of columnHelper
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

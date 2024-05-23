@@ -1,6 +1,6 @@
+import { db } from '~/server/db'
 import { type Expression, type ExpressionBuilder, type SqlBool } from 'kysely'
 import type { DB } from '~/kysely/types'
-import { db } from '~/server/db'
 import { type FiltersSchema } from '~/validation/backend/queries/course/common'
 
 export function applyCoursesFilters(filters: FiltersSchema | undefined) {
