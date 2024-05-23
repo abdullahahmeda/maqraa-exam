@@ -13,6 +13,10 @@ import { Label } from '~/components/ui/label'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { Separator } from '~/components/ui/separator'
 import shuffle from 'lodash.shuffle'
+import { api } from '~/trpc/server'
+import { type Selectable } from 'kysely'
+import { QuestionStyle } from '~/kysely/types'
+import { QuestionType } from '~/kysely/enums'
 
 export type Params = { id: string }
 
@@ -24,8 +28,10 @@ export async function generateMetadata({ params }: { params: Params }) {
     .where('Quiz.id', '=', params.id)
     .executeTakeFirst()
 
+  const siteName = await api.setting.getSiteName()
+
   return {
-    title: quiz?.name ?? 'إختبار',
+    title: `${quiz?.name ?? 'إختبار'} | ${siteName}`,
   }
 }
 
@@ -84,7 +90,12 @@ const QuizPage = async ({ params }: { params: Params }) => {
             ).as('errorReport'),
           ])
           .whereRef('Quiz.modelId', '=', 'ModelQuestion.modelId')
-          .orderBy('ModelQuestion.order', 'asc'),
+          .orderBy('ModelQuestion.order', 'asc')
+          .$narrowType<{
+            style: Selectable<QuestionStyle>
+            text: string
+            type: QuestionType
+          }>(),
       ).as('questions'),
     ])
     .where('Quiz.id', '=', params.id)
@@ -175,7 +186,7 @@ const QuizPage = async ({ params }: { params: Params }) => {
                   }
                   className='flex-1'
                 >
-                  <QuestionCardText text={question.text!} />
+                  <QuestionCardText text={question.text} />
                   {question.type === 'WRITTEN' ? (
                     <Textarea
                       readOnly
@@ -191,7 +202,7 @@ const QuizPage = async ({ params }: { params: Params }) => {
                       value={userAnswer?.answer ?? undefined}
                       disabled
                     >
-                      {style?.choicesColumns.map((column) => {
+                      {style.choicesColumns.map((column) => {
                         const value = question[
                           column as keyof typeof question
                         ] as string

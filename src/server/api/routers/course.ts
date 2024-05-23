@@ -13,6 +13,7 @@ import { updateCourseSchema } from '~/validation/backend/mutations/course/update
 import { type FiltersSchema } from '~/validation/backend/queries/course/common'
 import type { Expression, ExpressionBuilder, SqlBool } from 'kysely'
 import type { DB } from '~/kysely/types'
+import { deleteCourses } from '~/services/course'
 
 function applyFilters(filters: FiltersSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'Course'>) => {
@@ -67,14 +68,6 @@ export const courseRouter = createTRPCRouter({
         count,
       }
     }),
-  // count: protectedProcedure.query(async ({ ctx, input }) => {
-  //   const query = ctx.db
-  //     .selectFrom('Course')
-  //     .select(({ fn }) => fn.count('id').as('total'))
-
-  //   const total = Number((await query.executeTakeFirst())?.total)
-  //   return total
-  // }),
 
   update: protectedProcedure
     .input(updateCourseSchema)
@@ -91,7 +84,13 @@ export const courseRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.deleteFrom('Course').where('id', '=', input).execute()
+      if (ctx.session.user.role !== 'ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
+      await deleteCourses(input)
       return true
     }),
 
@@ -104,12 +103,17 @@ export const courseRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      await ctx.db.deleteFrom('Course').where('id', 'in', input).execute()
+      await deleteCourses(input)
       return true
     }),
 
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    await ctx.db.deleteFrom('Course').execute()
+    if (ctx.session.user.role !== 'ADMIN')
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: 'لا تملك الصلاحيات لهذه العملية',
+      })
+    await deleteCourses(undefined)
     return true
   }),
 })

@@ -25,7 +25,7 @@ import { Button } from '~/components/ui/button'
 import { Dialog, DialogContent } from '~/components/ui/dialog'
 import { QuestionCard, QuestionCardText } from '~/components/ui/question-card'
 import type { Selectable } from 'kysely'
-import type { Quiz } from '~/kysely/types'
+import type { Quiz, QuestionStyle } from '~/kysely/types'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { api } from '~/trpc/react'
@@ -40,6 +40,7 @@ import {
 } from '~/components/ui/form'
 import { Textarea } from '~/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
+import { QuestionType } from '~/kysely/enums'
 
 type FieldValues = {
   id: string
@@ -49,7 +50,18 @@ type FieldValues = {
 export const QuizForm = ({
   quiz,
 }: {
-  quiz: Selectable<Quiz> & { systemExamName: string | null; questions: any[] }
+  quiz: Selectable<Quiz> & {
+    systemExamName: string | null
+    questions: {
+      id: string
+      order: number
+      userAnswer: { answer: string | null; grade: number | null } | null
+      weight: number
+      style: Selectable<QuestionStyle>
+      text: string
+      type: QuestionType
+    }[]
+  }
 }) => {
   const [confirmationDialogOpen, setConfirmationDialogOpen] = useState(false)
   const router = useRouter()
@@ -114,66 +126,66 @@ export const QuizForm = ({
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className='space-y-4'>
-                  {quiz.questions.map(
-                    ({ id, order, userAnswer, weight, style, ...question }) => (
-                      <div className='flex gap-2' key={id}>
-                        <div className='text-center'>
-                          <p>{order}) </p>
-                          <TooltipProvider delayDuration={100}>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  size='icon'
-                                  variant='ghost'
-                                  className='mt-2'
-                                  onClick={() =>
-                                    setErrorReportData({
-                                      quizId: quiz.id,
-                                      questionId: id,
-                                    })
-                                  }
-                                  type='button'
-                                >
-                                  <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>الإبلاغ عن خطأ</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        </div>
-                        <QuestionCard className='flex-1'>
-                          <QuestionCardText text={question.text} />
-                          {question.type === 'WRITTEN' ? (
-                            <FormField
-                              control={form.control}
-                              name={`answers.${id}`}
-                              render={({ field }) => (
-                                <FormItem>
-                                  <FormLabel>الإجابة</FormLabel>
-                                  <FormControl>
-                                    <Textarea {...field} />
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          ) : (
-                            <FormField
-                              control={form.control}
-                              name={`answers.${id}`}
-                              render={({ field: { value, onChange } }) => (
-                                <FormItem>
-                                  <FormLabel>اختر الإجابة</FormLabel>
-                                  <FormControl>
-                                    <RadioGroup
-                                      value={value}
-                                      onValueChange={onChange}
-                                      className='space-y-1'
-                                      dir='rtl'
-                                    >
-                                      {style?.choicesColumns.map((column) => {
+                  {quiz.questions.map((question) => (
+                    <div className='flex gap-2' key={question.id}>
+                      <div className='text-center'>
+                        <p>{question.order}) </p>
+                        <TooltipProvider delayDuration={100}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                size='icon'
+                                variant='ghost'
+                                className='mt-2'
+                                onClick={() =>
+                                  setErrorReportData({
+                                    quizId: quiz.id,
+                                    questionId: question.id,
+                                  })
+                                }
+                                type='button'
+                              >
+                                <AlertTriangleIcon className='h-4 w-4 text-orange-600' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>الإبلاغ عن خطأ</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                      <QuestionCard className='flex-1'>
+                        <QuestionCardText text={question.text} />
+                        {question.type === 'WRITTEN' ? (
+                          <FormField
+                            control={form.control}
+                            name={`answers.${question.id}`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>الإجابة</FormLabel>
+                                <FormControl>
+                                  <Textarea {...field} />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        ) : (
+                          <FormField
+                            control={form.control}
+                            name={`answers.${question.id}`}
+                            render={({ field: { value, onChange } }) => (
+                              <FormItem>
+                                <FormLabel>اختر الإجابة</FormLabel>
+                                <FormControl>
+                                  <RadioGroup
+                                    value={value}
+                                    onValueChange={onChange}
+                                    className='space-y-1'
+                                    dir='rtl'
+                                  >
+                                    {question.style?.choicesColumns.map(
+                                      (column) => {
                                         const value = question[
                                           column as keyof typeof question
                                         ] as string
@@ -188,18 +200,18 @@ export const QuizForm = ({
                                             <FormLabel>{value}</FormLabel>
                                           </FormItem>
                                         )
-                                      })}
-                                    </RadioGroup>
-                                  </FormControl>
-                                  <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          )}
-                        </QuestionCard>
-                      </div>
-                    ),
-                  )}
+                                      },
+                                    )}
+                                  </RadioGroup>
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        )}
+                      </QuestionCard>
+                    </div>
+                  ))}
                 </div>
                 <Button
                   loading={quizSubmit.isPending}
