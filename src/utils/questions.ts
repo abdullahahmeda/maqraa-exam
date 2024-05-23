@@ -43,7 +43,7 @@ export const arTypeToEn = (arType: string): EnType =>
   typeMapping[arType as ArType]
 export const enTypeToAr = (enType: string): ArType => {
   const inverted = invert(typeMapping)
-  // @ts-ignore
+  // @ts-expect-error Can't type this
   return inverted[enType as keyof typeof inverted]
 }
 
@@ -51,7 +51,7 @@ type ArColumn = keyof typeof columnMapping
 
 export function enColumnToAr(enColumn: string): ArColumn {
   const inverted = invert(columnMapping)
-  // @ts-ignore
+  // @ts-expect-error Can't type this
   return inverted[enColumn as keyof typeof inverted]
 }
 
@@ -61,7 +61,7 @@ export const arDifficultyToEn = (arDifficulty: string): EnDifficulty =>
   difficultyMapping[arDifficulty as ArDifficulty]
 export const enDifficultyToAr = (enDifficulty: string): ArDifficulty => {
   const inverted = invert(difficultyMapping)
-  // @ts-ignore
+  // @ts-expect-error Can't type this
   return inverted[enDifficulty as keyof typeof inverted]
 }
 

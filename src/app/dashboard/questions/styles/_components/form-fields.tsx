@@ -26,10 +26,15 @@ import {
 import { QuestionType } from '~/kysely/enums'
 import { columnMapping, typeMapping } from '~/utils/questions'
 
-export type NewQuestionStyleFieldValues = { name: string } & {
-  type: QuestionType
-  choicesColumns: string[]
-}
+export type NewQuestionStyleFieldValues = { name: string } & (
+  | {
+      type: typeof QuestionType.MCQ
+      choicesColumns: (typeof columnMapping)[keyof typeof columnMapping][]
+    }
+  | {
+      type: typeof QuestionType.WRITTEN
+    }
+)
 export type EditQuestionStyleFieldValues = {
   id: string
 } & NewQuestionStyleFieldValues
@@ -117,12 +122,14 @@ export const QuestionStyleFormFields = <T extends FieldValues>({
                         >
                           <FormControl>
                             <Checkbox
-                              checked={field.value?.includes(item.value)}
+                              checked={(field.value as string[])?.includes(
+                                item.value,
+                              )}
                               onCheckedChange={(checked) => {
                                 return checked
                                   ? field.onChange([...field.value, item.value])
                                   : field.onChange(
-                                      field.value?.filter(
+                                      (field.value as string[])?.filter(
                                         (value: string) => value !== item.value,
                                       ),
                                     )

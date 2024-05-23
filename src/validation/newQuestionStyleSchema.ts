@@ -11,11 +11,18 @@ const withColumnsSchema = commonSchema.extend({
   choicesColumns: z
     .array(
       z.union(
-        // @ts-ignore
-        Object.values(columnMapping).map((c) => z.literal(c))
-      )
+        // Object.values(columnMapping).map((c) => z.literal(c).readonly())
+        [
+          z.literal('option1'),
+          z.literal('option2'),
+          z.literal('option3'),
+          z.literal('option4'),
+          z.literal('textForTrue'),
+          z.literal('textForFalse'),
+        ],
+      ),
     )
-    .nonempty(),
+    .min(1),
 })
 const withoutColumnsSchema = commonSchema.extend({
   type: z.literal(QuestionType.WRITTEN),

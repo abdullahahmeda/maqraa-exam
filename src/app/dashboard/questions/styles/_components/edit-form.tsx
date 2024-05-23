@@ -10,16 +10,24 @@ import {
 } from './form-fields'
 import { Button } from '~/components/ui/button'
 import { Form } from '~/components/ui/form'
-import { type QuestionStyle } from '~/kysely/types'
 import { populateFormWithErrors } from '~/utils/errors'
 import { useRouter } from 'next/navigation'
-import { type Selectable } from 'kysely'
 import { updateQuestionStyleSchema } from '~/validation/backend/mutations/question-style/update'
+import { QuestionType } from '~/kysely/enums'
+import { columnMapping } from '~/utils/questions'
 
 export const EditQuestionStyleForm = ({
   questionStyle,
 }: {
-  questionStyle: Selectable<QuestionStyle>
+  questionStyle: { id: string; name: string } & (
+    | {
+        type: typeof QuestionType.MCQ
+        choicesColumns: (typeof columnMapping)[keyof typeof columnMapping][]
+      }
+    | {
+        type: typeof QuestionType.WRITTEN
+      }
+  )
 }) => {
   const router = useRouter()
   const form = useForm<EditQuestionStyleFieldValues>({
@@ -44,7 +52,6 @@ export const EditQuestionStyleForm = ({
   })
 
   const onSubmit = (data: EditQuestionStyleFieldValues) => {
-    // @ts-expect-error Check this type error
     mutation.mutate(data)
   }
 

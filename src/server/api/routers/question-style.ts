@@ -1,8 +1,6 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
-import { newQuestionStyleSchema } from '~/validation/newQuestionStyleSchema'
-import { editQuestionStyleSchema } from '~/validation/editQuestionStyleSchema'
 import { QuestionStyleService } from '~/services/question-style'
 import { listQuestionStyleSchema } from '~/validation/backend/queries/question-style/list'
 import { applyPagination } from '~/utils/db'
@@ -10,6 +8,8 @@ import { getQuestionStylyeSchema } from '~/validation/backend/queries/question-s
 import { type FiltersSchema } from '~/validation/backend/queries/question-style/common'
 import { type SqlBool, type Expression, type ExpressionBuilder } from 'kysely'
 import type { DB } from '~/kysely/types'
+import { createQuestionStyleSchema } from '~/validation/backend/mutations/question-style/create'
+import { updateQuestionStyleSchema } from '~/validation/backend/mutations/question-style/update'
 
 function applyFilters(filters: FiltersSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'QuestionStyle'>) => {
@@ -58,13 +58,8 @@ export const questionStyleRouter = createTRPCRouter({
         .executeTakeFirst(),
     ),
 
-  // count: protectedProcedure.query(async ({ ctx, input }) => {
-  //   const questionStyleService = new QuestionStyleService(ctx.db)
-  //   return questionStyleService.getCount()
-  // }),
-
   create: protectedProcedure
-    .input(newQuestionStyleSchema)
+    .input(createQuestionStyleSchema)
     .mutation(async ({ ctx, input }) => {
       const questionStyleService = new QuestionStyleService(ctx.db)
       await questionStyleService.create(input)
@@ -72,7 +67,7 @@ export const questionStyleRouter = createTRPCRouter({
     }),
 
   update: protectedProcedure
-    .input(editQuestionStyleSchema)
+    .input(updateQuestionStyleSchema)
     .mutation(async ({ ctx, input }) => {
       const { id, ...data } = input
       try {
