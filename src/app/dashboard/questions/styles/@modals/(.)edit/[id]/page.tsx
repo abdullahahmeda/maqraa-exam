@@ -31,13 +31,21 @@ export default function EditQuestionStyleModal() {
         </DialogHeader>
         {questionStyle ? (
           <EditQuestionStyleForm
-            questionStyle={{
-              ...questionStyle,
-              choicesColumns:
-                questionStyle?.type === 'WRITTEN'
-                  ? undefined
-                  : (questionStyle?.choicesColumns as ChoiceColumn[]),
-            }}
+            questionStyle={
+              questionStyle.type === 'WRITTEN'
+                ? {
+                    id: questionStyle.id,
+                    name: questionStyle.name,
+                    type: questionStyle.type,
+                  }
+                : {
+                    id: questionStyle.id,
+                    name: questionStyle.name,
+                    type: questionStyle.type,
+                    choicesColumns:
+                      questionStyle.choicesColumns as ChoiceColumn[],
+                  }
+            }
           />
         ) : (
           <div className='flex justify-center'>

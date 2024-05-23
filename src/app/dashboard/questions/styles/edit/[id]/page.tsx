@@ -28,13 +28,21 @@ export default async function EditQuestionStylePage({
       <h2 className='text-3xl font-bold'>تعديل نوع سؤال</h2>
       <div className='rounded-lg bg-gray-100 p-4'>
         <EditQuestionStyleForm
-          questionStyle={{
-            ...questionStyle,
-            choicesColumns:
-              questionStyle.type === 'WRITTEN'
-                ? undefined
-                : (questionStyle.choicesColumns as ChoiceColumn[]),
-          }}
+          questionStyle={
+            questionStyle.type === 'WRITTEN'
+              ? {
+                  id: questionStyle.id,
+                  name: questionStyle.name,
+                  type: questionStyle.type,
+                }
+              : {
+                  id: questionStyle.id,
+                  name: questionStyle.name,
+                  type: questionStyle.type,
+                  choicesColumns:
+                    questionStyle.choicesColumns as ChoiceColumn[],
+                }
+          }
         />
       </div>
     </div>
