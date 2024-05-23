@@ -9,8 +9,10 @@ export const userRoleMapping = {
 
 type ArUserRole = keyof typeof userRoleMapping
 
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export const arUserRoleToEn = (arUserRole: string): EnUserRole | string =>
   userRoleMapping[arUserRole as ArUserRole] ?? arUserRole
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export const enUserRoleToAr = (enUserRole: string): ArUserRole | string => {
   const inverted = invert(userRoleMapping)
   return inverted[enUserRole as keyof typeof inverted] ?? enUserRole

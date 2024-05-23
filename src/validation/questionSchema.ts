@@ -15,17 +15,17 @@ export const questionSchema = z.object({
   type: z.preprocess(
     (v) => (v as string).trim(),
     z
-      // @ts-ignore
+      // @ts-expect-error Can't type this
       .union(Object.keys(typeMapping).map((s) => z.literal(s)))
-      .transform((val) => arTypeToEn(val))
+      .transform((val: string) => arTypeToEn(val)),
   ),
   styleName: z.string().trim(),
   difficulty: z.preprocess(
     (v) => (v as string).trim(),
     z
-      // @ts-ignore
+      // @ts-expect-error Can't type this
       .union(Object.keys(difficultyMapping).map((s) => z.literal(s)))
-      .transform((val) => arDifficultyToEn(val))
+      .transform((val: string) => arDifficultyToEn(val)),
   ),
   text: z
     .string()

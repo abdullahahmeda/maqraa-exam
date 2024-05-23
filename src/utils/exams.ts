@@ -12,8 +12,10 @@ export const typeMapping = {
 }
 
 type ArType = keyof typeof typeMapping
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export const arTypeToEn = (arType: string): EnType | string =>
   typeMapping[arType as ArType] ?? arType
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export const enTypeToAr = (enType: string): ArType | string => {
   const inverted = invert(typeMapping)
   return inverted[enType as keyof typeof inverted] ?? enType

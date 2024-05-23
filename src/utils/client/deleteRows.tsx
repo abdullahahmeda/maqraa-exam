@@ -8,14 +8,14 @@ export function deleteRows({
 }: {
   mutateAsync: () => Promise<unknown>
   invalidate: () => Promise<unknown>
-  setRowSelection?: Dispatch<SetStateAction<{}>>
+  setRowSelection?: Dispatch<SetStateAction<object>>
 }) {
   const promise = mutateAsync()
     .then(() => {
       if (setRowSelection) setRowSelection({})
     })
     .finally(() => {
-      invalidate()
+      void invalidate()
     })
 
   toast.promise(promise, {

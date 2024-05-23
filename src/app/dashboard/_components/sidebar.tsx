@@ -10,7 +10,7 @@ import { Avatar, AvatarFallback } from '~/components/ui/avatar'
 import { Separator } from '~/components/ui/separator'
 import { UserIcon } from 'lucide-react'
 
-type MenuLink = {
+export type MenuLink = {
   icon: string | null
   label: ReactNode
   key: string

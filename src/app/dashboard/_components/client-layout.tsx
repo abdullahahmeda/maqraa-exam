@@ -2,7 +2,7 @@
 
 import { useState, type ReactNode } from 'react'
 import { Navbar } from './navbar'
-import { Sidebar } from './sidebar'
+import { MenuLink, Sidebar } from './sidebar'
 import { Content } from './content'
 
 export default function ClientLayout({
@@ -11,7 +11,7 @@ export default function ClientLayout({
   notifications,
 }: {
   children: ReactNode
-  menu: any
+  menu: MenuLink[]
   notifications: {
     id: string
     body: string

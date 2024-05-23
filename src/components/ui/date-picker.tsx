@@ -5,7 +5,7 @@ import { CalendarIcon } from 'lucide-react'
 import { cn } from '~/lib/utils'
 import type { ActiveModifiers, DayPickerSingleProps } from 'react-day-picker'
 import { format } from 'date-fns'
-import { useState } from 'react'
+import { type MouseEvent as ReactMouseEvent, useState } from 'react'
 import { ar } from 'date-fns/locale'
 
 type Props = DayPickerSingleProps & { placeholder?: string }
@@ -44,7 +44,7 @@ export const DatePicker = ({
             day: Date | undefined,
             selectedDay: Date,
             activeModifiers: ActiveModifiers,
-            e: any,
+            e: ReactMouseEvent<Element, MouseEvent>,
           ) => {
             if (onSelect) {
               onSelect(day, selectedDay, activeModifiers, e)

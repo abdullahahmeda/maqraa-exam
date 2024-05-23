@@ -4,9 +4,10 @@ import { inferFlattenedErrors, ZodIssue } from 'zod'
 
 export function populateFormWithErrors<T extends FieldValues>(
   form: UseFormReturn<T>,
-  error: unknown
+  error: unknown,
 ) {
   if (error instanceof TRPCClientError) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-explicit-any
     const zodError = error.data?.zodError as inferFlattenedErrors<any, ZodIssue>
     if (zodError) {
       if (zodError.formErrors.length > 0) {

@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 import fuzzysort from 'fuzzysort'
 import { useRef, useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
@@ -70,7 +72,8 @@ export const Combobox = <T,>({
           >
             <p className='truncate'>
               {value
-                ? filteredItems.find((item) => item[valueKey] === value)?.[
+                ? // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+                  filteredItems.find((item) => item[valueKey] === value)?.[
                     labelKey
                   ]
                 : triggerText}
@@ -97,14 +100,18 @@ export const Combobox = <T,>({
               <CommandGroup>
                 {filteredItems.map((item) => (
                   <CommandItem
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                     value={item[valueKey]}
+                    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
                     key={item[valueKey]}
                     onSelect={onSelect}
                   >
+                    {/* eslint-disable-next-line @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-member-access */}
                     {item[labelKey]}
                     <Check
                       className={cn(
                         'mr-auto h-4 w-4',
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
                         value === item[valueKey] ? 'opacity-100' : 'opacity-0',
                       )}
                     />
