@@ -1,6 +1,7 @@
 import { api } from '~/trpc/server'
 import { EditQuestionStyleForm } from '../../_components/edit-form'
 import { notFound } from 'next/navigation'
+import { ChoiceColumn } from '../../_components/form-fields'
 
 type Params = { id: string }
 
@@ -26,7 +27,15 @@ export default async function EditQuestionStylePage({
     <div className='space-y-4'>
       <h2 className='text-3xl font-bold'>تعديل نوع سؤال</h2>
       <div className='rounded-lg bg-gray-100 p-4'>
-        <EditQuestionStyleForm questionStyle={questionStyle} />
+        <EditQuestionStyleForm
+          questionStyle={{
+            ...questionStyle,
+            choicesColumns:
+              questionStyle.type === 'WRITTEN'
+                ? undefined
+                : (questionStyle.choicesColumns as ChoiceColumn[]),
+          }}
+        />
       </div>
     </div>
   )

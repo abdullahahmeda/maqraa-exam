@@ -26,10 +26,12 @@ import {
 import { QuestionType } from '~/kysely/enums'
 import { columnMapping, typeMapping } from '~/utils/questions'
 
+export type ChoiceColumn = (typeof columnMapping)[keyof typeof columnMapping]
+
 export type NewQuestionStyleFieldValues = { name: string } & (
   | {
       type: typeof QuestionType.MCQ
-      choicesColumns: (typeof columnMapping)[keyof typeof columnMapping][]
+      choicesColumns: ChoiceColumn[]
     }
   | {
       type: typeof QuestionType.WRITTEN

@@ -5,6 +5,7 @@ import { useForm } from 'react-hook-form'
 import { api } from '~/trpc/react'
 import { toast } from 'sonner'
 import {
+  type ChoiceColumn,
   QuestionStyleFormFields,
   type EditQuestionStyleFieldValues,
 } from './form-fields'
@@ -13,8 +14,6 @@ import { Form } from '~/components/ui/form'
 import { populateFormWithErrors } from '~/utils/errors'
 import { useRouter } from 'next/navigation'
 import { updateQuestionStyleSchema } from '~/validation/backend/mutations/question-style/update'
-import { QuestionType } from '~/kysely/enums'
-import { columnMapping } from '~/utils/questions'
 
 export const EditQuestionStyleForm = ({
   questionStyle,
@@ -22,7 +21,7 @@ export const EditQuestionStyleForm = ({
   questionStyle: { id: string; name: string } & (
     | {
         type: typeof QuestionType.MCQ
-        choicesColumns: (typeof columnMapping)[keyof typeof columnMapping][]
+        choicesColumns: ChoiceColumn[]
       }
     | {
         type: typeof QuestionType.WRITTEN

@@ -10,6 +10,7 @@ import { EditQuestionStyleForm } from '../../../_components/edit-form'
 import { api } from '~/trpc/react'
 import { useParams, useRouter } from 'next/navigation'
 import { Spinner } from '~/components/ui/spinner'
+import { type ChoiceColumn } from '../../../_components/form-fields'
 
 export default function EditQuestionStyleModal() {
   const router = useRouter()
@@ -29,7 +30,15 @@ export default function EditQuestionStyleModal() {
           <DialogTitle>تعديل نوع سؤال</DialogTitle>
         </DialogHeader>
         {questionStyle ? (
-          <EditQuestionStyleForm questionStyle={questionStyle} />
+          <EditQuestionStyleForm
+            questionStyle={{
+              ...questionStyle,
+              choicesColumns:
+                questionStyle?.type === 'WRITTEN'
+                  ? undefined
+                  : (questionStyle?.choicesColumns as ChoiceColumn[]),
+            }}
+          />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />
