@@ -93,7 +93,7 @@ const ExcelExport = ({ handle, data }: Handler<ExcelExportData>) => {
   return (
     <Button
       disabled={data.disabled}
-      variant='success'
+      // variant='success'
       className='flex gap-2'
       onClick={handle}
     >
