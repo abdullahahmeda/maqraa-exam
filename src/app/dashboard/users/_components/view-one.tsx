@@ -6,7 +6,7 @@ import type { User } from '~/kysely/types'
 import { enUserRoleToAr } from '~/utils/users'
 
 type Props = {
-  user: Selectable<User>
+  user: Omit<Selectable<User>, 'password'>
 }
 
 export const ViewOne = ({ user }: Props) => {
