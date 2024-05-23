@@ -14,6 +14,7 @@ import { Form } from '~/components/ui/form'
 import { populateFormWithErrors } from '~/utils/errors'
 import { useRouter } from 'next/navigation'
 import { updateQuestionStyleSchema } from '~/validation/backend/mutations/question-style/update'
+import { QuestionType } from '~/kysely/enums'
 
 export const EditQuestionStyleForm = ({
   questionStyle,
