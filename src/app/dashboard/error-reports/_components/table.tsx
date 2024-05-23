@@ -35,7 +35,9 @@ import Link from 'next/link'
 import { buttonVariants } from '~/components/ui/button'
 
 type Row = Selectable<ErrorReport> & {
-  modelQuestion: Selectable<ModelQuestion> & { question: Selectable<Question> }
+  modelQuestion:
+    | (Selectable<ModelQuestion> & { question: Selectable<Question> | null })
+    | null
   user: Selectable<User> | null
 }
 
@@ -152,7 +154,7 @@ const columns: ColumnDef<Row>[] = [
     header: 'السؤال',
     cell: ({ row }) => (
       <Link
-        href={`/dashboard/questions/${row.original.modelQuestion.question.id}`}
+        href={`/dashboard/questions/${row.original.modelQuestion?.question?.id}`}
         className={buttonVariants({ variant: 'link' })}
       >
         عرض السؤال
