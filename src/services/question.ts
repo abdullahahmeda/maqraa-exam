@@ -83,7 +83,7 @@ export async function applyQuestionsFilters(
   }
 }
 
-export function applyQuestionsInclude<O>(include: IncludeSchema | undefined) {
+export function applyQuestionsInclude(include: IncludeSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'Question'>) => {
     return [
       ...(include?.course

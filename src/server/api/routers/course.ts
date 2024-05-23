@@ -10,18 +10,7 @@ import { createCourseSchema } from '~/validation/backend/mutations/course/create
 import { getCourseSchema } from '~/validation/backend/queries/course/get'
 import { listCourseSchema } from '~/validation/backend/queries/course/list'
 import { updateCourseSchema } from '~/validation/backend/mutations/course/update'
-import { type FiltersSchema } from '~/validation/backend/queries/course/common'
-import type { Expression, ExpressionBuilder, SqlBool } from 'kysely'
-import type { DB } from '~/kysely/types'
-import { deleteCourses } from '~/services/course'
-
-function applyFilters(filters: FiltersSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'Course'>) => {
-    const where: Expression<SqlBool>[] = []
-    if (filters?.name) where.push(eb('name', 'like', `%${filters.name}%`))
-    return eb.and(where)
-  }
-}
+import { applyCoursesFilters, deleteCourses } from '~/services/course'
 
 export const courseRouter = createTRPCRouter({
   create: protectedProcedure
@@ -44,7 +33,7 @@ export const courseRouter = createTRPCRouter({
   list: publicProcedure
     .input(listCourseSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyFilters(input?.filters)
+      const where = applyCoursesFilters(input?.filters)
 
       const count = Number(
         (
