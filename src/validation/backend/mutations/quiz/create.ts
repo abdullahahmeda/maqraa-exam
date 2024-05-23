@@ -20,9 +20,7 @@ export const createQuizSchema = z
       z.nativeEnum(QuestionDifficulty, {
         invalid_type_error: 'يجب اختيار المستوى',
       }),
-      z.literal('all').transform(() => null),
-      z.undefined().transform(() => null),
-      z.null(),
+      z.literal('all').transform(() => undefined),
     ]),
     questionsNumber: numberInput.pipe(
       z.number().positive().int().finite().safe().max(25),

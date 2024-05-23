@@ -40,16 +40,24 @@ export async function applyQuestionsFilters(
       where.push(eb('difficulty', '=', filters.difficulty))
     if (filters?.number !== undefined)
       where.push(eb('number', '=', filters.number))
-    if (filters?.pageNumber !== undefined)
-      where.push(eb('pageNumber', '=', filters.pageNumber))
+    if (filters?.pageNumber !== undefined) {
+      if (typeof filters.pageNumber === 'number')
+        where.push(eb('pageNumber', '=', filters.pageNumber))
+      else {
+        if (filters.pageNumber.from)
+          where.push(eb('pageNumber', '>=', filters.pageNumber.from))
+        if (filters.pageNumber.to)
+          where.push(eb('pageNumber', '<=', filters.pageNumber.to))
+      }
+    }
     if (filters?.hadithNumber !== undefined) {
       if (typeof filters.hadithNumber === 'number')
         where.push(eb('hadithNumber', '=', filters.hadithNumber))
       else {
         if (filters.hadithNumber.from)
-          where.push(eb('hadithNumber', '<=', filters.hadithNumber.from))
+          where.push(eb('hadithNumber', '>=', filters.hadithNumber.from))
         if (filters.hadithNumber.to)
-          where.push(eb('hadithNumber', '>=', filters.hadithNumber.to))
+          where.push(eb('hadithNumber', '<=', filters.hadithNumber.to))
       }
     }
 
@@ -77,8 +85,16 @@ export async function applyQuestionsFilters(
       }
     }
 
-    if (filters?.partNumber !== undefined)
-      where.push(eb('partNumber', '=', filters.partNumber))
+    if (filters?.partNumber !== undefined) {
+      if (typeof filters.partNumber === 'number')
+        where.push(eb('partNumber', '=', filters.partNumber))
+      else {
+        if (filters.partNumber.from)
+          where.push(eb('partNumber', '>=', filters.partNumber.from))
+        if (filters.partNumber.to)
+          where.push(eb('partNumber', '<=', filters.partNumber.to))
+      }
+    }
     return eb.and(where)
   }
 }

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { QuestionDifficulty, QuestionType, QuizType } from '~/kysely/enums'
+import { numberInput } from '~/validation/common'
 
 export const includeSchema = z.record(
   z.union([z.literal('course'), z.literal('style')]),
@@ -14,9 +15,21 @@ export const filtersSchema = z.object({
     .optional(),
   partNumber: z
     .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
+    .or(
+      z.object({
+        from: numberInput.pipe(z.number().int().safe().finite()).optional(),
+        to: numberInput.pipe(z.number().int().safe().finite()).optional(),
+      }),
+    )
     .optional(),
   pageNumber: z
     .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())
+    .or(
+      z.object({
+        from: numberInput.pipe(z.number().int().safe().finite()).optional(),
+        to: numberInput.pipe(z.number().int().safe().finite()).optional(),
+      }),
+    )
     .optional(),
   hadithNumber: z
     .preprocess((v) => Number(v), z.number().int().safe().min(0).finite())

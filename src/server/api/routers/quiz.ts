@@ -22,7 +22,6 @@ import { applyPagination } from '~/utils/db'
 import { correctQuestion } from '~/utils/strings'
 import sampleSize from 'lodash.samplesize'
 import { QuestionDifficulty, QuestionType, UserRole } from '~/kysely/enums'
-import { getQuestions } from '~/services/quiz'
 import { db } from '~/server/db'
 import { createQuizSchema } from '~/validation/backend/mutations/quiz/create'
 import { listQuizSchema } from '~/validation/backend/queries/quiz/list'
@@ -33,6 +32,7 @@ import {
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { submitQuizSchema } from '~/validation/backend/mutations/quiz/submit'
 import { getQuizSchema } from '~/validation/backend/queries/quiz/get'
+import { applyQuestionsFilters } from '~/services/question'
 
 async function canUserRead(
   user: { role: UserRole; id: string },
@@ -144,17 +144,19 @@ export const quizRouter = createTRPCRouter({
         to,
       } = input
 
-      const allEligibleQuestions = await getQuestions({
+      const where = await applyQuestionsFilters({
         courseId,
-        fromPart: from.part,
-        toPart: to.part,
-        fromPage: from.page,
-        toPage: to.page,
-        fromHadith: from.hadith,
-        toHadith: to.hadith,
-        repeatFromSameHadith,
+        partNumber: { from: from.part, to: to.part },
+        pageNumber: { from: from.page, to: to.page },
+        hadithNumber: { from: from.hadith, to: to.hadith },
         difficulty,
+        // repeatFromSameHadith,
       })
+      const allEligibleQuestions = await ctx.db
+        .selectFrom('Question')
+        .selectAll('Question')
+        .where(where)
+        .execute()
 
       const questions = sampleSize(allEligibleQuestions, questionsNumber)
 
@@ -242,8 +244,7 @@ export const quizRouter = createTRPCRouter({
             z.nativeEnum(QuestionDifficulty, {
               invalid_type_error: 'يجب اختيار المستوى',
             }),
-            z.literal('all').transform(() => null),
-            z.null(),
+            z.literal('all').transform(() => undefined),
           ])
           .optional(),
         repeatFromSameHadith: z.boolean().optional(),
@@ -325,18 +326,20 @@ export const quizRouter = createTRPCRouter({
         input.toPage &&
         input.toHadith
       ) {
+        const where = await applyQuestionsFilters({
+          courseId: input.courseId,
+          partNumber: { from: input.fromPart, to: input.toPart },
+          pageNumber: { from: input.fromPage, to: input.toPage },
+          hadithNumber: { from: input.fromHadith, to: input.toHadith },
+          difficulty: input.difficulty,
+          // repeatFromSameHadith,
+        })
         questions = (
-          await getQuestions({
-            courseId: input.courseId,
-            fromPart: input.fromPart,
-            toPart: input.toPart,
-            fromPage: input.fromPage,
-            toPage: input.toPage,
-            fromHadith: input.fromHadith,
-            toHadith: input.toHadith,
-            repeatFromSameHadith: input.repeatFromSameHadith,
-            difficulty: input.difficulty,
-          })
+          await ctx.db
+            .selectFrom('Question')
+            .selectAll('Question')
+            .where(where)
+            .execute()
         ).length
       }
 

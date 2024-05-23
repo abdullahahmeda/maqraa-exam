@@ -1,5 +1,4 @@
 import { z } from 'zod'
-import { QuestionType } from '~/kysely/enums'
 import {
   arDifficultyToEn,
   arTypeToEn,
