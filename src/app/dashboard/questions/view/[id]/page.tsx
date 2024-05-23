@@ -1,5 +1,6 @@
 import { api } from '~/trpc/server'
 import { ViewOne } from '../../_components/view-one'
+import { notFound } from 'next/navigation'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -14,6 +15,9 @@ const QuestionPage = async ({ params }: { params: { id: string } }) => {
     id: params.id,
     include: { course: true, style: true },
   })
+
+  if (!question) return notFound()
+
   return <ViewOne question={question} />
 }
 
