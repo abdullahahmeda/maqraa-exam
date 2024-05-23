@@ -89,12 +89,13 @@ const ExamsPage = async ({
   const submissionsDates = await db
     .selectFrom('Quiz')
     .select(({ fn }) => [
-      fn.count('id').as('total'),
-      sql`CAST(${sql.ref('submittedAt')} AS DATE)`,
+      fn.count<string>('id').as('total'),
+      sql`CAST(${sql.ref('submittedAt')} AS DATE)`.as('submittedAt'),
     ])
     .where('systemExamId', '=', id)
     .where('submittedAt', 'is not', null)
     .groupBy(sql`CAST(${sql.ref('submittedAt')} AS DATE)`)
+    .$narrowType<{ submittedAt: Date }>()
     .execute()
 
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)

@@ -2,23 +2,12 @@ import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
 import { applyPagination } from '~/utils/db'
 import { TRPCError } from '@trpc/server'
-import { type FiltersSchema } from '~/validation/backend/queries/cycle/common'
-import type { Expression, ExpressionBuilder, SqlBool } from 'kysely'
-import type { DB } from '~/kysely/types'
+
 import { createCycleSchema } from '~/validation/backend/mutations/cycle/create'
 import { updateCycleSchema } from '~/validation/backend/mutations/cycle/update'
 import { listCycleSchema } from '~/validation/backend/queries/cycle/list'
 import { getCycleSchema } from '~/validation/backend/queries/cycle/get'
-import { deleteCycles } from '~/services/cycle'
-
-function applyFilters(filters: FiltersSchema | undefined) {
-  const where: Expression<SqlBool>[] = []
-
-  return (eb: ExpressionBuilder<DB, 'Cycle'>) => {
-    if (filters?.name) where.push(eb('name', 'like', `%${filters.name}%`))
-    return eb.and(where)
-  }
-}
+import { applyCyclesFilters, deleteCycles } from '~/services/cycle'
 
 export const cycleRouter = createTRPCRouter({
   create: protectedProcedure
@@ -41,7 +30,7 @@ export const cycleRouter = createTRPCRouter({
   list: protectedProcedure
     .input(listCycleSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyFilters(input?.filters)
+      const where = applyCyclesFilters(input?.filters)
 
       const count = Number(
         (
