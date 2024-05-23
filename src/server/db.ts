@@ -1,6 +1,6 @@
 import { DeduplicateJoinsPlugin, Kysely, PostgresDialect } from 'kysely'
 import { NeonDialect } from 'kysely-neon'
-import ws from 'ws'
+// import ws from 'ws'
 import { env } from '~/env.js'
 import type { DB } from '~/kysely/types'
 import { Pool } from 'pg'
@@ -17,11 +17,11 @@ export const db =
         log(event) {
           if (event.level === 'query') {
             console.log(`
--------------------
-${event.query.sql}
-* Parametrs: ${event.query.parameters.toString()}
-* Took: ${event.queryDurationMillis} ms
-`)
+  -------------------
+  ${event.query.sql}
+  * Parametrs: ${event.query.parameters.toString()}
+  * Took: ${event.queryDurationMillis} ms
+  `)
           } else {
             console.log(event)
           }
@@ -30,7 +30,7 @@ ${event.query.sql}
     : new Kysely<DB>({
         dialect: new NeonDialect({
           connectionString: env.DATABASE_URL,
-          webSocketConstructor: ws,
+          // webSocketConstructor: ws,
         }),
         plugins: [new DeduplicateJoinsPlugin()],
         log: ['error'],
