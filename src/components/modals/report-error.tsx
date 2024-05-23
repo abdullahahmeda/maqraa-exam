@@ -51,7 +51,7 @@ export const ReportErrorDialog = ({
     error,
   } = api.modelQuestion.get.useQuery(
     {
-      id: data?.questionId,
+      id: data?.questionId!,
       include: { question: true },
     },
     {
@@ -66,8 +66,8 @@ export const ReportErrorDialog = ({
   const onSubmit = (formData: FieldValues) => {
     const promise = mutation.mutateAsync({
       ...formData,
-      quizId: data?.quizId,
-      modelQuestionId: data?.questionId,
+      quizId: data?.quizId!,
+      modelQuestionId: data?.questionId!,
     })
     toast.promise(promise, {
       loading: 'جاري الإبلاغ عن الخطأ...',
