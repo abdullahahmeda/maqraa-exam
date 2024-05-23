@@ -48,7 +48,7 @@ type FieldValues = {
   }
   repeatFromSameHadith: boolean
   questionsNumber: number
-  difficulty: QuestionDifficulty | 'all' | undefined
+  difficulty: QuestionDifficulty | 'all'
 }
 
 export const StartQuizForm = ({
@@ -56,7 +56,7 @@ export const StartQuizForm = ({
 }: {
   courses: Selectable<Course>[]
 }) => {
-  const [submitting, setSubmitting] = useState(false)
+  const router = useRouter()
 
   const form = useForm<FieldValues>({
     resolver: zodResolver(createQuizSchema),
@@ -67,7 +67,13 @@ export const StartQuizForm = ({
     },
   })
 
-  const quizCreate = api.quiz.create.useMutation()
+  const quizCreate = api.quiz.create.useMutation({
+    onSuccess: (quiz) => router.push(`/quiz/${quiz.id}`),
+    onError: (error) => {
+      populateFormWithErrors(form, error)
+      toast.error('لم يتم تسليم الاختبار')
+    },
+  })
 
   const courseId = useWatch({ control: form.control, name: 'courseId' })
   const fromPart = useWatch({ control: form.control, name: 'from.part' })
@@ -96,7 +102,7 @@ export const StartQuizForm = ({
       toPage,
       fromHadith,
       toHadith,
-      difficulty: difficulty!,
+      difficulty,
       repeatFromSameHadith: repeatFromSameHadith as boolean | undefined,
     },
     { enabled: !!courseId },
@@ -156,20 +162,8 @@ export const StartQuizForm = ({
     }
   }, [dataUpdatedAt])
 
-  const router = useRouter()
-
   const onSubmit = (data: FieldValues) => {
-    setSubmitting(true)
-    quizCreate
-      .mutateAsync(data)
-      .then((quiz) => {
-        if (quiz) router.push(`/quiz/${quiz.id}`)
-      })
-      .catch((error) => {
-        setSubmitting(false)
-        populateFormWithErrors(form, error)
-        toast.error('لم يتم تسليم الاختبار')
-      })
+    quizCreate.mutate(data)
   }
 
   return (
@@ -459,7 +453,7 @@ export const StartQuizForm = ({
             </FormItem>
           )}
         />
-        <Button loading={submitting}>بدأ الاختبار</Button>
+        <Button loading={quizCreate.isPending}>بدأ الاختبار</Button>
       </form>
     </Form>
   )
