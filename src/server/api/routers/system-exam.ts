@@ -6,92 +6,16 @@ import { percentage } from '~/utils/percentage'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
 import { z } from 'zod'
 import { applyPagination } from '~/utils/db'
-import {
-  type ExpressionBuilder,
-  sql,
-  type Expression,
-  type SqlBool,
-} from 'kysely'
+import { type ExpressionBuilder, sql } from 'kysely'
 import type { DB } from '~/kysely/types'
-import { UserService } from '~/services/user'
-import { SystemExamService } from '~/services/system-exam'
-import { listExamsSchema } from '~/validation/backend/queries/exam/list'
 import {
-  type IncludeSchema,
-  type FiltersSchema,
-} from '~/validation/backend/queries/exam/common'
-import { jsonObjectFrom } from 'kysely/helpers/postgres'
+  applyExamsFilters,
+  applyExamsInclude,
+  deleteExams,
+} from '~/services/exam'
+import { listExamsSchema } from '~/validation/backend/queries/exam/list'
 import { createExamSchema } from '~/validation/backend/mutations/exam/create'
-
-function applyInclude(include: IncludeSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'SystemExam'>) => {
-    return [
-      ...(include?.cycle
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('Cycle')
-                .selectAll('Cycle')
-                .whereRef('SystemExam.cycleId', '=', 'Cycle.id'),
-            ).as('cycle'),
-          ]
-        : []),
-      ...(include?.curriculum
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('Curriculum')
-                .selectAll('Curriculum')
-                .whereRef('Curriculum.id', '=', 'SystemExam.curriculumId')
-                .select((eb) => [
-                  ...(typeof include.curriculum !== 'boolean' &&
-                  include.curriculum?.track
-                    ? [
-                        jsonObjectFrom(
-                          eb
-                            .selectFrom('Track')
-                            .selectAll('Track')
-                            .whereRef('Curriculum.trackId', '=', 'Track.id')
-                            .select((eb) => [
-                              ...(typeof include.curriculum !== 'boolean' &&
-                              typeof include.curriculum?.track !== 'boolean' &&
-                              include.curriculum?.track?.course
-                                ? [
-                                    jsonObjectFrom(
-                                      eb
-                                        .selectFrom('Course')
-                                        .selectAll('Course')
-                                        .whereRef(
-                                          'Track.courseId',
-                                          '=',
-                                          'Course.id',
-                                        ),
-                                    ).as('course'),
-                                  ]
-                                : []),
-                            ]),
-                        ).as('track'),
-                      ]
-                    : []),
-                ]),
-            ).as('curriculum'),
-          ]
-        : []),
-    ]
-  }
-}
-
-function applyFilters(filters: FiltersSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'SystemExam'>) => {
-    const where: Expression<SqlBool>[] = []
-    if (filters?.curriculumId)
-      where.push(eb('SystemExam.curriculumId', '=', filters.curriculumId))
-    if (filters?.cycleId)
-      where.push(eb('SystemExam.cycleId', '=', filters.cycleId))
-    if (filters?.type) where.push(eb('SystemExam.type', '=', filters.type))
-    return eb.and(where)
-  }
-}
+import { applyUsersFilters } from '~/services/user'
 
 export const systemExamRouter = createTRPCRouter({
   create: protectedProcedure
@@ -105,21 +29,21 @@ export const systemExamRouter = createTRPCRouter({
 
       const { questions, isInsideShaded, ...data } = input
 
-      const questionsCount = questions.length
-
       const total = questions.reduce((acc, q) => acc + q.weight, 0)
 
-      const userService = new UserService(ctx.db)
-
-      const students = await userService.getList({
-        filters: {
-          role: 'STUDENT',
-          userCycle: {
-            cycleId: data.cycleId,
-            curriculumId: data.curriculumId,
-          },
-        },
-      })
+      const students = await ctx.db
+        .selectFrom('User')
+        .selectAll('User')
+        .where(
+          applyUsersFilters({
+            role: 'STUDENT',
+            userCycle: {
+              cycleId: data.cycleId,
+              curriculumId: data.curriculumId,
+            },
+          }),
+        )
+        .execute()
 
       if (students.length === 0) {
         throw new TRPCError({
@@ -175,7 +99,7 @@ export const systemExamRouter = createTRPCRouter({
   list: protectedProcedure
     .input(listExamsSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyFilters(input?.filters)
+      const where = applyExamsFilters(input?.filters)
       const whereCanRead = (eb: ExpressionBuilder<DB, 'SystemExam'>) => {
         const conds = []
         if (ctx.session.user.role !== 'ADMIN')
@@ -210,7 +134,7 @@ export const systemExamRouter = createTRPCRouter({
         ctx.db
           .selectFrom('SystemExam')
           .selectAll('SystemExam')
-          .select(applyInclude(input?.include))
+          .select(applyExamsInclude(input?.include))
           .where(where)
           .where(whereCanRead),
         input?.pagination,
@@ -223,13 +147,6 @@ export const systemExamRouter = createTRPCRouter({
         count,
       }
     }),
-  // count: protectedProcedure
-  //   .input(z.object({ filters: filtersSchema.optional() }).optional())
-  //   .query(async ({ ctx, input }) => {
-  //     const systemExamService = new SystemExamService(ctx.db)
-  //     const count = await systemExamService.getCount(input?.filters)
-  //     return count
-  //   }),
 
   export: protectedProcedure
     .input(exportSystemExamsSchema)
@@ -290,8 +207,7 @@ export const systemExamRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      const systemExamService = new SystemExamService(ctx.db)
-      await systemExamService.delete(input)
+      await deleteExams(input)
       return true
     }),
 
@@ -304,8 +220,7 @@ export const systemExamRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      const systemExamService = new SystemExamService(ctx.db)
-      await systemExamService.delete(input)
+      await deleteExams(input)
       return true
     }),
 
@@ -316,8 +231,7 @@ export const systemExamRouter = createTRPCRouter({
         message: 'لا تملك الصلاحيات لهذه العملية',
       })
 
-    const systemExamService = new SystemExamService(ctx.db)
-    await systemExamService.delete(undefined)
+    await deleteExams(undefined)
     return true
   }),
 })

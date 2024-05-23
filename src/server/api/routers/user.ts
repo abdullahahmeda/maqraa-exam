@@ -15,166 +15,22 @@ import { compareSync, hashSync } from 'bcryptjs'
 import { forgotPasswordSchema } from '~/validation/forgotPasswordSchema'
 import { add } from 'date-fns'
 import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
-import type { UserRole } from '~/kysely/enums'
-import type {
-  Expression,
-  ExpressionBuilder,
-  SelectQueryBuilder,
-  SqlBool,
-} from 'kysely'
-import type { DB } from '~/kysely/types'
 import { importFromGoogleSheet } from '~/services/sheet'
 import { Client } from '@upstash/qstash'
 import { env } from '~/env.js'
 import { sleep } from '~/utils/sleep'
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
-import { UserService } from '~/services/user'
 import { hashPassword } from '~/utils/server/password'
 import { getUserSchema } from '~/validation/backend/queries/user/get'
 import { listUserSchema } from '~/validation/backend/queries/user/list'
 import { createUserSchema } from '~/validation/backend/mutations/user/create'
 import { updateUserSchema } from '~/validation/backend/mutations/user/update'
 import { getBaseUrl } from '~/utils/getBaseUrl'
-import type {
-  FiltersSchema,
-  IncludeSchema,
-} from '~/validation/backend/queries/user/common'
 import { applyPagination } from '~/utils/db'
-
-function applyFilters(filters: FiltersSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'User'>) => {
-    const where: Expression<SqlBool>[] = []
-    if (filters?.email) where.push(eb('email', 'ilike', `%${filters.email}%`))
-    if (filters?.role) where.push(eb('role', '=', filters.role))
-
-    if (filters?.userCycle) {
-      const { id, cycleId, curriculumId } = filters.userCycle
-      if (id !== undefined) {
-        where.push(
-          eb.exists(
-            eb
-              .selectFrom('UserCycle')
-              .select('UserCycle.id')
-              .where('UserCycle.id', '=', id)
-              .whereRef('UserCycle.userId', '=', 'User.id'),
-          ),
-        )
-      }
-      if (cycleId !== undefined) {
-        where.push(
-          eb.exists(
-            eb
-              .selectFrom('UserCycle')
-              .select('UserCycle.cycleId')
-              .where('UserCycle.cycleId', '=', cycleId)
-              .whereRef('UserCycle.userId', '=', 'User.id'),
-          ),
-        )
-      }
-      if (curriculumId !== undefined) {
-        where.push(
-          eb.exists(
-            eb
-              .selectFrom('UserCycle')
-              .select('UserCycle.curriculumId')
-              .where('UserCycle.curriculumId', '=', curriculumId)
-              .whereRef('UserCycle.userId', '=', 'User.id'),
-          ),
-        )
-      }
-    }
-
-    return eb.and(where)
-  }
-}
-
-function applyInclude(include: IncludeSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'User'>) => {
-    return [
-      ...(include?.cycles
-        ? [
-            jsonArrayFrom(
-              eb
-                .selectFrom('UserCycle')
-                .selectAll('UserCycle')
-                .whereRef('UserCycle.userId', '=', 'User.id')
-                .select((eb) => [
-                  ...(typeof include.cycles !== 'boolean' &&
-                  !!include.cycles?.curriculum
-                    ? [
-                        jsonObjectFrom(
-                          eb
-                            .selectFrom('Curriculum')
-                            .selectAll('Curriculum')
-                            .whereRef(
-                              'UserCycle.curriculumId',
-                              '=',
-                              'Curriculum.id',
-                            )
-                            .select((eb) => [
-                              ...(typeof include.cycles !== 'boolean' &&
-                              typeof include.cycles?.curriculum !== 'boolean' &&
-                              !!include.cycles?.curriculum?.track
-                                ? [
-                                    jsonObjectFrom(
-                                      eb
-                                        .selectFrom('Track')
-                                        .selectAll('Track')
-                                        .whereRef(
-                                          'Curriculum.trackId',
-                                          '=',
-                                          'Track.id',
-                                        )
-                                        .select((eb) => [
-                                          ...(typeof include.cycles !==
-                                            'boolean' &&
-                                          typeof include.cycles?.curriculum !==
-                                            'boolean' &&
-                                          typeof include.cycles?.curriculum
-                                            ?.track !== 'boolean' &&
-                                          !!include.cycles?.curriculum?.track
-                                            ?.course
-                                            ? [
-                                                jsonObjectFrom(
-                                                  eb
-                                                    .selectFrom('Course')
-                                                    .selectAll('Course')
-                                                    .whereRef(
-                                                      'Track.courseId',
-                                                      '=',
-                                                      'Course.id',
-                                                    ),
-                                                ).as('course'),
-                                              ]
-                                            : []),
-                                        ]),
-                                    ).as('track'),
-                                  ]
-                                : []),
-                            ]),
-                        ).as('curriculum'),
-                      ]
-                    : []),
-                  ...(typeof include.cycles !== 'boolean' &&
-                  include.cycles?.cycle
-                    ? [
-                        jsonObjectFrom(
-                          eb
-                            .selectFrom('Cycle')
-                            .selectAll('Cycle')
-                            .whereRef('UserCycle.cycleId', '=', 'Cycle.id'),
-                        ).as('cycle'),
-                      ]
-                    : []),
-                ]),
-            ).as('cycles'),
-          ]
-        : []),
-    ]
-  }
-
-  // return query.$if(!!includes?.cycles, (qb) => qb.select(withCycles))
-}
+import {
+  applyUsersFilters,
+  applyUsersInclude,
+  deleteUsers,
+} from '~/services/user'
 
 export const userRouter = createTRPCRouter({
   get: protectedProcedure.input(getUserSchema).query(async ({ ctx, input }) => {
@@ -190,14 +46,14 @@ export const userRouter = createTRPCRouter({
         'role',
       ])
       .where('User.id', '=', input.id)
-      .select(applyInclude(input.include))
+      .select(applyUsersInclude(input.include))
       .executeTakeFirst()
   }),
 
   list: protectedProcedure
     .input(listUserSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyFilters(input?.filters)
+      const where = applyUsersFilters(input?.filters)
 
       const count = Number(
         (
@@ -214,7 +70,7 @@ export const userRouter = createTRPCRouter({
           .selectFrom('User')
           .selectAll()
           .where(where)
-          .select(applyInclude(input?.include)),
+          .select(applyUsersInclude(input?.include)),
         input?.pagination,
       )
 
@@ -613,8 +469,7 @@ export const userRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      const userService = new UserService(ctx.db)
-      await userService.delete(input)
+      await deleteUsers(input)
       return true
     }),
 
@@ -627,8 +482,7 @@ export const userRouter = createTRPCRouter({
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
-      const userService = new UserService(ctx.db)
-      await userService.delete(input)
+      await deleteUsers(input)
       return true
     }),
 
@@ -638,8 +492,8 @@ export const userRouter = createTRPCRouter({
         code: 'FORBIDDEN',
         message: 'لا تملك الصلاحيات لهذه العملية',
       })
-    const userService = new UserService(ctx.db)
-    await userService.delete(undefined)
+
+    await deleteUsers(undefined)
     return true
   }),
 })
