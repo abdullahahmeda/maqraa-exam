@@ -110,6 +110,7 @@ export const EditUserForm = ({
   })
 
   const onSubmit = (data: EditUserFieldValues) => {
+    // @ts-expect-error TODO: type this correctly
     mutation.mutate(data)
   }
 
