@@ -116,8 +116,13 @@ function applyInclude(include: IncludeSchema | undefined) {
 function applyFilters(filters: FiltersSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'Quiz'>) => {
     const where: Expression<SqlBool>[] = []
-    if (filters?.systemExamId)
-      where.push(eb('Quiz.systemExamId', '=', filters.systemExamId))
+    if (filters?.systemExamId !== undefined) {
+      if (filters.systemExamId === null)
+        where.push(eb('Quiz.systemExamId', 'is', null))
+      else if (filters.systemExamId === 'not_null')
+        where.push(eb('Quiz.systemExamId', 'is not', null))
+      else where.push(eb('Quiz.systemExamId', '=', filters.systemExamId))
+    }
     if (filters?.examinee?.name)
       where.push(
         eb.exists(

@@ -1,11 +1,11 @@
 import { api } from '~/trpc/server'
-import { ExamsTable } from './_components/table'
+import { QuizzesTable } from './_components/table'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
 
   return {
-    title: `الإختبارات | ${siteName}`,
+    title: `الإختبارات التجريبية | ${siteName}`,
   }
 }
 
@@ -21,15 +21,15 @@ export default async function ExamsPage({
       pageSize: 50,
     },
     filters: { systemExamId: null },
-    include: { examinee: true, corrector: true, systemExam: true },
+    include: { examinee: true, corrector: true },
   })
 
   return (
     <>
       <div className='mb-4 flex items-center'>
-        <h2 className='ml-4 text-2xl font-bold'>الإختبارات</h2>
+        <h2 className='ml-4 text-2xl font-bold'>الإختبارات التجريبية</h2>
       </div>
-      <ExamsTable initialData={exams} />
+      <QuizzesTable initialData={exams} />
     </>
   )
 }

@@ -1,5 +1,7 @@
 import { api } from '~/trpc/server'
 import { NewExamForm } from '../_components/new-form'
+import { getServerAuthSession } from '~/server/auth'
+import { notFound } from 'next/navigation'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -12,6 +14,9 @@ export async function generateMetadata() {
 export default async function NewExamPage() {
   const cycles = await api.cycle.list()
   const courses = await api.course.list()
+
+  const session = await getServerAuthSession()
+  if (session?.user.role !== 'ADMIN') notFound()
 
   return (
     <div className='space-y-4'>

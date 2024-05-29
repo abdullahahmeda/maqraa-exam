@@ -7,6 +7,8 @@ import { CircularProgress } from '~/components/ui/circular-progress'
 import { ExamTable } from './_components/table'
 import { sql } from 'kysely'
 import { SubmissionChart } from './_components/submission-chart'
+import { notFound } from 'next/navigation'
+import { getServerAuthSession } from '~/server/auth'
 
 export const metadata = {
   title: 'إختبارات النظام',
@@ -25,6 +27,9 @@ const ExamsPage = async ({
   params: Params
   searchParams: SearchParams
 }) => {
+  const session = await getServerAuthSession()
+  if (session?.user.role !== 'ADMIN') notFound()
+
   const systemExam = await db
     .selectFrom('SystemExam')
     .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
@@ -40,7 +45,7 @@ const ExamsPage = async ({
     .where('SystemExam.id', '=', id)
     .executeTakeFirst()
 
-  if (!systemExam) return { notFound: true }
+  if (!systemExam) notFound()
 
   const quizCount = Number(
     (

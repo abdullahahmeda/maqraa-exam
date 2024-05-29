@@ -3,6 +3,8 @@ import { PlusIcon } from 'lucide-react'
 import { api } from '~/trpc/server'
 import Link from 'next/link'
 import { ExamsTable } from './_components/table'
+import { StudentQuizzesTable } from './_components/student-table'
+import { getServerAuthSession } from '~/server/auth'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -18,6 +20,28 @@ export default async function ExamsPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
+  const session = await getServerAuthSession()
+
+  if (session?.user.role === 'STUDENT') {
+    const exams = await api.quiz.list({
+      pagination: {
+        pageIndex,
+        pageSize: 50,
+      },
+      filters: { systemExamId: 'not_null' },
+      include: { examinee: true, corrector: true, systemExam: true },
+    })
+
+    return (
+      <>
+        <div className='mb-4 flex items-center'>
+          <h2 className='ml-4 text-2xl font-bold'>إختبارات النظام</h2>
+        </div>
+        <QuizzesTable initialData={exams} />
+      </>
+    )
+  }
+
   const exams = await api.exam.list({
     pagination: {
       pageIndex,

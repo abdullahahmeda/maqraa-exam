@@ -1,7 +1,6 @@
 import 'dotenv/config'
 import { Kysely, PostgresDialect } from 'kysely'
 import { NeonDialect } from 'kysely-neon'
-import ws from 'ws'
 import { DB } from '../src/kysely/types'
 import { SettingKey, UserRole } from '../src/kysely/enums'
 import { Pool } from 'pg'
@@ -19,7 +18,6 @@ export const db =
     : new Kysely<DB>({
         dialect: new NeonDialect({
           connectionString: process.env.DATABASE_URL,
-          webSocketConstructor: ws,
         }),
       })
 
@@ -50,7 +48,7 @@ async function main() {
         Object.entries(DEFAULT_SETTINGS).map(([key, value]) => ({
           key: key as SettingKey,
           value,
-        }))
+        })),
       )
       .execute()
     console.log('Settings has been created!')
@@ -61,4 +59,4 @@ async function main() {
   }
 }
 
-main()
+void main()

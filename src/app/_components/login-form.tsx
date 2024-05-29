@@ -47,7 +47,7 @@ export function LoginForm() {
           }
           return
         }
-        router.push('/')
+        router.push('/dashboard')
       })
       .catch(() => {
         form.setError('root.serverError', {
@@ -62,7 +62,6 @@ export function LoginForm() {
   return (
     <Form {...form}>
       <form
-        className='mx-auto max-w-[360px] pt-20'
         onSubmit={form.handleSubmit(onSubmit)}
       >
         <div className='rounded-md bg-white p-4 border'>

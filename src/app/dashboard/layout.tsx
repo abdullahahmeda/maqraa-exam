@@ -115,6 +115,11 @@ const menuLinks = {
       key: '/dashboard/exams',
     },
     {
+      icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-construction"><rect x="2" y="6" width="20" height="8" rx="1"/><path d="M17 14v7"/><path d="M7 14v7"/><path d="M17 3v3"/><path d="M7 3v3"/><path d="M10 14 2.3 6.3"/><path d="m14 6 7.7 7.7"/><path d="m8 6 8 8"/></svg>',
+      label: 'الإختبارات التجريبية',
+      key: '/dashboard/quizzes',
+    },
+    {
       icon: '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-flask-conical"><path d="M10 2v7.527a2 2 0 0 1-.211.896L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.069-10.127A2 2 0 0 1 14 9.527V2"/><path d="M8.5 2h7"/><path d="M7 16h10"/></svg>',
       label: 'بدأ اختبار تجريبي',
       key: '/start-quiz',
@@ -124,11 +129,6 @@ const menuLinks = {
       label: 'تعديل الحساب',
       key: '/dashboard/profile',
     },
-    // {
-    //   icon: <Construction className='ml-2 h-4 w-4' />,
-    //   label: 'الإختبارات المفتوحة',
-    //   href: '/dashboard/quizzes',
-    // },
   ],
 }
 

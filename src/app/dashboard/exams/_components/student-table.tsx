@@ -29,106 +29,46 @@ import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 
 export type Row = Selectable<Quiz> & {
-  examinee: Selectable<User> | null
   corrector: Selectable<User> | null
+  systemExam: Selectable<SystemExam> | null
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
-  const { data: session } = useSession()
-
-  if (session!.user.role === 'STUDENT') {
-    return (
-      <TooltipProvider delayDuration={100}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Link
-              className={cn(
-                buttonVariants({
-                  variant: 'ghost',
-                  size: 'icon',
-                }),
-              )}
-              href={`/quiz/${row.original.id}`}
-            >
-              {row.original.submittedAt !== null ? (
-                <EyeIcon className='h-4 w-4' />
-              ) : (
-                <LogInIcon className='h-4 w-4' />
-              )}
-            </Link>
-          </TooltipTrigger>
-          <TooltipContent>
-            {row.original.submittedAt !== null
-              ? 'مراجعة الاختبار'
-              : 'دخول الإختبار'}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    )
-  }
-
-  const canBeCorrected = row.original.submittedAt !== null
-
   return (
-    <div className='flex gap-1'>
-      <TooltipProvider delayDuration={100}>
-        {canBeCorrected && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
-                className={cn(
-                  buttonVariants({
-                    variant: 'ghost',
-                    size: 'icon',
-                  }),
-                )}
-                href={`/dashboard/quizzes/${row.original.id}`}
-              >
-                <FileCheck2Icon className='h-4 w-4 text-success' />
-              </Link>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>تصحيح الإختبار</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size='icon'
-              variant='ghost'
-              onClick={() => {
-                navigator.clipboard
-                  .writeText(`${location.origin}/quiz/${row.original.id}`)
-                  .then(() =>
-                    toast.success('تم نسخ رابط الإختبار إلى الحافظة بنجاح'),
-                  )
-                  .catch(() => toast.error('تعذر النسخ إلى الحافظة'))
-              }}
-            >
-              <LinkIcon className='h-4 w-4' />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>نسخ رابط الإختبار</p>
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
-    </div>
+    <TooltipProvider delayDuration={100}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link
+            className={cn(
+              buttonVariants({
+                variant: 'ghost',
+                size: 'icon',
+              }),
+            )}
+            href={`/quiz/${row.original.id}`}
+          >
+            {row.original.submittedAt !== null ? (
+              <EyeIcon className='h-4 w-4' />
+            ) : (
+              <LogInIcon className='h-4 w-4' />
+            )}
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent>
+          {row.original.submittedAt !== null
+            ? 'مراجعة الاختبار'
+            : 'دخول الإختبار'}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 
 const columnHelper = createColumnHelper<Row>()
 
 const columns = [
-  columnHelper.accessor('examinee.name', {
-    header: 'الطالب',
-    meta: {
-      textAlign: 'center',
-    },
-  }),
-  columnHelper.accessor('examinee.email', {
-    header: 'إيميل الطالب',
+  columnHelper.accessor('systemExam.name', {
+    header: 'الإختبار',
     meta: {
       textAlign: 'center',
     },
@@ -159,6 +99,39 @@ const columns = [
       textAlign: 'center',
     },
   }),
+  columnHelper.accessor('endsAt', {
+    header: 'وقت القفل',
+    cell: (info) =>
+      info.getValue() ? (
+        <div>
+          {formatDate(info.getValue()!)}{' '}
+          {info.getValue()! > new Date() ? (
+            <Badge>مفتوح</Badge>
+          ) : (
+            <Badge variant='destructive'>مغلق</Badge>
+          )}
+        </div>
+      ) : (
+        '-'
+      ),
+    meta: {
+      textAlign: 'center',
+    },
+  }),
+  columnHelper.accessor('correctedAt', {
+    header: 'وقت التصحيح',
+    cell: (info) => (info.getValue() ? formatDate(info.getValue()!) : '-'),
+    meta: {
+      textAlign: 'center',
+    },
+  }),
+  columnHelper.accessor('corrector.name', {
+    header: 'المصحح',
+    cell: (info) => info.getValue() || '-',
+    meta: {
+      textAlign: 'center',
+    },
+  }),
   columnHelper.display({
     id: 'actions',
     header: 'الإجراءات',
@@ -169,7 +142,7 @@ const columns = [
   }),
 ]
 
-export const QuizzesTable = ({
+export const StudentQuizzesTable = ({
   initialData,
 }: {
   initialData: { data: Row[]; count: number }
@@ -201,8 +174,8 @@ export const QuizzesTable = ({
   const { data: quizzes, isFetching } = api.quiz.list.useQuery(
     {
       pagination,
-      filters: { ...filters, systemExamId: null },
-      include: { examinee: true, corrector: true },
+      filters: { ...filters, systemExamId: 'not_null' },
+      include: { corrector: true, systemExam: true },
     },
     // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },

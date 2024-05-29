@@ -4,6 +4,7 @@ import { getServerAuthSession } from '~/server/auth'
 import { redirect } from 'next/navigation'
 import { LoginForm } from '../_components/login-form'
 import { api } from '~/trpc/server'
+import { AlertTriangleIcon } from 'lucide-react'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -36,7 +37,8 @@ export default async function LoginPage({
         </Link>
       </div>
       {searchParams.callbackUrl && (
-        <div className='bg-orange-500 p-2 text-neutral-50'>
+        <div className='bg-orange-500 flex items-center gap-2 rounded-md p-2 mb-2 text-neutral-50'>
+          <AlertTriangleIcon className='h-4 w-4' />
           قم بتسجيل الدخول للمتابعة
         </div>
       )}

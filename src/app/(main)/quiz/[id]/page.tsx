@@ -167,78 +167,90 @@ const QuizPage = async ({ params }: { params: Params }) => {
           )}
         </div>
       )}
-      <h3 className='mb-4 text-center text-lg font-semibold'>
+      <h3 className='mb-4 text-center text-white text-lg font-semibold'>
         {!!quiz.systemExamId ? quiz.systemExamName : 'إختبار تجريبي'}
       </h3>
       {cannotSubmit ? (
-        <div className='space-y-4'>
-          {quiz.questions.map(
-            ({ order, id, userAnswer, correctAnswer, style, ...question }) => (
-              <div className='flex gap-2' key={id}>
-                <div className='text-center'>
-                  <p>{order}) </p>
-                </div>
-                <QuestionCard
-                  isCorrect={
-                    quiz.correctedAt
-                      ? userAnswer?.answer === correctAnswer
-                      : undefined
-                  }
-                  className='flex-1'
-                >
-                  <QuestionCardText text={question.text} />
-                  {question.type === 'WRITTEN' ? (
-                    <Textarea
-                      readOnly
-                      value={
-                        userAnswer?.answer ?? quiz.correctedAt
-                          ? '(لا يوجد إجابة)'
-                          : ''
-                      }
-                    />
-                  ) : (
-                    <RadioGroup
-                      className='space-y-1'
-                      value={userAnswer?.answer ?? undefined}
-                      disabled
-                    >
-                      {style.choicesColumns.map((column) => {
-                        const value = question[
-                          column as keyof typeof question
-                        ] as string
+        <div className='rounded-md bg-gray-50 p-4 border'>
+          <div className='space-y-4'>
+            {quiz.questions.map(
+              ({
+                order,
+                id,
+                userAnswer,
+                correctAnswer,
+                style,
+                ...question
+              }) => (
+                <div className='flex gap-2' key={id}>
+                  <div className='text-center'>
+                    <p>{order}) </p>
+                  </div>
+                  <QuestionCard
+                    isCorrect={
+                      quiz.correctedAt
+                        ? userAnswer?.answer === correctAnswer
+                        : undefined
+                    }
+                    className='flex-1'
+                  >
+                    <QuestionCardText text={question.text} />
+                    {question.type === 'WRITTEN' ? (
+                      <Textarea
+                        readOnly
+                        value={
+                          userAnswer?.answer ?? quiz.correctedAt
+                            ? '(لا يوجد إجابة)'
+                            : ''
+                        }
+                      />
+                    ) : (
+                      <RadioGroup
+                        className='space-y-1'
+                        value={userAnswer?.answer ?? undefined}
+                        disabled
+                      >
+                        {style.choicesColumns.map((column) => {
+                          const value = question[
+                            column as keyof typeof question
+                          ] as string
 
-                        return (
-                          <div key={value} className='flex items-center gap-2'>
-                            <RadioGroupItem value={value} />
-                            <Label
-                              className={cn(
-                                'text-sm font-medium leading-none',
-                                value === userAnswer?.answer && 'font-bold',
-                              )}
+                          return (
+                            <div
+                              key={value}
+                              className='flex items-center gap-2'
                             >
-                              {value}
-                            </Label>
-                            {quiz.correctedAt ? (
-                              value === correctAnswer ? (
-                                <CheckIcon className='text-green-600' />
-                              ) : (
-                                <XIcon className='text-red-500' />
-                              )
-                            ) : null}
-                          </div>
-                        )
-                      })}
-                    </RadioGroup>
-                  )}
-                  {question.type === 'WRITTEN' && !!quiz.correctedAt && (
-                    <p>
-                      الإجابة الصحيحة: <strong>{correctAnswer}</strong>
-                    </p>
-                  )}
-                </QuestionCard>
-              </div>
-            ),
-          )}
+                              <RadioGroupItem value={value} />
+                              <Label
+                                className={cn(
+                                  'text-sm font-medium leading-none',
+                                  value === userAnswer?.answer && 'font-bold',
+                                )}
+                              >
+                                {value}
+                              </Label>
+                              {quiz.correctedAt ? (
+                                value === correctAnswer ? (
+                                  <CheckIcon className='text-green-600' />
+                                ) : (
+                                  <XIcon className='text-red-500' />
+                                )
+                              ) : null}
+                            </div>
+                          )
+                        })}
+                      </RadioGroup>
+                    )}
+                    {question.type === 'WRITTEN' && !!quiz.correctedAt && (
+                      <p>
+                        الإجابة الصحيحة: <strong>{correctAnswer}</strong>
+                      </p>
+                    )}
+                  </QuestionCard>
+                </div>
+              ),
+            )}
+          </div>
         </div>
       ) : (
         <QuizForm
