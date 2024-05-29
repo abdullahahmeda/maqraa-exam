@@ -37,7 +37,7 @@ export default async function ExamsPage({
         <div className='mb-4 flex items-center'>
           <h2 className='ml-4 text-2xl font-bold'>إختبارات النظام</h2>
         </div>
-        <QuizzesTable initialData={exams} />
+        <StudentQuizzesTable initialData={exams} />
       </>
     )
   }
