@@ -1,8 +1,9 @@
 TODO:
-finish `src/app/dashboard/exams/[id]/@modals/(...)dashboard/quizzes/[quizId]/edit/page.tsx` file
 
-2. Use functions in `services/` instead of `class`es, they are not good.
-3. Proper use of `<MultipleSelector />` in
-4. Check `onChange` in `/app/users/_components/form-fields/single.tsx` and proper use of cycles
+# يريد يحفظ القرآن
 
-- Review the PDF sent to you
+1. حفظ فقط أم حفظ ومراجعة؟
+2. أيام محددة أم كل يوم؟
+3. متى تاريخ البدأ؟
+
+إنشاء الدورات في صفحة المناهج وعند عمل دورة يتم اختيار المناهج. عند إنشاء اختبار يتم اختيار الدورة وعمل نماذج تلقائية لكل المناهج

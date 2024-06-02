@@ -3,17 +3,32 @@ import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
 import { applyPagination } from '~/utils/db'
 import { TRPCError } from '@trpc/server'
 
-import { createCycleSchema } from '~/validation/backend/mutations/cycle/create'
-import { updateCycleSchema } from '~/validation/backend/mutations/cycle/update'
+import { createCycleBackendSchema } from '~/validation/backend/mutations/cycle/create'
+import { updateCycleBackendSchema } from '~/validation/backend/mutations/cycle/update'
 import { listCycleSchema } from '~/validation/backend/queries/cycle/list'
 import { getCycleSchema } from '~/validation/backend/queries/cycle/get'
-import { applyCyclesFilters, deleteCycles } from '~/services/cycle'
+import {
+  applyCyclesFilters,
+  applyCyclesInclude,
+  deleteCycles,
+} from '~/services/cycle'
 
 export const cycleRouter = createTRPCRouter({
   create: protectedProcedure
-    .input(createCycleSchema)
+    .input(createCycleBackendSchema)
     .mutation(async ({ ctx, input }) => {
-      await ctx.db.insertInto('Cycle').values(input).execute()
+      const { name, curricula } = input
+      await ctx.db.transaction().execute(async (trx) => {
+        const { id: cycleId } = await trx
+          .insertInto('Cycle')
+          .values({ name })
+          .returning('id')
+          .executeTakeFirstOrThrow()
+        await trx
+          .insertInto('CycleCurriculum')
+          .values(curricula.map((curriculumId) => ({ curriculumId, cycleId })))
+          .execute()
+      })
       return true
     }),
 
@@ -24,6 +39,7 @@ export const cycleRouter = createTRPCRouter({
         .selectFrom('Cycle')
         .selectAll()
         .where('id', '=', input.id)
+        .select(applyCyclesInclude(input?.include))
         .executeTakeFirst(),
     ),
 
@@ -43,7 +59,11 @@ export const cycleRouter = createTRPCRouter({
       )
 
       const query = applyPagination(
-        ctx.db.selectFrom('Cycle').selectAll().where(where),
+        ctx.db
+          .selectFrom('Cycle')
+          .selectAll()
+          .select(applyCyclesInclude(input?.include))
+          .where(where),
         input?.pagination,
       )
 
@@ -56,10 +76,26 @@ export const cycleRouter = createTRPCRouter({
     }),
 
   update: protectedProcedure
-    .input(updateCycleSchema)
+    .input(updateCycleBackendSchema)
     .mutation(async ({ ctx, input }) => {
-      const { id, ...data } = input
-      await ctx.db.updateTable('Cycle').set(data).where('id', '=', id).execute()
+      const { id, name, curricula } = input
+      await ctx.db.transaction().execute(async (trx) => {
+        await trx
+          .updateTable('Cycle')
+          .set({ name })
+          .where('id', '=', id)
+          .execute()
+        await trx
+          .deleteFrom('CycleCurriculum')
+          .where('cycleId', '=', id)
+          .execute()
+        await trx
+          .insertInto('CycleCurriculum')
+          .values(
+            curricula.map((curriculumId) => ({ curriculumId, cycleId: id })),
+          )
+          .execute()
+      })
       return true
     }),
 

@@ -7,17 +7,34 @@ import { toast } from 'sonner'
 import { CycleFormFields, type EditCycleFieldValues } from './form-fields'
 import { Button } from '~/components/ui/button'
 import { Form } from '~/components/ui/form'
-import { type Cycle } from '~/kysely/types'
+import type { Cycle, Curriculum, CycleCurriculum } from '~/kysely/types'
 import { populateFormWithErrors } from '~/utils/errors'
 import { useRouter } from 'next/navigation'
 import { type Selectable } from 'kysely'
-import { updateCycleSchema } from '~/validation/backend/mutations/cycle/update'
+import { updateCycleFrontendSchema } from '~/validation/frontend/cycle/update'
+import { updateCycleFrontendDataToBackend } from '~/dto/validation/cycle/update'
 
-export const EditCycleForm = ({ cycle }: { cycle: Selectable<Cycle> }) => {
+export const EditCycleForm = ({
+  cycle,
+  curricula,
+}: {
+  cycle: Selectable<Cycle> & {
+    cycleCurricula: (Selectable<CycleCurriculum> & {
+      curriculum: Selectable<Curriculum> | null
+    })[]
+  }
+  curricula: Selectable<Curriculum>[]
+}) => {
   const router = useRouter()
   const form = useForm<EditCycleFieldValues>({
-    resolver: zodResolver(updateCycleSchema),
-    defaultValues: cycle,
+    resolver: zodResolver(updateCycleFrontendSchema),
+    defaultValues: {
+      ...cycle,
+      curricula: cycle.cycleCurricula.map((c) => ({
+        label: c.curriculum?.name,
+        value: c.curriculum?.id,
+      })),
+    },
   })
 
   const utils = api.useUtils()
@@ -37,13 +54,13 @@ export const EditCycleForm = ({ cycle }: { cycle: Selectable<Cycle> }) => {
   })
 
   const onSubmit = (data: EditCycleFieldValues) => {
-    mutation.mutate(data)
+    mutation.mutate(updateCycleFrontendDataToBackend(data))
   }
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <CycleFormFields control={form.control} />
+        <CycleFormFields curricula={curricula} control={form.control} />
         <Button loading={mutation.isPending}>تعديل</Button>
       </form>
     </Form>

@@ -14,7 +14,12 @@ import { Spinner } from '~/components/ui/spinner'
 export default function EditCycleModal() {
   const router = useRouter()
   const params = useParams()
-  const { data: cycle } = api.cycle.get.useQuery({ id: params?.id as string })
+  const { data: cycle } = api.cycle.get.useQuery({
+    id: params?.id as string,
+    include: { cycleCurricula: { curriculum: true } },
+  })
+  const { data: curricula } = api.curriculum.list.useQuery()
+
   return (
     <Dialog
       open
@@ -26,8 +31,8 @@ export default function EditCycleModal() {
         <DialogHeader>
           <DialogTitle>تعديل دورة</DialogTitle>
         </DialogHeader>
-        {cycle ? (
-          <EditCycleForm cycle={cycle} />
+        {!!cycle && !!curricula ? (
+          <EditCycleForm cycle={cycle} curricula={curricula.data} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

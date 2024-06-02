@@ -22,9 +22,14 @@ export const enTypeToAr = (enType: string): ArType | string => {
 }
 
 export function toExamInput(input: NewExamFieldValues | EditExamFieldValues) {
-  const { groups, courseId, trackId, ...data } = input
-  return {
-    ...data,
-    questions: groups.flatMap((questions) => questions.questions.map((q) => q)),
+  if (input.curriculumSelection === 'specific') {
+    const { groups, courseId, trackId, ...data } = input
+    return {
+      ...data,
+      questions: groups.flatMap((questions) =>
+        questions.questions.map((q) => q),
+      ),
+    }
   }
+  return input
 }

@@ -49,9 +49,8 @@ export type Cycle = {
     id: Generated<string>;
     name: string;
 };
-export type CycleCourse = {
-    id: Generated<number>;
-    courseId: string;
+export type CycleCurriculum = {
+    curriculumId: string;
     cycleId: string;
 };
 export type ErrorReport = {
@@ -209,7 +208,7 @@ export type DB = {
     Curriculum: Curriculum;
     CurriculumPart: CurriculumPart;
     Cycle: Cycle;
-    CycleCourse: CycleCourse;
+    CycleCurriculum: CycleCurriculum;
     ErrorReport: ErrorReport;
     MenuItem: MenuItem;
     Model: Model;

@@ -9,7 +9,7 @@ import type {
 } from '@tanstack/react-table'
 import { DataTable } from '~/components/ui/data-table'
 import { RowActions } from '~/components/ui/row-actions'
-import { type Cycle as _Cycle } from '~/kysely/types'
+import type { Curriculum, CycleCurriculum, Cycle } from '~/kysely/types'
 import { useCallback, useEffect, useState } from 'react'
 import {
   AlertDialog,
@@ -30,13 +30,17 @@ import { Checkbox } from '~/components/ui/checkbox'
 import { FilterHeader } from '~/components/ui/filter-header'
 import { Input } from '~/components/ui/input'
 import debounce from 'lodash.debounce'
-import { Selectable } from 'kysely'
+import { type Selectable } from 'kysely'
 import { DataTableActions } from '~/components/ui/data-table-actions'
 import { deleteRows } from '~/utils/client/deleteRows'
 
-type Cycle = Selectable<_Cycle>
+type Row = Selectable<Cycle> & {
+  cycleCurricula: (Selectable<CycleCurriculum> & {
+    curriculum: Selectable<Curriculum> | null
+  })[]
+}
 
-const RowActionCell = ({ row }: { row: { original: Cycle } }) => {
+const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const router = useRouter()
 
   const utils = api.useUtils()
@@ -96,7 +100,7 @@ const RowActionCell = ({ row }: { row: { original: Cycle } }) => {
   )
 }
 
-const columns: ColumnDef<Cycle>[] = [
+const columns: ColumnDef<Row>[] = [
   {
     id: 'select',
     header: ({ table }) => (
@@ -149,6 +153,12 @@ const columns: ColumnDef<Cycle>[] = [
     },
   },
   {
+    accessorFn: (row) =>
+      row.cycleCurricula?.map((c) => c.curriculum?.name).join('، '),
+    id: 'cycleCurricula.curriculumId',
+    header: 'المناهج',
+  },
+  {
     id: 'actions',
     header: 'الإجراءات',
     cell: RowActionCell,
@@ -158,7 +168,7 @@ const columns: ColumnDef<Cycle>[] = [
 export const CyclesTable = ({
   initialData,
 }: {
-  initialData: { data: Cycle[]; count: number }
+  initialData: { data: Row[]; count: number }
 }) => {
   const router = useRouter()
   const pathname = usePathname()
@@ -191,7 +201,7 @@ export const CyclesTable = ({
   )
 
   const { data: cycles, isFetching } = api.cycle.list.useQuery(
-    { pagination, filters },
+    { pagination, filters, include: { cycleCurricula: { curriculum: true } } },
     { initialData, refetchOnMount: false },
   )
 

@@ -166,7 +166,7 @@ model Model {
   id            String          @id() @default(dbgenerated("gen_random_uuid()"))
   name          String?
   ModelQuestion ModelQuestion[]
-  Quiz          Quiz[]
+  quizzes       Quiz[]
   exams         SystemExam[]
 }
 
@@ -268,32 +268,20 @@ model Answer {
 }
 
 model Cycle {
-  id          String        @id() @default(dbgenerated("gen_random_uuid()"))
+  id          String            @id() @default(dbgenerated("gen_random_uuid()"))
   name        String
-  courses     CycleCourse[]
   users       UserCycle[]
   systemExams SystemExam[]
+  curricula   CycleCurriculum[]
 }
 
 model Course {
-  id        String        @id() @default(dbgenerated("gen_random_uuid()"))
-  name      String        @unique
+  id        String     @id() @default(dbgenerated("gen_random_uuid()"))
+  name      String     @unique
   tracks    Track[]
   questions Question[]
-  cycles    CycleCourse[]
 
   @@index([name])
-}
-
-model CycleCourse {
-  id       Int    @id() @default(autoincrement())
-  courseId String
-  cycleId  String
-  cycle    Cycle  @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-
-  @@index([courseId])
-  @@index([cycleId])
 }
 
 model Track {
@@ -309,14 +297,15 @@ model Track {
 }
 
 model Curriculum {
-  id          String           @id() @default(dbgenerated("gen_random_uuid()"))
+  id          String            @id() @default(dbgenerated("gen_random_uuid()"))
   name        String
   trackId     String
-  track       Track            @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  track       Track             @relation(fields: [trackId], references: [id], onDelete: Cascade)
   parts       CurriculumPart[]
   quizzes     Quiz[]
   systemExams SystemExam[]
   users       UserCycle[]
+  cycles      CycleCurriculum[]
 
   @@unique([name, trackId])
   @@index([name])
@@ -391,4 +380,13 @@ model UserNotification {
 
   @@index([notificationId])
   @@index([userId])
+}
+
+model CycleCurriculum {
+  curriculumId String
+  cycleId      String
+  curriculum   Curriculum @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
+  cycle        Cycle      @relation(fields: [cycleId], references: [id], onDelete: Cascade)
+
+  @@id([cycleId, curriculumId])
 }

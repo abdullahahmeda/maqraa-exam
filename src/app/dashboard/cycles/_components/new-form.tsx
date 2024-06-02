@@ -9,12 +9,19 @@ import { toast } from 'sonner'
 import { populateFormWithErrors } from '~/utils/errors'
 import { useRouter } from 'next/navigation'
 import { Button } from '~/components/ui/button'
-import { createCycleSchema } from '~/validation/backend/mutations/cycle/create'
+import { type Selectable } from 'kysely'
+import type { Curriculum } from '~/kysely/types'
+import { createCycleFrontendSchema } from '~/validation/frontend/cycle/create'
+import { createCycleFrontendDataToBackend } from '~/dto/validation/cycle/create'
 
-export function NewCycleForm() {
+export function NewCycleForm({
+  curricula,
+}: {
+  curricula: Selectable<Curriculum>[]
+}) {
   const router = useRouter()
   const form = useForm<NewCycleFieldValues>({
-    resolver: zodResolver(createCycleSchema),
+    resolver: zodResolver(createCycleFrontendSchema),
   })
 
   const utils = api.useUtils()
@@ -33,12 +40,12 @@ export function NewCycleForm() {
   })
 
   const onSubmit = (data: NewCycleFieldValues) => {
-    mutation.mutate(data)
+    mutation.mutate(createCycleFrontendDataToBackend(data))
   }
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
-        <CycleFormFields control={form.control} />
+        <CycleFormFields control={form.control} curricula={curricula} />
         <Button loading={mutation.isPending}>إضافة</Button>
       </form>
     </Form>

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { QuestionsGroupType, QuizType } from '~/kysely/enums'
+import { QuestionDifficulty, QuestionType, QuizType } from '~/kysely/enums'
 import { numberInput } from '~/validation/common'
 
 const questionSchema = z.object({
@@ -8,24 +8,42 @@ const questionSchema = z.object({
 })
 
 const groupSchema = z.object({
-  // type: z.nativeEnum(QuestionsGroupType),
   questions: z.array(questionSchema).min(1),
 })
 
-export const createExamSchema = z.object({
-  name: z.string().min(1),
-  type: z.nativeEnum(QuizType),
-  isInsideShaded: z
-    .boolean()
-    .or(z.literal('INSIDE').transform(() => true))
-    .or(z.literal('OUTSIDE').transform(() => false))
-    .or(z.literal('').transform(() => undefined))
-    .optional(),
-  endsAt: z.date().nullish(),
-  courseId: z.string(),
-  trackId: z.string(),
-  curriculumId: z.string(),
+const commonSchema = z.object({
   cycleId: z.string(),
-  // repeatFromSameHadith: z.boolean(),
-  groups: z.array(groupSchema).min(1),
+  endsAt: z.date().nullish(),
+  type: z.nativeEnum(QuizType),
 })
+
+export const createExamSchema = z.discriminatedUnion('curriculumSelection', [
+  commonSchema.extend({
+    curriculumSelection: z.literal('specific'),
+    name: z.string().min(1),
+    isInsideShaded: z
+      .boolean()
+      .or(z.literal('INSIDE').transform(() => true))
+      .or(z.literal('OUTSIDE').transform(() => false))
+      .or(z.literal('').transform(() => undefined))
+      .optional(),
+    courseId: z.string(),
+    trackId: z.string(),
+    curriculumId: z.string(),
+    // repeatFromSameHadith: z.boolean(),
+    groups: z.array(groupSchema).min(1),
+  }),
+  commonSchema.extend({
+    curriculumSelection: z.literal('all'),
+    questionsPerExam: numberInput.pipe(z.number().int().safe().positive()),
+    gradePerQuestion: numberInput.pipe(z.number().int().safe().positive()),
+    difficulty: z
+      .nativeEnum(QuestionDifficulty)
+      .or(z.literal('all').transform(() => undefined))
+      .optional(),
+    questionsType: z
+      .nativeEnum(QuestionType)
+      .or(z.literal('all').transform(() => undefined))
+      .optional(),
+  }),
+])

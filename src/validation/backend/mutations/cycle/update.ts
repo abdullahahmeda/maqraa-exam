@@ -1,6 +1,8 @@
 import { z } from 'zod'
-import { createCycleSchema } from './create'
+import { createCycleBackendSchema } from './create'
 
-export const updateCycleSchema = createCycleSchema.extend({
+export const updateCycleBackendSchema = createCycleBackendSchema.extend({
   id: z.string().min(1),
 })
+
+export type UpdateCycleBackendSchema = z.infer<typeof updateCycleBackendSchema>

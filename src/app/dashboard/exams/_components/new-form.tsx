@@ -25,6 +25,11 @@ export function NewExamForm({
   const form = useForm<NewExamFieldValues>({
     resolver: zodResolver(createExamSchema),
     defaultValues: {
+      curriculumSelection: 'all',
+      difficulty: 'all',
+      questionsType: 'all',
+      gradePerQuestion: 1,
+      // @ts-expect-error Can't type this
       groups: [
         {
           weight: 1,

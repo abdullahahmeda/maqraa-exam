@@ -16,15 +16,19 @@ export async function generateMetadata({ params }: { params: Params }) {
 }
 
 export default async function EditCyclePage({ params }: { params: Params }) {
-  const cycle = await api.cycle.get({ id: params.id })
-
+  const cycle = await api.cycle.get({
+    id: params.id,
+    include: { cycleCurricula: { curriculum: true } },
+  })
   if (!cycle) return notFound()
+
+  const curricula = await api.curriculum.list()
 
   return (
     <div className='space-y-4'>
       <h2 className='text-3xl font-bold'>تعديل دورة</h2>
       <div className='rounded-lg bg-gray-100 p-4'>
-        <EditCycleForm cycle={cycle} />
+        <EditCycleForm curricula={curricula.data} cycle={cycle} />
       </div>
     </div>
   )

@@ -23,6 +23,7 @@ export default async function CyclesPage({
       pageIndex,
       pageSize: 50,
     },
+    include: { cycleCurricula: { curriculum: true } },
   })
 
   return (

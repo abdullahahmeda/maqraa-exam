@@ -33,6 +33,7 @@ import {
 import { Input } from '~/components/ui/input'
 import { Label } from '~/components/ui/label'
 import { QuestionCard, QuestionCardText } from '~/components/ui/question-card'
+import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import {
   Select,
   SelectContent,
@@ -59,17 +60,28 @@ export type Group = {
 }
 
 export type NewExamFieldValues = {
-  name: string
   cycleId: string
-  courseId: string
-  trackId: string
-  curriculumId: string
   endsAt: Date | null | undefined
   type: QuizType
-  // isInsideShaded: string
-  // repeatFromSameHadith: CheckedState
-  groups: Group[]
-}
+} & (
+  | {
+      curriculumSelection: 'specific'
+      name: string
+      courseId: string
+      trackId: string
+      curriculumId: string
+      // isInsideShaded: string
+      // repeatFromSameHadith: CheckedState
+      groups: Group[]
+    }
+  | {
+      curriculumSelection: 'all'
+      questionsPerExam: number
+      gradePerQuestion: number
+      difficulty: 'all' | QuestionDifficulty
+      questionsType: 'all' | QuestionType
+    }
+)
 export type EditExamFieldValues = { id: string } & NewExamFieldValues
 
 type FormProps<T extends FieldValues> = {
@@ -549,11 +561,11 @@ const GroupQuestions = <T extends FieldValues>({
   )
 }
 
-export const ExamFormFields = <T extends FieldValues>({
+const SpecificCurriculumFormFields = <T extends FieldValues>({
   form,
-  cycles,
-  courses,
-}: FormProps<T>) => {
+}: {
+  form: UseFormReturn<T>
+}) => {
   const courseId = useWatch({
     control: form.control,
     name: 'courseId' as Path<T>,
@@ -588,7 +600,6 @@ export const ExamFormFields = <T extends FieldValues>({
   const removeGroup = (index: number) => {
     remove(index)
   }
-
   return (
     <>
       <FormField
@@ -604,55 +615,6 @@ export const ExamFormFields = <T extends FieldValues>({
           </FormItem>
         )}
       />
-      <FormField
-        control={form.control}
-        name={'type' as Path<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>نوع الإختبار</FormLabel>
-            <Select onValueChange={field.onChange} value={field.value}>
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder='اختر نوع الإختبار' />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem value={QuizType.WHOLE_CURRICULUM}>
-                  المنهج كامل
-                </SelectItem>
-                <SelectItem value={QuizType.FIRST_MEHWARY}>
-                  الإختبار المحوري الأول
-                </SelectItem>
-                <SelectItem value={QuizType.SECOND_MEHWARY}>
-                  الإختبار المحوري الثاني
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
-      <FormField
-        control={form.control}
-        name={'cycleId' as FieldPath<T>}
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>الدورة</FormLabel>
-            <FormControl>
-              <Combobox
-                items={cycles}
-                labelKey='name'
-                valueKey='id'
-                onSelect={field.onChange}
-                value={field.value}
-                triggerText='الكل'
-                triggerClassName='w-full'
-              />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
       <CourseTrackCurriculumFormFields
         form={form}
         fields={{
@@ -661,29 +623,7 @@ export const ExamFormFields = <T extends FieldValues>({
           curriculum: 'curriculumId' as FieldPath<T>,
         }}
       />
-      <FormField
-        control={form.control}
-        name={'endsAt' as FieldPath<T>}
-        render={({ field }) => (
-          <FormItem className='flex flex-col'>
-            <FormLabel>تاريخ قفل الإختبار</FormLabel>
-            <FormControl>
-              <DatePicker
-                selected={field.value ?? undefined}
-                onSelect={field.onChange}
-                disabled={(date: Date) => date < new Date()}
-                mode='single'
-                locale={ar}
-              />
-            </FormControl>
-            <FormDescription>
-              اتركه فارعاً إن كان الإختبار مفتوح. قم باختيار نفس التاريخ لإزالة
-              الاختيار
-            </FormDescription>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+
       <h3>الأسئلة</h3>
       <Tabs defaultValue='generate'>
         <TabsList className='grid w-full grid-cols-1'>
@@ -749,6 +689,216 @@ export const ExamFormFields = <T extends FieldValues>({
           <ImportFromModelOrExamFormFields form={form} />
         </TabsContent> */}
       </Tabs>
+    </>
+  )
+}
+
+export const ExamFormFields = <T extends FieldValues>({
+  form,
+  cycles,
+  courses,
+}: FormProps<T>) => {
+  const curriculumSelection = useWatch({
+    control: form.control,
+    name: 'curriculumSelection' as Path<T>,
+  }) as 'all' | 'specific'
+
+  return (
+    <>
+      <FormField
+        control={form.control}
+        name={'cycleId' as FieldPath<T>}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>الدورة</FormLabel>
+            <FormControl>
+              <Combobox
+                items={cycles}
+                labelKey='name'
+                valueKey='id'
+                onSelect={field.onChange}
+                value={field.value}
+                triggerText='الكل'
+                triggerClassName='w-full'
+              />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name={'type' as Path<T>}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>نوع الإختبار</FormLabel>
+            <Select onValueChange={field.onChange} value={field.value}>
+              <FormControl>
+                <SelectTrigger>
+                  <SelectValue placeholder='اختر نوع الإختبار' />
+                </SelectTrigger>
+              </FormControl>
+              <SelectContent>
+                <SelectItem value={QuizType.WHOLE_CURRICULUM}>
+                  المنهج كامل
+                </SelectItem>
+                <SelectItem value={QuizType.FIRST_MEHWARY}>
+                  الإختبار المحوري الأول
+                </SelectItem>
+                <SelectItem value={QuizType.SECOND_MEHWARY}>
+                  الإختبار المحوري الثاني
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name={'endsAt' as FieldPath<T>}
+        render={({ field }) => (
+          <FormItem className='flex flex-col'>
+            <FormLabel>تاريخ قفل الإختبار</FormLabel>
+            <FormControl>
+              <DatePicker
+                selected={field.value ?? undefined}
+                onSelect={field.onChange}
+                disabled={(date: Date) => date < new Date()}
+                mode='single'
+                locale={ar}
+              />
+            </FormControl>
+            <FormDescription>
+              اتركه فارعاً إن كان الإختبار مفتوح. قم باختيار نفس التاريخ لإزالة
+              الاختيار
+            </FormDescription>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name={'curriculumSelection' as FieldPath<T>}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>إنشاء الإختبار للمناهج</FormLabel>
+            <FormControl>
+              <RadioGroup
+                value={field.value}
+                onValueChange={field.onChange}
+                className='flex gap-4'
+              >
+                <FormItem className='flex items-center gap-2 space-y-0'>
+                  <FormControl>
+                    <RadioGroupItem value='all' />
+                  </FormControl>
+                  <FormLabel>كل المناهج المرتبطة بالدورة</FormLabel>
+                </FormItem>
+                <FormItem className='flex items-center gap-2 space-y-0'>
+                  <FormControl>
+                    <RadioGroupItem value='specific' />
+                  </FormControl>
+                  <FormLabel>منهج محدد</FormLabel>
+                </FormItem>
+              </RadioGroup>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      {curriculumSelection === 'specific' ? (
+        <SpecificCurriculumFormFields form={form} />
+      ) : (
+        <div className='p-4 rounded-md bg-slate-400 grid grid-cols-2 gap-4'>
+          <FormField
+            control={form.control}
+            name={`questionsPerExam` as FieldPath<T>}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>عدد الأسئلة للإختبار الواحد</FormLabel>
+                <FormControl>
+                  <Input type='number' min={1} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={'gradePerQuestion' as FieldPath<T>}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>الدرجة للسؤال الواحد</FormLabel>
+                <FormControl>
+                  <Input type='number' min={1} {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`difficulty` as FieldPath<T>}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>المستوى</FormLabel>
+                <Select
+                  onValueChange={(v) =>
+                    field.onChange(v as 'all' | QuestionDifficulty)
+                  }
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder='اختر المستوى' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value='all'>كل المستويات</SelectItem>
+                    {Object.entries(difficultyMapping).map(([label, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name={`questionsType` as FieldPath<T>}
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>نوع الأسئلة</FormLabel>
+                <Select
+                  onValueChange={(v) =>
+                    field.onChange(v as 'all' | QuestionType)
+                  }
+                  value={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder='اختر طريقة الأسئلة' />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value='all'>موضوعي ومقالي</SelectItem>
+                    {Object.entries(typeMapping).map(([label, value]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+      )}
     </>
   )
 }

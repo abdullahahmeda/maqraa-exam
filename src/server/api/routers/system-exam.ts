@@ -16,6 +16,7 @@ import {
 import { listExamsSchema } from '~/validation/backend/queries/exam/list'
 import { createExamSchema } from '~/validation/backend/mutations/exam/create'
 import { applyUsersFilters } from '~/services/user'
+import { applyQuestionsFilters } from '~/services/question'
 
 export const systemExamRouter = createTRPCRouter({
   create: protectedProcedure
@@ -27,71 +28,164 @@ export const systemExamRouter = createTRPCRouter({
           message: 'أنت لا تملك الصلاحيات لهذه العملية',
         })
 
-      const { questions, isInsideShaded, ...data } = input
+      if (input.curriculumSelection === 'specific') {
+        const { questions, curriculumSelection, isInsideShaded, ...data } =
+          input
 
-      const total = questions.reduce((acc, q) => acc + q.weight, 0)
+        const total = questions.reduce((acc, q) => acc + q.weight, 0)
 
-      const students = await ctx.db
-        .selectFrom('User')
-        .selectAll('User')
-        .where(
-          applyUsersFilters({
-            role: 'STUDENT',
-            userCycle: {
-              cycleId: data.cycleId,
-              curriculumId: data.curriculumId,
-            },
-          }),
-        )
-        .execute()
+        const students = await ctx.db
+          .selectFrom('User')
+          .selectAll('User')
+          .where(
+            applyUsersFilters({
+              role: 'STUDENT',
+              userCycle: {
+                cycleId: data.cycleId,
+                curriculumId: data.curriculumId,
+              },
+            }),
+          )
+          .execute()
 
-      if (students.length === 0) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: 'لا يوجد طلاب مشتركين في هذه الدورة ومن نفس المنهج',
+        if (students.length === 0) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'لا يوجد طلاب مشتركين في هذه الدورة ومن نفس المنهج',
+          })
+        }
+
+        await ctx.db.transaction().execute(async (trx) => {
+          const model = await trx
+            .insertInto('Model')
+            .expression(() => sql`DEFAULT VALUES`)
+            .returning('id')
+            .executeTakeFirstOrThrow()
+
+          const systemExam = await trx
+            .insertInto('SystemExam')
+            .values({ ...data, defaultModelId: model.id })
+            .returning('id')
+            .executeTakeFirstOrThrow()
+
+          await trx
+            .insertInto('ModelQuestion')
+            .values(
+              questions.map((question, index) => ({
+                questionId: question.id,
+                weight: question.weight,
+                modelId: model.id,
+                order: index + 1,
+              })),
+            )
+            .execute()
+
+          await trx
+            .insertInto('Quiz')
+            .values(
+              students.map(({ id }) => ({
+                curriculumId: data.curriculumId,
+                modelId: model.id,
+                endsAt: data.endsAt,
+                total,
+                type: data.type,
+                examineeId: id,
+                systemExamId: systemExam.id,
+              })),
+            )
+            .execute()
+        })
+      } else {
+        const total = input.questionsPerExam * input.gradePerQuestion
+        const curricula = await ctx.db
+          .selectFrom('CycleCurriculum')
+          .leftJoin(
+            'Curriculum',
+            'Curriculum.id',
+            'CycleCurriculum.curriculumId',
+          )
+          .select(['curriculumId', 'name as curriculumName'])
+          .where('cycleId', '=', input.cycleId)
+          .$narrowType<{ curriculumName: string }>()
+          .execute()
+
+        await ctx.db.transaction().execute(async (trx) => {
+          for (const { curriculumId, curriculumName } of curricula) {
+            const { id: modelId } = await trx
+              .insertInto('Model')
+              .expression(() => sql`DEFAULT VALUES`)
+              .returning('id')
+              .executeTakeFirstOrThrow()
+
+            const questionsWhere = await applyQuestionsFilters({
+              difficulty: input.difficulty,
+              type: input.questionsType,
+              curriculum: { id: curriculumId, type: input.type },
+            })
+
+            await trx
+              .insertInto('ModelQuestion')
+              .columns(['modelId', 'order', 'questionId', 'weight'])
+              .expression((eb) =>
+                eb
+                  .selectFrom('Question')
+                  .select([
+                    sql.lit(modelId).as('modelId'),
+                    sql.lit(1).as('order'),
+                    'Question.id',
+                    sql.lit(input.gradePerQuestion).as('weight'),
+                  ])
+                  .where(questionsWhere)
+                  .limit(input.questionsPerExam)
+                  .orderBy(sql`RANDOM()`),
+              )
+              .execute()
+
+            await trx
+              .insertInto('SystemExam')
+              .values({
+                type: input.type,
+                cycleId: input.cycleId,
+                name: curriculumName,
+                curriculumId,
+                endsAt: input.endsAt,
+                defaultModelId: modelId,
+              })
+              .execute()
+
+            const results = await trx
+              .insertInto('Quiz')
+              .columns(['examineeId', 'modelId', 'type', 'total'])
+              .expression((eb) =>
+                eb
+                  .selectFrom('User')
+                  .select([
+                    'id',
+                    sql.lit(modelId).as('modelId'),
+                    sql.lit(input.type).as('type'),
+                    sql.lit(total).as('total'),
+                  ])
+                  .where(
+                    applyUsersFilters({
+                      role: 'STUDENT',
+                      userCycle: {
+                        cycleId: input.cycleId,
+                        curriculumId,
+                      },
+                    }),
+                  ),
+              )
+              .executeTakeFirstOrThrow()
+
+            if (Number(results.numInsertedOrUpdatedRows) === 0) {
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: `لا يوجد طلاب مشتركين في هذه الدورة من منهج ${curriculumName}`,
+              })
+            }
+          }
         })
       }
-
-      await ctx.db.transaction().execute(async (trx) => {
-        const model = await trx
-          .insertInto('Model')
-          .expression(() => sql`DEFAULT VALUES`)
-          .returning('id')
-          .executeTakeFirstOrThrow()
-
-        const systemExam = await trx
-          .insertInto('SystemExam')
-          .values({ ...data, defaultModelId: model.id })
-          .returning('id')
-          .executeTakeFirstOrThrow()
-
-        await trx
-          .insertInto('ModelQuestion')
-          .values(
-            questions.map((question, index) => ({
-              questionId: question.id,
-              weight: question.weight,
-              modelId: model.id,
-              order: index + 1,
-            })),
-          )
-          .execute()
-
-        await trx
-          .insertInto('Quiz')
-          .values(
-            students.map(({ id }) => ({
-              curriculumId: data.curriculumId,
-              modelId: model.id,
-              endsAt: data.endsAt,
-              total,
-              type: data.type,
-              examineeId: id,
-              systemExamId: systemExam.id,
-            })),
-          )
-          .execute()
-      })
 
       return true
     }),
