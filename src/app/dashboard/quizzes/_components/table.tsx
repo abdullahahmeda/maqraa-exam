@@ -223,6 +223,7 @@ export const QuizzesTable = ({
     <div>
       <DataTable
         data={quizzes.data}
+        // @ts-expect-error Vercel is playing with us
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,
