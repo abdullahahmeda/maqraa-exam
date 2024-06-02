@@ -222,7 +222,6 @@ export const QuizzesTable = ({
     <div>
       <DataTable
         data={quizzes.data}
-        // @ts-expect-error Can't type this
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,
