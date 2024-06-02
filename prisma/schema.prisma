@@ -165,6 +165,7 @@ model Question {
 model Model {
   id            String          @id() @default(dbgenerated("gen_random_uuid()"))
   name          String?
+  total         Int
   ModelQuestion ModelQuestion[]
   quizzes       Quiz[]
   exams         SystemExam[]
@@ -194,10 +195,10 @@ model SystemExam {
   repeatFromSameHadith Boolean          @default(false)
   curriculumId         String
   cycleId              String
-  defaultModelId       String?
+  defaultModelId       String
   curriculum           Curriculum       @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   cycle                Cycle            @relation(fields: [cycleId], references: [id], onDelete: Cascade)
-  defaultModel         Model?           @relation(fields: [defaultModelId], references: [id], onDelete: Cascade)
+  defaultModel         Model            @relation(fields: [defaultModelId], references: [id], onDelete: Cascade)
   groups               QuestionsGroup[]
   quizzes              Quiz[]
 
@@ -211,7 +212,6 @@ model Quiz {
   type         QuizType      @default(WHOLE_CURRICULUM)
   grade        Int?
   percentage   Float?
-  total        Int
   createdAt    DateTime      @default(now())
   enteredAt    DateTime?
   submittedAt  DateTime?

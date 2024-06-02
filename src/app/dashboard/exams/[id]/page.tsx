@@ -111,7 +111,7 @@ const ExamsPage = async ({
       pageSize: 50,
     },
     filters: { systemExamId: id },
-    include: { examinee: true, corrector: true },
+    include: { examinee: true, corrector: true, model: true },
   })
 
   return (

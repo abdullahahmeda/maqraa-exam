@@ -58,7 +58,7 @@ export const systemExamRouter = createTRPCRouter({
         await ctx.db.transaction().execute(async (trx) => {
           const model = await trx
             .insertInto('Model')
-            .expression(() => sql`DEFAULT VALUES`)
+            .values({ total })
             .returning('id')
             .executeTakeFirstOrThrow()
 
@@ -87,7 +87,6 @@ export const systemExamRouter = createTRPCRouter({
                 curriculumId: data.curriculumId,
                 modelId: model.id,
                 endsAt: data.endsAt,
-                total,
                 type: data.type,
                 examineeId: id,
                 systemExamId: systemExam.id,
@@ -113,7 +112,7 @@ export const systemExamRouter = createTRPCRouter({
           for (const { curriculumId, curriculumName } of curricula) {
             const { id: modelId } = await trx
               .insertInto('Model')
-              .expression(() => sql`DEFAULT VALUES`)
+              .values({ total })
               .returning('id')
               .executeTakeFirstOrThrow()
 
@@ -155,7 +154,7 @@ export const systemExamRouter = createTRPCRouter({
 
             const results = await trx
               .insertInto('Quiz')
-              .columns(['examineeId', 'modelId', 'type', 'total'])
+              .columns(['examineeId', 'modelId', 'type'])
               .expression((eb) =>
                 eb
                   .selectFrom('User')
@@ -163,7 +162,6 @@ export const systemExamRouter = createTRPCRouter({
                     'id',
                     sql.lit(modelId).as('modelId'),
                     sql.lit(input.type).as('type'),
-                    sql.lit(total).as('total'),
                   ])
                   .where(
                     applyUsersFilters({
@@ -258,8 +256,10 @@ export const systemExamRouter = createTRPCRouter({
         .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
         .leftJoin('User as examinee', 'Quiz.examineeId', 'examinee.id')
         .leftJoin('User as corrector', 'Quiz.correctorId', 'corrector.id')
+        .leftJoin('Model', 'Quiz.modelId', 'Model.id')
         .selectAll('Quiz')
         .select([
+          'Model.total as total',
           'SystemExam.name as systemExamName',
           'examinee.name as examineeName',
           'examinee.email as examineeEmail',
@@ -267,6 +267,7 @@ export const systemExamRouter = createTRPCRouter({
         ])
         .where('Quiz.systemExamId', 'is not', null)
         .where('SystemExam.cycleId', '=', cycleId)
+        .$narrowType<{ total: number }>()
         .execute()
 
       return exportSheet(quizzes, (q) => ({

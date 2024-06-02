@@ -74,6 +74,7 @@ export type MenuItem = {
 export type Model = {
     id: Generated<string>;
     name: string | null;
+    total: number;
 };
 export type ModelQuestion = {
     id: Generated<string>;
@@ -130,7 +131,6 @@ export type Quiz = {
     type: Generated<QuizType>;
     grade: number | null;
     percentage: number | null;
-    total: number;
     createdAt: Generated<Timestamp>;
     enteredAt: Timestamp | null;
     submittedAt: Timestamp | null;
@@ -166,7 +166,7 @@ export type SystemExam = {
     repeatFromSameHadith: Generated<boolean>;
     curriculumId: string;
     cycleId: string;
-    defaultModelId: string | null;
+    defaultModelId: string;
 };
 export type Track = {
     id: Generated<string>;

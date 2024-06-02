@@ -77,6 +77,17 @@ function applyInclude(include: IncludeSchema | undefined) {
           ]
         : []),
 
+      ...(include?.model
+        ? [
+            jsonObjectFrom(
+              eb
+                .selectFrom('Model')
+                .selectAll('Model')
+                .whereRef('Quiz.modelId', '=', 'Model.id'),
+            ).as('model'),
+          ]
+        : []),
+
       ...(include?.corrector
         ? [
             jsonObjectFrom(
@@ -176,7 +187,7 @@ export const quizRouter = createTRPCRouter({
       const quiz = await ctx.db.transaction().execute(async (trx) => {
         const { id: modelId } = await trx
           .insertInto('Model')
-          .expression(() => sql`DEFAULT VALUES`)
+          .values({ total })
           .returning('id')
           .executeTakeFirstOrThrow()
         await trx
@@ -196,7 +207,6 @@ export const quizRouter = createTRPCRouter({
           .values({
             examineeId: ctx.session?.user.id ?? null,
             modelId,
-            total,
           })
           .returning('id')
           .executeTakeFirstOrThrow()
@@ -434,88 +444,7 @@ export const quizRouter = createTRPCRouter({
         data: rows,
         count,
       }
-
-      // let query = ctx.db
-      //   .selectFrom('Quiz')
-      //   .selectAll('Quiz')
-      //   .$if(!!input.include?.examinee, (qb) =>
-      //     qb
-      //       .leftJoin('User as examinee', 'Quiz.examineeId', 'examinee.id')
-      //       .select([
-      //         'examinee.name as examineeName',
-      //         'examinee.email as examineeEmail',
-      //       ]),
-      //   )
-      //   .$if(!!input.include?.curriculum, (qb) =>
-      //     qb
-      //       .leftJoin('Curriculum', 'Quiz.curriculumId', 'Curriculum.id')
-      //       .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-      //       .leftJoin('Course', 'Track.courseId', 'Course.id')
-      //       .select([
-      //         'Curriculum.name as curriculumName',
-      //         'Course.name as courseName',
-      //       ]),
-      //   )
-      //   .$if(!!input.include?.corrector, (qb) =>
-      //     qb
-      //       .leftJoin('User as corrector', 'Quiz.correctorId', 'corrector.id')
-      //       .select('corrector.name as correctorName'),
-      //   )
-      //   .$if(!!input.include?.systemExam, (qb) => {
-      //     return qb
-      //       .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
-      //       .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
-      //       .select([
-      //         'SystemExam.name as systemExamName',
-      //         'Cycle.name as cycleName',
-      //       ])
-      //   })
-
-      // // TODO: quizzes does not show for correctors
-      // if (ctx.session.user.role === 'STUDENT')
-      //   query = query.where('examineeId', '=', ctx.session.user.id)
-      // else if (ctx.session.user.role === 'CORRECTOR') {
-      //   const userCycles = await db
-      //     .selectFrom('UserCycle')
-      //     .selectAll('UserCycle')
-      //     .where('userId', '=', ctx.session.user.id)
-      //     .execute()
-
-      //   // TODO: untested
-      //   query = query
-      //     .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
-      //     .where(({ or, eb, and }) =>
-      //       or([
-      //         eb('correctorId', '=', ctx.session.user.id),
-      //         ...userCycles.map((c) =>
-      //           and([
-      //             eb('Quiz.curriculumId', '=', c.curriculumId),
-      //             eb('SystemExam.cycleId', '=', c.cycleId),
-      //           ]),
-      //         ),
-      //       ]),
-      //     )
-      // }
-
-      // const rows = await applyPagination(
-      //   applyQuizFilters(query, input.filters),
-      //   input.pagination,
-      // ).execute()
-
-      // return rows
     }),
-  // count: protectedProcedure
-  //   .input(z.object({ filters: quizFiltersSchema.optional().default({}) }))
-  //   .query(async ({ ctx, input }) => {
-  //     const query = applyQuizFilters(
-  //       ctx.db
-  //         .selectFrom('Quiz')
-  //         .select(({ fn }) => fn.count('Quiz.id').as('total')),
-  //       input.filters,
-  //     )
-  //     const total = Number((await query.executeTakeFirst())?.total)
-  //     return total
-  //   }),
 
   submit: publicProcedure
     .input(submitQuizSchema)
@@ -523,8 +452,11 @@ export const quizRouter = createTRPCRouter({
       const { answers } = input
       const quiz = await ctx.db
         .selectFrom('Quiz')
-        .where('id', '=', input.id)
-        .selectAll()
+        .selectAll('Quiz')
+        .leftJoin('Model', 'Quiz.modelId', 'Model.id')
+        .select(['Model.total as total'])
+        .where('Quiz.id', '=', input.id)
+        .$narrowType<{ total: number }>()
         .executeTakeFirst()
 
       if (!quiz)
@@ -598,8 +530,11 @@ export const quizRouter = createTRPCRouter({
       const { answers } = input
       const quiz = await ctx.db
         .selectFrom('Quiz')
-        .selectAll()
+        .selectAll('Quiz')
+        .leftJoin('Model', 'Quiz.modelId', 'Model.id')
+        .select(['Model.total as total'])
         .where('id', '=', input.id)
+        .$narrowType<{ total: number }>()
         .executeTakeFirst()
       if (!quiz)
         throw new TRPCError({
@@ -659,13 +594,16 @@ export const quizRouter = createTRPCRouter({
         .selectFrom('Quiz')
         .leftJoin('User as examinee', 'Quiz.examineeId', 'examinee.id')
         .leftJoin('User as corrector', 'Quiz.correctorId', 'corrector.id')
+        .leftJoin('Model', 'Quiz.modelId', 'Model.id')
         .selectAll('Quiz')
         .select([
+          'Model.total as total',
           'examinee.name as examineeName',
           'examinee.email as examineeEmail',
           'corrector.name as correctorName',
         ])
         .where('systemExamId', '=', systemExamId)
+        .$narrowType<{ total: number }>()
         .execute()
 
       return exportSheet(quizzes, (q) => ({

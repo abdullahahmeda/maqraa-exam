@@ -42,8 +42,10 @@ const QuizPage = async ({ params }: { params: Params }) => {
     .selectFrom('Quiz')
     .selectAll('Quiz')
     .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
+    .leftJoin('Model', 'Quiz.modelId', 'Model.id')
     .select((eb) => [
       'SystemExam.name as systemExamName',
+      'Model.total as total',
       jsonArrayFrom(
         eb
           .selectFrom('ModelQuestion')
@@ -99,6 +101,7 @@ const QuizPage = async ({ params }: { params: Params }) => {
       ).as('questions'),
     ])
     .where('Quiz.id', '=', params.id)
+    .$narrowType<{ total: number }>()
     .executeTakeFirst()
 
   if (!quiz) return notFound()

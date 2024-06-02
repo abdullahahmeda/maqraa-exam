@@ -24,18 +24,14 @@ async function main() {
   const db = makeDBConnection()
   try {
     const result = await db
-      .insertInto('CycleCurriculum')
-      .columns(['curriculumId', 'cycleId'])
-      .expression((eb) =>
-        eb
-          .selectFrom('UserCycle')
-          .select(['UserCycle.curriculumId', 'UserCycle.cycleId'])
-          .distinctOn(['UserCycle.curriculumId', 'UserCycle.cycleId']),
-      )
-      .executeTakeFirst()
-    console.log(
-      `[Success]: ${result.numInsertedOrUpdatedRows} rows have been inserted.`,
-    )
+      .updateTable('SystemExam')
+      .from('Quiz')
+      .set((eb) => ({
+        defaultModelId: eb.ref('Quiz.modelId'),
+      }))
+      .whereRef('Quiz.systemExamId', '=', 'SystemExam.id')
+      .executeTakeFirstOrThrow()
+    console.log(`[Success]: ${result.numUpdatedRows} rows have been updated.`)
   } catch (error: unknown) {
     console.error(`[ERROR]: `)
     console.log(error)

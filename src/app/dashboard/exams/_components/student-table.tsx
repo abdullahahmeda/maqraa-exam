@@ -22,7 +22,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import type { Quiz, SystemExam, User } from '~/kysely/types'
+import type { Model, Quiz, SystemExam, User } from '~/kysely/types'
 import { cn } from '~/lib/utils'
 import { api } from '~/trpc/react'
 import { formatDate } from '~/utils/formatDate'
@@ -31,6 +31,7 @@ import { percentage } from '~/utils/percentage'
 export type Row = Selectable<Quiz> & {
   corrector: Selectable<User> | null
   systemExam: Selectable<SystemExam> | null
+  model: Selectable<Model> | null
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
@@ -79,9 +80,9 @@ const columns = [
       typeof getValue() === 'number'
         ? `${
             !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-          }${getValue()} من ${row.original.total} (${percentage(
+          }${getValue()} من ${row.original.model?.total} (${percentage(
             getValue()!,
-            row.original.total,
+            row.original.model!.total,
           )}%)`
         : '-',
   }),

@@ -16,12 +16,14 @@ export const createQuizSchema = z
       hadith: numberInput.pipe(z.number().int().safe().finite()),
     }),
     repeatFromSameHadith: z.boolean(),
-    difficulty: z.union([
-      z.nativeEnum(QuestionDifficulty, {
-        invalid_type_error: 'يجب اختيار المستوى',
-      }),
-      z.literal('all').transform(() => undefined),
-    ]),
+    difficulty: z
+      .union([
+        z.nativeEnum(QuestionDifficulty, {
+          invalid_type_error: 'يجب اختيار المستوى',
+        }),
+        z.literal('all').transform(() => undefined),
+      ])
+      .optional(),
     questionsNumber: numberInput.pipe(
       z.number().positive().int().finite().safe().max(25),
     ),

@@ -16,6 +16,7 @@ export const includeSchema = z.record(
     z.literal('curriculum'),
     z.literal('corrector'),
     z.literal('systemExam'),
+    z.literal('model'),
   ]),
   z.boolean().optional(),
 )
