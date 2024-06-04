@@ -83,7 +83,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
                     size: 'icon',
                   }),
                 )}
-                href={`/dashboard/quizzes/${row.original.id}`}
+                href={`/dashboard/quizzes/${row.original.id}/correct`}
               >
                 <FileCheck2Icon className='h-4 w-4 text-success' />
               </Link>

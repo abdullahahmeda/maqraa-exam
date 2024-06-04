@@ -10,7 +10,7 @@ import { sheetRouter } from './routers/sheet'
 import { questionRouter } from './routers/question'
 import { questionStyleRouter } from './routers/question-style'
 import { errorReportRouter } from './routers/error-report'
-import { systemExamRouter } from './routers/system-exam'
+import { examRouter } from './routers/exam'
 import { quizRouter } from './routers/quiz'
 import { modelQuestionRouter } from './routers/model-question'
 import { notificationRouter } from './routers/notification'
@@ -34,7 +34,7 @@ export const appRouter = createTRPCRouter({
   question: questionRouter,
   questionStyle: questionStyleRouter,
   errorReport: errorReportRouter,
-  exam: systemExamRouter,
+  exam: examRouter,
   quiz: quizRouter,
   modelQuestion: modelQuestionRouter,
   notification: notificationRouter,

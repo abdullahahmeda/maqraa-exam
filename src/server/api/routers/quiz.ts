@@ -33,6 +33,7 @@ import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { submitQuizSchema } from '~/validation/backend/mutations/quiz/submit'
 import { getQuizSchema } from '~/validation/backend/queries/quiz/get'
 import { applyQuestionsFilters } from '~/services/question'
+import { whereCanReadQuiz } from '~/services/quiz'
 
 async function canUserRead(
   user: { role: UserRole; id: string },
@@ -387,35 +388,6 @@ export const quizRouter = createTRPCRouter({
     .input(listQuizSchema.optional())
     .query(async ({ ctx, input }) => {
       const where = applyFilters(input?.filters)
-      const whereCanRead = (eb: ExpressionBuilder<DB, 'Quiz'>) => {
-        const conds = []
-        if (ctx.session.user.role === 'STUDENT') {
-          conds.push(eb('Quiz.examineeId', '=', ctx.session.user.id))
-        } else if (ctx.session.user.role === 'CORRECTOR') {
-          conds.push(
-            eb('Quiz.systemExamId', 'is not', null),
-            eb.exists(
-              eb
-                .selectFrom('SystemExam')
-                .whereRef('SystemExam.id', '=', 'Quiz.systemExamId')
-                .where((eb) =>
-                  eb.exists(
-                    eb
-                      .selectFrom('UserCycle')
-                      .where('UserCycle.userId', '=', ctx.session.user.id)
-                      .whereRef(
-                        'UserCycle.curriculumId',
-                        '=',
-                        'SystemExam.curriculumId',
-                      )
-                      .whereRef('UserCycle.cycleId', '=', 'SystemExam.cycleId'),
-                  ),
-                ),
-            ),
-          )
-        }
-        return eb.and(conds)
-      }
 
       const count = Number(
         (
@@ -423,7 +395,7 @@ export const quizRouter = createTRPCRouter({
             .selectFrom('Quiz')
             .select(({ fn }) => fn.count<string>('id').as('count'))
             .where(where)
-            .where(whereCanRead)
+            .where(whereCanReadQuiz(ctx.session))
             .executeTakeFirstOrThrow()
         ).count,
       )
@@ -433,7 +405,7 @@ export const quizRouter = createTRPCRouter({
           .selectFrom('Quiz')
           .selectAll()
           .where(where)
-          .where(whereCanRead)
+          .where(whereCanReadQuiz(ctx.session))
           .select(applyInclude(input?.include)),
         input?.pagination,
       )
@@ -533,7 +505,7 @@ export const quizRouter = createTRPCRouter({
         .selectAll('Quiz')
         .leftJoin('Model', 'Quiz.modelId', 'Model.id')
         .select(['Model.total as total'])
-        .where('id', '=', input.id)
+        .where('Quiz.id', '=', input.id)
         .$narrowType<{ total: number }>()
         .executeTakeFirst()
       if (!quiz)

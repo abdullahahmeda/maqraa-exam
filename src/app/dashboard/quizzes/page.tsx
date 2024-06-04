@@ -1,5 +1,7 @@
 import { api } from '~/trpc/server'
 import { QuizzesTable } from './_components/table'
+import { getServerAuthSession } from '~/server/auth'
+import { notFound } from 'next/navigation'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -14,6 +16,9 @@ export default async function ExamsPage({
 }: {
   searchParams: { page?: string }
 }) {
+  const session = await getServerAuthSession()
+  if (session?.user.role !== 'STUDENT') notFound()
+
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
   const exams = await api.quiz.list({
     pagination: {

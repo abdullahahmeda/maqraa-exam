@@ -18,7 +18,7 @@ import { createExamSchema } from '~/validation/backend/mutations/exam/create'
 import { applyUsersFilters } from '~/services/user'
 import { applyQuestionsFilters } from '~/services/question'
 
-export const systemExamRouter = createTRPCRouter({
+export const examRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createExamSchema)
     .mutation(async ({ ctx, input }) => {
@@ -140,7 +140,7 @@ export const systemExamRouter = createTRPCRouter({
               )
               .execute()
 
-            await trx
+            const { id: systemExamId } = await trx
               .insertInto('SystemExam')
               .values({
                 type: input.type,
@@ -150,16 +150,18 @@ export const systemExamRouter = createTRPCRouter({
                 endsAt: input.endsAt,
                 defaultModelId: modelId,
               })
-              .execute()
+              .returning('SystemExam.id')
+              .executeTakeFirstOrThrow()
 
             const results = await trx
               .insertInto('Quiz')
-              .columns(['examineeId', 'modelId', 'type'])
+              .columns(['examineeId', 'systemExamId', 'modelId', 'type'])
               .expression((eb) =>
                 eb
                   .selectFrom('User')
                   .select([
                     'id',
+                    sql.lit(systemExamId).as('systemExamId'),
                     sql.lit(modelId).as('modelId'),
                     sql.lit(input.type).as('type'),
                   ])

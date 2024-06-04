@@ -1,5 +1,7 @@
+import { getServerAuthSession } from '~/server/auth'
 import { SettingsForm } from './_components/form'
 import { api } from '~/trpc/server'
+import { notFound } from 'next/navigation'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -10,6 +12,10 @@ export async function generateMetadata() {
 }
 
 const SettingsPage = async () => {
+  const session = await getServerAuthSession()
+
+  if (session?.user.role !== 'ADMIN') notFound()
+
   const siteName = await api.setting.getSiteName()
 
   return (
