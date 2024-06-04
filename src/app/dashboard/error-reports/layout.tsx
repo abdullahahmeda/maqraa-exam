@@ -5,8 +5,6 @@ export default async function Layout({
   children,
 }: {
   children: React.ReactNode
-  modals: React.ReactNode
-  utilityModals: React.ReactNode
 }) {
   const session = await getServerAuthSession()
 
