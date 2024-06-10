@@ -260,12 +260,11 @@ const columns = [
     header: 'الدرجة',
     cell: ({ getValue, row }) =>
       typeof getValue() === 'number'
-        ? `${
-            !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-          }${getValue()} من ${row.original.model?.total} (${percentage(
-            getValue()!,
-            row.original.model!.total,
-          )}%)`
+        ? `${!row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
+        }${getValue()} من ${row.original.model?.total} (${percentage(
+          getValue()!,
+          row.original.model!.total,
+        )}%)`
         : '-',
   }),
   columnHelper.accessor('endsAt', {
@@ -408,7 +407,7 @@ export const ExamTable = ({
       />
       <DataTable
         data={quizzes.data}
-        // @ts-expect-error Vercel is playing with us
+        // @xts-expect-error Vercel is playing with us
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,
