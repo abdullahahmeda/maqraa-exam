@@ -33,6 +33,8 @@ const ExamsPage = async ({
 
   const systemExam = await db
     .selectFrom('SystemExam')
+    .where('SystemExam.id', '=', id)
+    .where(whereCanReadExam(session!))
     .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
     .leftJoin('Curriculum', 'SystemExam.curriculumId', 'Curriculum.id')
     .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
@@ -43,8 +45,6 @@ const ExamsPage = async ({
       'Curriculum.name as curriculumName',
       'Cycle.name as cycleName',
     ])
-    .where('SystemExam.id', '=', id)
-    .where(whereCanReadExam(session!))
     .executeTakeFirst()
 
   if (!systemExam) notFound()
