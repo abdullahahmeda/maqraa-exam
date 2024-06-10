@@ -9,6 +9,7 @@ import { sql } from 'kysely'
 import { SubmissionChart } from './_components/submission-chart'
 import { notFound } from 'next/navigation'
 import { getServerAuthSession } from '~/server/auth'
+import { whereCanReadExam } from '~/services/exam'
 
 export const metadata = {
   title: 'إختبارات النظام',
@@ -28,7 +29,7 @@ const ExamsPage = async ({
   searchParams: SearchParams
 }) => {
   const session = await getServerAuthSession()
-  if (session?.user.role !== 'ADMIN') notFound()
+  if (session?.user.role === 'STUDENT') notFound()
 
   const systemExam = await db
     .selectFrom('SystemExam')
@@ -43,6 +44,7 @@ const ExamsPage = async ({
       'Cycle.name as cycleName',
     ])
     .where('SystemExam.id', '=', id)
+    .where(whereCanReadExam(session!))
     .executeTakeFirst()
 
   if (!systemExam) notFound()

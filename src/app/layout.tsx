@@ -5,9 +5,9 @@ import { Noto_Sans_Arabic } from 'next/font/google'
 
 import { TRPCReactProvider } from '~/trpc/react'
 import { SessionProvider } from './_components/session-provider'
+import { DirectionProvider } from './_components/direction-provider'
 
 import { getServerAuthSession } from '~/server/auth'
-import { DirectionProvider } from './_components/direction-provider'
 
 const font = Noto_Sans_Arabic({
   subsets: ['arabic'],

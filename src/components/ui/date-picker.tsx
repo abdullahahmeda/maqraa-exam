@@ -6,7 +6,7 @@ import { cn } from '~/lib/utils'
 import type { ActiveModifiers, DayPickerSingleProps } from 'react-day-picker'
 import { format } from 'date-fns'
 import { type MouseEvent as ReactMouseEvent, useState } from 'react'
-import { ar } from 'date-fns/locale'
+import { arSA} from 'date-fns/locale'
 
 type Props = DayPickerSingleProps & { placeholder?: string }
 
@@ -29,7 +29,7 @@ export const DatePicker = ({
           )}
         >
           {selected ? (
-            format(selected, 'dd MMMM yyyy hh:mm a', { locale: ar })
+            format(selected, 'dd MMMM yyyy hh:mm a', { locale: arSA })
           ) : (
             <span>{placeholder}</span>
           )}

@@ -54,20 +54,22 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { buttonVariants } from '~/components/ui/button'
+import { useSession } from 'next-auth/react'
 
 type Row = Selectable<SystemExam> & {
   cycle: Selectable<Cycle> | null
   curriculum:
-    | (Selectable<Curriculum> & {
-        track:
-          | (Selectable<Track> & { course: Selectable<Course> | null })
-          | null
-      })
+  | (Selectable<Curriculum> & {
+    track:
+    | (Selectable<Track> & { course: Selectable<Course> | null })
     | null
+  })
+  | null
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const router = useRouter()
+  const { data: session } = useSession()
 
   const utils = api.useUtils()
 
@@ -97,16 +99,16 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
   return (
     <>
       <RowActions
-        viewButton={{
-          onClick: () => router.push(`/dashboard/exams/${row.original.id}`),
-        }}
-        deleteButton={{
+        // viewButton={{
+        //   onClick: () => router.push(`/dashboard/exams/${row.original.id}`),
+        // }}
+        deleteButton={session?.user.role === 'ADMIN' ? {
           onClick: () => setOpen(true),
-        }}
-        editButton={{
+        } : undefined}
+        editButton={session?.user.role === 'ADMIN' ? {
           onClick: () =>
             router.push(`/dashboard/exams/edit/${row.original.id}`),
-        }}
+        } : undefined}
       />
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>

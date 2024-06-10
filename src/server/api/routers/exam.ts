@@ -12,6 +12,7 @@ import {
   applyExamsFilters,
   applyExamsInclude,
   deleteExams,
+  whereCanReadExam
 } from '~/services/exam'
 import { listExamsSchema } from '~/validation/backend/queries/exam/list'
 import { createExamSchema } from '~/validation/backend/mutations/exam/create'
@@ -194,24 +195,6 @@ export const examRouter = createTRPCRouter({
     .input(listExamsSchema.optional())
     .query(async ({ ctx, input }) => {
       const where = applyExamsFilters(input?.filters)
-      const whereCanRead = (eb: ExpressionBuilder<DB, 'SystemExam'>) => {
-        const conds = []
-        if (ctx.session.user.role !== 'ADMIN')
-          conds.push(
-            eb.exists(
-              eb
-                .selectFrom('UserCycle')
-                .where('UserCycle.userId', '=', ctx.session.user.id)
-                .whereRef(
-                  'UserCycle.curriculumId',
-                  '=',
-                  'SystemExam.curriculumId',
-                )
-                .whereRef('UserCycle.cycleId', '=', 'SystemExam.cycleId'),
-            ),
-          )
-        return eb.and(conds)
-      }
 
       const count = Number(
         (
@@ -219,7 +202,7 @@ export const examRouter = createTRPCRouter({
             .selectFrom('SystemExam')
             .select(({ fn }) => fn.count<string>('id').as('count'))
             .where(where)
-            .where(whereCanRead)
+            .where(whereCanReadExam(ctx.session))
             .executeTakeFirstOrThrow()
         ).count,
       )
@@ -230,7 +213,7 @@ export const examRouter = createTRPCRouter({
           .selectAll('SystemExam')
           .select(applyExamsInclude(input?.include))
           .where(where)
-          .where(whereCanRead),
+          .where(whereCanReadExam(ctx.session)),
         input?.pagination,
       )
 
