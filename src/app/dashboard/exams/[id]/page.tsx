@@ -118,10 +118,10 @@ const ExamsPage = async ({
 
   return (
     <div>
-      <div className='mb-4 flex items-center gap-2'>
+      <div className='flex items-center mb-4 gap-2'>
         <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
       </div>
-      <div className='mb-4 rounded-md bg-white p-4 border'>
+      <div className='p-4 mb-4 bg-white border rounded-md'>
         <p>
           اسم الإختبار: <strong>{systemExam.name}</strong>
         </p>
@@ -140,7 +140,7 @@ const ExamsPage = async ({
           )}
         </div>
       </div>
-      <div className='mb-4 rounded-md bg-white p-4 border'>
+      <div className='p-4 mb-4 bg-white border rounded-md'>
         <div className='flex items-center justify-around'>
           <div className='flex flex-col items-center justify-center'>
             <CircularProgress percent={submittedQuizPercentage} />
@@ -156,19 +156,19 @@ const ExamsPage = async ({
           )}
         </div>
         <div className='mt-4 grid gap-4 md:grid-cols-2 lg:grid-cols-3'>
-          <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 border'>
+          <div className='flex flex-col items-center justify-center p-4 border rounded-md bg-muted'>
             <p className='text-xl font-semibold'>{quizCount}</p>
             <p>المستحقين للإختبار</p>
           </div>
-          <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 border'>
+          <div className='flex flex-col items-center justify-center p-4 border rounded-md bg-muted'>
             <p className='text-xl font-semibold'>{submittedQuizCount}</p>
             <p>الذين دخلوا الإختبار</p>
           </div>
-          <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 border'>
+          <div className='flex flex-col items-center justify-center p-4 border rounded-md bg-muted'>
             <p className='text-xl font-semibold'>{correctedQuizCount}</p>
             <p>ما تم تصحيحه</p>
           </div>
-          {/* <div className='flex flex-col items-center justify-center rounded-md bg-muted p-4 border'>
+          {/* <div className='flex flex-col items-center justify-center p-4 border rounded-md bg-muted'>
             <p className='text-xl font-semibold'>
               {avgStats.gradeAvg === null
                 ? 'لم يتم حسابها'
@@ -189,7 +189,7 @@ const ExamsPage = async ({
           </div>
         )}
       </div>
-      <div className='p-4 rounded-md border bg-white'>
+      <div className='p-4 bg-white border rounded-md'>
         <ExamTable initialData={quizzes} systemExam={systemExam} />
       </div>
     </div>
