@@ -49,10 +49,10 @@ export const ProfileForm = ({
       toast.error(error.message)
     },
     onSuccess: (newData) => {
-      toast.success(
-        'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات',
-      )
-      void update({ name: newData?.name, phone: newData?.phone })
+      // toast.success(
+      //   'تم تعديل البيانات بنجاح. قد تحتاج لتسجيل الخروج لملاحظة التعديلات',
+      // )
+      // void update({ name: newData?.name, phone: newData?.phone })
     },
   })
 
