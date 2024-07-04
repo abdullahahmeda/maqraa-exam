@@ -2,10 +2,9 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { eachDayOfInterval, getDay } from 'date-fns'
-import { useForm } from 'react-hook-form'
+import { useForm, useWatch } from 'react-hook-form'
 import { z } from 'zod'
 import { Button } from '~/components/ui/button'
-import { Calendar } from '~/components/ui/calendar'
 import { Checkbox } from '~/components/ui/checkbox'
 import { DatePicker } from '~/components/ui/date-picker'
 import {
@@ -23,13 +22,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '~/components/ui/select'
-import { CalendarEvent, EventsCalendar } from '~/components/events-calendar'
+import { EventsCalendar } from '~/components/events-calendar'
 import { useState } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '~/components/ui/tabs'
+import { CalendarIcon, TableIcon } from 'lucide-react'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '~/components/ui/table'
 
 type FieldValues = {
   fromDate: Date
   toDate: Date
-  days: string[]
+  memorizationDays: string[]
+  revisionDays: string[]
   curriculum: string
 }
 
@@ -46,25 +56,36 @@ const days = [
 const formSchema = z.object({
   fromDate: z.date(),
   toDate: z.date(),
-  days: z.array(z.string()).min(1),
+  memorizationDays: z.array(z.string()).min(1),
+  revisionDays: z.array(z.string()),
   curriculum: z.string(),
 })
 
 export const MnahgForm = () => {
-  const [events, setEvents] = useState<CalendarEvent[]>([])
+  const [events, setEvents] = useState<
+    { date: Date; revision: null | number; memorization: number }[]
+  >([])
   const form = useForm<FieldValues>({
     defaultValues: {
-      days: ['0', '1', '2', '3', '4'],
+      memorizationDays: ['0', '1', '2', '3', '4'],
+      revisionDays: [],
     },
     resolver: zodResolver(formSchema),
   })
 
+  const fromDate = useWatch({ control: form.control, name: 'fromDate' })
+  const toDate = useWatch({ control: form.control, name: 'toDate' })
+  const revisionDays = useWatch({ control: form.control, name: 'revisionDays' })
+
   const onSubmit = (data: FieldValues) => {
     const totalLines = 100
+    const allDays = Array.from(
+      new Set([...data.memorizationDays, ...data.revisionDays]),
+    )
     const days = eachDayOfInterval({
       start: data.fromDate,
       end: data.toDate,
-    }).filter((d) => data.days.includes('' + getDay(d)))
+    }).filter((d) => allDays.includes('' + getDay(d)))
 
     if (days.length === 0) throw new Error()
 
@@ -73,15 +94,29 @@ export const MnahgForm = () => {
     const events = []
     let linesRemaining = totalLines % days.length
 
-    for (const day of days) {
+    let lastMemorizationLines = 0
+    for (const [index, day] of days.entries()) {
       let dayLines = lpd
-      if (linesRemaining > 0) {
-        dayLines += 1
-        linesRemaining -= 1
+      let memorization = 0
+      let revision = 0
+      if (data.memorizationDays.includes('' + getDay(day))) {
+        if (linesRemaining > 0) {
+          dayLines += 1
+          linesRemaining -= 1
+        }
+        lastMemorizationLines += dayLines
+        memorization = dayLines
       }
-      events.push({ date: day, title: `حفظ ${dayLines} سطر` })
+      if (data.revisionDays.includes('' + getDay(day))) {
+        if (lastMemorizationLines > 0) {
+          revision = lastMemorizationLines
+          lastMemorizationLines = 0
+        } else {
+          // revision = 'لا يوجد حفظ لمراجعته'
+        }
+      }
+      events.push({ date: day, memorization, revision })
     }
-    // console.log(linesRemaining, events)
     setEvents(events)
   }
 
@@ -93,11 +128,12 @@ export const MnahgForm = () => {
             control={form.control}
             name='fromDate'
             render={({ field }) => (
-              <FormItem className='flex-1 flex flex-col gap-1'>
-                <FormLabel>من</FormLabel>
+              <FormItem className='flex flex-col flex-1 gap-1'>
+                <FormLabel>تاريخ بداية الخطة</FormLabel>
                 <FormControl>
                   <DatePicker
                     mode='single'
+                    toDate={toDate}
                     selected={field.value}
                     onSelect={field.onChange}
                     className='w-full'
@@ -111,11 +147,12 @@ export const MnahgForm = () => {
             control={form.control}
             name='toDate'
             render={({ field }) => (
-              <FormItem className='flex-1 flex flex-col gap-1'>
-                <FormLabel>إلى</FormLabel>
+              <FormItem className='flex flex-col flex-1 gap-1'>
+                <FormLabel>تاريخ نهاية الخطة</FormLabel>
                 <FormControl>
                   <DatePicker
                     mode='single'
+                    fromDate={fromDate}
                     selected={field.value}
                     onSelect={field.onChange}
                     className='w-full'
@@ -128,11 +165,45 @@ export const MnahgForm = () => {
         </div>
         <FormField
           control={form.control}
-          name='days'
+          name='memorizationDays'
           render={({ field }) => (
             <FormItem>
               <FormLabel>الأيام المتاحة للحفظ</FormLabel>
-              <div className='flex gap-4 flex-wrap'>
+              <div className='flex flex-wrap gap-4'>
+                {days.map((day, index) => (
+                  <FormItem
+                    key={index}
+                    className='flex flex-row items-start gap-1 space-y-0'
+                  >
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value?.includes('' + index)}
+                        onCheckedChange={(checked) => {
+                          return checked
+                            ? field.onChange([...field.value, '' + index])
+                            : field.onChange(
+                                field.value?.filter(
+                                  (value) => value !== '' + index,
+                                ),
+                              )
+                        }}
+                      />
+                    </FormControl>
+                    <FormLabel className='font-normal'>{day}</FormLabel>
+                  </FormItem>
+                ))}
+              </div>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name='revisionDays'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>الأيام المتاحة للمراجعة</FormLabel>
+              <div className='flex flex-wrap gap-4'>
                 {days.map((day, index) => (
                   <FormItem
                     key={index}
@@ -185,7 +256,65 @@ export const MnahgForm = () => {
           )}
         />
         <Button>إنشاء نظام المنهج</Button>
-        {events.length > 0 && <EventsCalendar events={events} />}
+        {events.length > 0 && (
+          <Tabs defaultValue='calendar'>
+            <TabsList>
+              <TabsTrigger value='calendar'>
+                <CalendarIcon className='w-4 h-4 ml-2' />
+                عرض كتقويم
+              </TabsTrigger>
+              <TabsTrigger value='table'>
+                <TableIcon className='w-4 h-4 ml-2' />
+                عرض كجدول
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value='calendar'>
+              <EventsCalendar
+                events={events.map((e) => ({
+                  ...e,
+                  title: `الحفظ: ${
+                    e.memorization === 0 ? '-' : `حفظ ${e.memorization} سطر`
+                  }
+المراجعة: ${e.revision === 0 ? '-' : `مراجعة ${e.revision} سطر`}`,
+                }))}
+              />
+            </TabsContent>
+            <TabsContent value='table'>
+              <Table className='border border-collapse'>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className='border'>اليوم</TableHead>
+                    <TableHead className='border'>الحفظ</TableHead>
+                    {revisionDays.length > 0 && (
+                      <TableHead className='border'>المراجعة</TableHead>
+                    )}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {events.map((event) => (
+                    <TableRow key={event.date.toISOString()}>
+                      <TableCell className='border'>
+                        {days[`${getDay(event.date)}`]}
+                      </TableCell>
+                      <TableCell className='border'>
+                        {event.memorization === 0
+                          ? '-'
+                          : `حفظ ${event.memorization} سطر`}
+                      </TableCell>
+                      {revisionDays.length > 0 && (
+                        <TableCell className='border'>
+                          {event.revision === 0
+                            ? '-'
+                            : `مراجعة ${event.revision} سطر`}
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TabsContent>
+          </Tabs>
+        )}
       </form>
     </Form>
   )

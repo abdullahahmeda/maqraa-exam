@@ -4,12 +4,12 @@ import {
   type DefaultSession,
 } from 'next-auth'
 import { env } from '../env.js'
-import { db } from './db'
+import { mssqlDB, db } from './db'
 import Credentials from 'next-auth/providers/credentials'
 import { loginSchema } from '~/validation/loginSchema'
 import { KyselyAdapter } from '@auth/kysely-adapter'
-import { UserRole } from '~/kysely/enums'
-import { comparePassword } from '~/utils/server/password'
+import { type UserRole } from '~/kysely/enums'
+import { verifyHashedPassword } from '~/services/password'
 
 /**
  * Module augmentation for `next-auth` types.
@@ -28,6 +28,8 @@ declare module 'next-auth' {
   }
 
   interface User {
+    FullName: string | null
+    Email: string | null
     role: UserRole
   }
 }
@@ -44,9 +46,7 @@ export const authOptions: NextAuthOptions = {
     verifyRequest: '/verify-request',
   },
   debug: env.NODE_ENV === 'development',
-  session: {
-    strategy: 'jwt',
-  },
+  session: { strategy: 'jwt' },
   callbacks: {
     async session({ session, token }) {
       if (token) {
@@ -64,8 +64,8 @@ export const authOptions: NextAuthOptions = {
         token.phone = session.phone
       }
       if (user) {
-        token.name = user.name
-        token.email = user.email
+        token.name = user.FullName
+        token.email = user.Email
         token.role = user.role
       }
       return token
@@ -83,10 +83,16 @@ export const authOptions: NextAuthOptions = {
         const input = loginSchema.safeParse(credentials)
         if (!input.success) return null
 
-        const user = await db
-          .selectFrom('User')
-          .selectAll()
-          .where('email', '=', input.data.email)
+        const user = await mssqlDB
+          .selectFrom('AspNetUsers')
+          .selectAll('AspNetUsers')
+          .leftJoin(
+            'AspNetUserRoles',
+            'AspNetUsers.Id',
+            'AspNetUserRoles.UserId',
+          )
+          .select(['AspNetUserRoles.RoleId as roleId'])
+          .where('Email', '=', input.data.email)
           .executeTakeFirst()
 
         if (!user) return null
@@ -95,10 +101,23 @@ export const authOptions: NextAuthOptions = {
         const isPasswordCorrect =
           env.NODE_ENV === 'development' && input.data.password === '1234'
             ? true
-            : comparePassword(input.data.password, user.password)
+            : verifyHashedPassword(input.data.password, user.PasswordHash!)
         if (!isPasswordCorrect) return null
 
-        return user
+        let role: UserRole
+        switch (user.roleId) {
+          case '111':
+            role = 'STUDENT'
+            break
+          case '156':
+            role = 'ADMIN'
+            break
+          default:
+            role = 'CORRECTOR'
+            break
+        }
+
+        return { id: user.Id, FullName: user.FullName, Email: user.Email, role }
       },
     }),
   ],

@@ -12,8 +12,13 @@ export const env = createEnv({
       .url()
       .refine(
         (str) => !str.includes('YOUR_SQL_URL_HERE'),
-        'You forgot to change the default URL'
+        'You forgot to change the default URL',
       ),
+
+    MSSQL_HOST: z.string(),
+    MSSQL_USER: z.string(),
+    MSSQL_PASSWORD: z.string(),
+    MSSQL_DB: z.string(),
     NODE_ENV: z
       .enum(['development', 'test', 'production'])
       .default('development'),
@@ -26,7 +31,7 @@ export const env = createEnv({
       // Since NextAuth.js automatically uses the VERCEL_URL if present.
       (str) => process.env.VERCEL_URL ?? str,
       // VERCEL_URL doesn't include `https` so it cant be validated as a URL
-      process.env.VERCEL ? z.string() : z.string().url()
+      process.env.VERCEL ? z.string() : z.string().url(),
     ),
     GOOGLE_API_KEY: z.string(),
     LOGTAIL_SOURCE_TOKEN: z.string(),
@@ -55,6 +60,10 @@ export const env = createEnv({
    */
   runtimeEnv: {
     DATABASE_URL: process.env.DATABASE_URL,
+    MSSQL_HOST: process.env.MSSQL_HOST,
+    MSSQL_USER: process.env.MSSQL_USER,
+    MSSQL_PASSWORD: process.env.MSSQL_PASSWORD,
+    MSSQL_DB: process.env.MSSQL_DB,
     NODE_ENV: process.env.NODE_ENV,
     NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET,
     NEXTAUTH_URL: process.env.NEXTAUTH_URL,

@@ -30,7 +30,7 @@ export function Sidebar({
 
   return (
     <div className={cn('pb-12', className)}>
-      <div className='flex h-full flex-col justify-between px-3 py-2'>
+      <div className='flex flex-col justify-between h-full px-3 py-2'>
         <div className='space-y-1'>
           {loading ? (
             <Loader2Icon className='mx-auto animate-spin' />
@@ -43,7 +43,7 @@ export function Sidebar({
                   buttonVariants({
                     variant: router.pathname === link.key ? 'ghost' : 'ghost',
                   }),
-                  'w-full justify-start'
+                  'w-full justify-start',
                 )}
                 onClick={() => {
                   if (window.innerWidth < 768) setIsSidebarOpen(false)
@@ -66,11 +66,11 @@ export function Sidebar({
             <AvatarFallback>{session?.user.name?.[0]}</AvatarFallback>
           </Avatar>
           <div>
-            <p>{session?.user.name}</p>
+            <p className='text-center'>{session?.user.name}</p>
             <Link
               href='/dashboard/profile'
               className={cn(
-                buttonVariants({ variant: 'secondary', size: 'sm' })
+                buttonVariants({ variant: 'secondary', size: 'sm' }),
               )}
             >
               تعديل الملف الشخصي
