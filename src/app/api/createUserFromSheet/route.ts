@@ -1,7 +1,7 @@
 import { verifySignatureAppRouter } from '@upstash/qstash/nextjs'
 import { db } from '~/server/db'
 import { sendMail } from '~/utils/email'
-import { hashPassword } from '~/utils/server/password'
+// import { hashPassword } from '~/utils/server/password'
 import { getBaseUrl } from '~/utils/getBaseUrl'
 import { generateRandomPassword } from '~/utils/strings'
 import { env } from '~/env'
@@ -50,7 +50,7 @@ async function handler(req: Request) {
   await db.transaction().execute(async (trx) => {
     if (!user) {
       const password = generateRandomPassword()
-      const hashedPassword = hashPassword(password)
+      const hashedPassword = '12345' // hashPassword(password)
       user = await trx
         .insertInto('User')
         .values({

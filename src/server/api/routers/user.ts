@@ -165,85 +165,85 @@ export const userRouter = createTRPCRouter({
           message: 'ليس لديك الصلاحيات لهذه العملية',
         })
 
-      const { url, sheetName, cycleId } = input
-      const spreadsheetId = getSpreadsheetIdFromURL(url)!
-
-      let data: {
-        email: string
-        name: string
-        phone: string
-        courseName: string
-        trackName: string
-        curriculumName: string
-      }[]
-      try {
-        // const rows = await getRowsFromSheet(spreadsheetId, sheetName)
-        data = await importFromGoogleSheet({
-          spreadsheetId,
-          sheetName,
-          mapper: (row) => ({
-            name: row[0] as string,
-            phone: row[1] as string,
-            courseName: row[2] as string,
-            trackName: row[3] as string,
-            curriculumName: row[4] as string,
-            email: row[5] as string,
-          }),
-          validationSchema: studentSchema,
-        })
-      } catch (error) {
-        if (error instanceof GaxiosError) {
-          if (Number(error.code) === 404) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: 'هذا الملف غير موجود',
-            })
-          }
-          if (Number(error.code) === 403 || Number(error.code) === 400) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message: 'الصلاحيات غير كافية، تأكد من تفعيل مشاركة الملف',
-            })
-          }
-        }
-
-        if (error instanceof ZodError) {
-          const issue = error.issues[0]!
-
-          const [rowNumber, field] = issue.path
-
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
-            cause: issue,
-          })
-        }
-
-        throw new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: 'حدث خطأ غير متوقع',
-        })
-      }
-
-      const apiUrl = `${getBaseUrl()}/api/createUserFromSheet`
-      if (env.NODE_ENV === 'development') {
-        for (const student of data) {
-          await fetch(apiUrl, {
-            method: 'POST',
-            body: JSON.stringify({ ...student, cycleId }),
-          })
-        }
-      } else {
-        const qstashClient = new Client({ token: env.QSTASH_TOKEN })
-
-        for (const [i, student] of data.entries()) {
-          if (i > 0 && i % 100 === 0) await sleep(1100) // Do not hit 100 message per second limit
-          await qstashClient.publishJSON({
-            url: apiUrl,
-            body: { ...student, cycleId },
-          })
-        }
-      }
+      // const { url, sheetName, cycleId } = input
+      // const spreadsheetId = getSpreadsheetIdFromURL(url)!
+      //
+      // let data: {
+      //   email: string
+      //   name: string
+      //   phone: string
+      //   courseName: string
+      //   trackName: string
+      //   curriculumName: string
+      // }[]
+      // try {
+      //   // const rows = await getRowsFromSheet(spreadsheetId, sheetName)
+      //   data = await importFromGoogleSheet({
+      //     spreadsheetId,
+      //     sheetName,
+      //     mapper: (row) => ({
+      //       name: row[0] as string,
+      //       phone: row[1] as string,
+      //       courseName: row[2] as string,
+      //       trackName: row[3] as string,
+      //       curriculumName: row[4] as string,
+      //       email: row[5] as string,
+      //     }),
+      //     validationSchema: studentSchema,
+      //   })
+      // } catch (error) {
+      //   if (error instanceof GaxiosError) {
+      //     if (Number(error.code) === 404) {
+      //       throw new TRPCError({
+      //         code: 'NOT_FOUND',
+      //         message: 'هذا الملف غير موجود',
+      //       })
+      //     }
+      //     if (Number(error.code) === 403 || Number(error.code) === 400) {
+      //       throw new TRPCError({
+      //         code: 'FORBIDDEN',
+      //         message: 'الصلاحيات غير كافية، تأكد من تفعيل مشاركة الملف',
+      //       })
+      //     }
+      //   }
+      //
+      //   if (error instanceof ZodError) {
+      //     const issue = error.issues[0]!
+      //
+      //     const [rowNumber, field] = issue.path
+      //
+      //     throw new TRPCError({
+      //       code: 'BAD_REQUEST',
+      //       message: `خطأ في الصف رقم ${rowNumber}: الحقل ${field} ${issue.message}`,
+      //       cause: issue,
+      //     })
+      //   }
+      //
+      //   throw new TRPCError({
+      //     code: 'INTERNAL_SERVER_ERROR',
+      //     message: 'حدث خطأ غير متوقع',
+      //   })
+      // }
+      //
+      // const apiUrl = `${getBaseUrl()}/api/createUserFromSheet`
+      // if (env.NODE_ENV === 'development') {
+      //   for (const student of data) {
+      //     await fetch(apiUrl, {
+      //       method: 'POST',
+      //       body: JSON.stringify({ ...student, cycleId }),
+      //     })
+      //   }
+      // } else {
+      //   const qstashClient = new Client({ token: env.QSTASH_TOKEN })
+      //
+      //   for (const [i, student] of data.entries()) {
+      //     if (i > 0 && i % 100 === 0) await sleep(1100) // Do not hit 100 message per second limit
+      //     await qstashClient.publishJSON({
+      //       url: apiUrl,
+      //       body: { ...student, cycleId },
+      //     })
+      //   }
+      // }
     }),
 
   update: protectedProcedure
