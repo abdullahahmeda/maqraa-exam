@@ -358,7 +358,7 @@ export const userRouter = createTRPCRouter({
   updateProfile: protectedProcedure
     .input(updateProfileSchema)
     .mutation(async ({ ctx, input }) => {
-      let password: string | undefined = undefined
+      // let password: string | undefined = undefined
       // if (input.changePassword) {
       //   const user = await ctx.db
       //     .selectFrom('User')
@@ -385,7 +385,6 @@ export const userRouter = createTRPCRouter({
       //     })
       //   password = input.newPassword
       // }
-
       // return await ctx.db
       //   .updateTable('User')
       //   .set({
