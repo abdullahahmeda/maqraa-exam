@@ -13,7 +13,7 @@ export async function generateMetadata() {
 
 const CreateNotificationPage = async () => {
   const session = await getServerAuthSession()
-  if (session?.user.role !== 'ADMIN') notFound()
+  if (!session?.user.role.includes('ADMIN')) notFound()
 
   return (
     <div>

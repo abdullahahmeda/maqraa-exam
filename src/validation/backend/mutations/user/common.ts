@@ -37,6 +37,10 @@ export function generateSchema<T extends z.ZodRawShape>(base: z.ZodObject<T>) {
     role: z.literal(UserRole.ADMIN),
   })
 
+  const superAdminSchema = base.extend({
+    role: z.literal(UserRole.SUPER_ADMIN),
+  })
+
   const correctorSchema = base.extend({
     role: z.literal(UserRole.CORRECTOR),
     corrector: z
@@ -57,6 +61,7 @@ export function generateSchema<T extends z.ZodRawShape>(base: z.ZodObject<T>) {
   })
 
   return z.discriminatedUnion('role', [
+    superAdminSchema,
     adminSchema,
     correctorSchema,
     studentSchema,

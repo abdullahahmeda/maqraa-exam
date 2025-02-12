@@ -13,54 +13,54 @@ export function applyExamsInclude(include: IncludeSchema | undefined) {
     return [
       ...(include?.cycle
         ? [
-          jsonObjectFrom(
-            eb
-              .selectFrom('Cycle')
-              .selectAll('Cycle')
-              .whereRef('SystemExam.cycleId', '=', 'Cycle.id'),
-          ).as('cycle'),
-        ]
+            jsonObjectFrom(
+              eb
+                .selectFrom('Cycle')
+                .selectAll('Cycle')
+                .whereRef('SystemExam.cycleId', '=', 'Cycle.id'),
+            ).as('cycle'),
+          ]
         : []),
       ...(include?.curriculum
         ? [
-          jsonObjectFrom(
-            eb
-              .selectFrom('Curriculum')
-              .selectAll('Curriculum')
-              .whereRef('Curriculum.id', '=', 'SystemExam.curriculumId')
-              .select((eb) => [
-                ...(typeof include.curriculum !== 'boolean' &&
+            jsonObjectFrom(
+              eb
+                .selectFrom('Curriculum')
+                .selectAll('Curriculum')
+                .whereRef('Curriculum.id', '=', 'SystemExam.curriculumId')
+                .select((eb) => [
+                  ...(typeof include.curriculum !== 'boolean' &&
                   include.curriculum?.track
-                  ? [
-                    jsonObjectFrom(
-                      eb
-                        .selectFrom('Track')
-                        .selectAll('Track')
-                        .whereRef('Curriculum.trackId', '=', 'Track.id')
-                        .select((eb) => [
-                          ...(typeof include.curriculum !== 'boolean' &&
-                            typeof include.curriculum?.track !== 'boolean' &&
-                            include.curriculum?.track?.course
-                            ? [
-                              jsonObjectFrom(
-                                eb
-                                  .selectFrom('Course')
-                                  .selectAll('Course')
-                                  .whereRef(
-                                    'Track.courseId',
-                                    '=',
-                                    'Course.id',
-                                  ),
-                              ).as('course'),
-                            ]
-                            : []),
-                        ]),
-                    ).as('track'),
-                  ]
-                  : []),
-              ]),
-          ).as('curriculum'),
-        ]
+                    ? [
+                        jsonObjectFrom(
+                          eb
+                            .selectFrom('Track')
+                            .selectAll('Track')
+                            .whereRef('Curriculum.trackId', '=', 'Track.id')
+                            .select((eb) => [
+                              ...(typeof include.curriculum !== 'boolean' &&
+                              typeof include.curriculum?.track !== 'boolean' &&
+                              include.curriculum?.track?.course
+                                ? [
+                                    jsonObjectFrom(
+                                      eb
+                                        .selectFrom('Course')
+                                        .selectAll('Course')
+                                        .whereRef(
+                                          'Track.courseId',
+                                          '=',
+                                          'Course.id',
+                                        ),
+                                    ).as('course'),
+                                  ]
+                                : []),
+                            ]),
+                        ).as('track'),
+                      ]
+                    : []),
+                ]),
+            ).as('curriculum'),
+          ]
         : []),
     ]
   }
@@ -79,15 +79,16 @@ export function applyExamsFilters(filters: FiltersSchema | undefined) {
 }
 
 export function deleteExams(ids: string | string[] | undefined) {
+  console.log('Query worked')
   let query = db.deleteFrom('SystemExam')
-  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }
 
 export function whereCanReadExam(session: Session) {
   return (eb: ExpressionBuilder<DB, 'SystemExam'>) => {
     const conds = []
-    if (session.user.role !== 'ADMIN')
+    if (!session.user.role.includes('ADMIN'))
       conds.push(
         eb.exists(
           eb

@@ -99,6 +99,11 @@ export async function applyQuestionsFilters(
   }
 }
 
+export async function getQuestionShow(id: string) {
+  const question = await db.selectFrom('Question').innerJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id').selectAll('Question').select(['QuestionStyle.name as questionStyleName', 'QuestionStyle.type as questionStyleType', 'QuestionStyle.choicesColumns as questionStyleChoicesColumns']).where('Question.id', '=', id).executeTakeFirst()
+  return question
+}
+
 export function applyQuestionsInclude(include: IncludeSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'Question'>) => {
     return [
@@ -128,7 +133,7 @@ export function applyQuestionsInclude(include: IncludeSchema | undefined) {
 
 export function deleteQuestions(ids: string | string[] | undefined) {
   let query = db.deleteFrom('Question')
-  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }
 

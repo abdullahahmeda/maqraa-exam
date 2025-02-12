@@ -58,6 +58,6 @@ export function applyCurriculaFilters(filters: FiltersSchema | undefined) {
 
 export function deleteCurricula(ids: string | string[] | undefined) {
   let query = db.deleteFrom('Curriculum')
-  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }

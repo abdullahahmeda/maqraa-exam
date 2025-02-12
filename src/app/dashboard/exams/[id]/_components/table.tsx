@@ -154,7 +154,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
-      {session!.user.role === 'ADMIN' && (
+      {session?.user.role.includes('ADMIN') && (
         <RowActions
           deleteButton={{
             onClick: () => setOpen(true),
@@ -260,11 +260,12 @@ const columns = [
     header: 'الدرجة',
     cell: ({ getValue, row }) =>
       typeof getValue() === 'number'
-        ? `${!row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-        }${getValue()} من ${row.original.model?.total} (${percentage(
-          getValue()!,
-          row.original.model!.total,
-        )}%)`
+        ? `${
+            !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
+          }${getValue()} من ${row.original.model?.total} (${percentage(
+            getValue()!,
+            row.original.model!.total,
+          )}%)`
         : '-',
   }),
   columnHelper.accessor('endsAt', {

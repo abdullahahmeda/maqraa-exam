@@ -2,6 +2,7 @@ import { UserRole as EnUserRole } from '~/kysely/enums'
 import invert from 'lodash.invert'
 
 export const userRoleMapping = {
+  'سوبر أدمن': EnUserRole.SUPER_ADMIN,
   أدمن: EnUserRole.ADMIN,
   طالب: EnUserRole.STUDENT,
   مصحح: EnUserRole.CORRECTOR,

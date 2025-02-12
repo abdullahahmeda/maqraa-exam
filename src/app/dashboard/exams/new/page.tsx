@@ -16,7 +16,7 @@ export default async function NewExamPage() {
   const courses = await api.course.list()
 
   const session = await getServerAuthSession()
-  if (session?.user.role !== 'ADMIN') notFound()
+  if (!session?.user.role.includes('ADMIN')) notFound()
 
   return (
     <div className='space-y-4'>

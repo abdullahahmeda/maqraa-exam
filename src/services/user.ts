@@ -141,7 +141,7 @@ export function applyUsersInclude(include: IncludeSchema | undefined) {
 }
 
 export function deleteUsers(ids: string | string[] | undefined) {
-  let query = db.deleteFrom('User')
-  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  let query = db.deleteFrom('User').where('role', '!=', 'SUPER_ADMIN')
+  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }

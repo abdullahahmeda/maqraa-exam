@@ -1,6 +1,7 @@
 import { api } from '~/trpc/server'
 import { EditUserForm } from '../../_components/edit-form'
 import { notFound } from 'next/navigation'
+import { getServerAuthSession } from '~/server/auth'
 
 type Params = { id: string }
 
@@ -25,8 +26,11 @@ export default async function EditCurriculumPage({
     },
   })
   const cycles = await api.cycle.list()
+  const session = await getServerAuthSession()
 
   if (!user) return notFound()
+
+  if (session?.user?.role === 'ADMIN' && user.role === 'SUPER_ADMIN') return <p>لا تملك الصلاحيات الكافية لذلك</p>
 
   return (
     <div className='space-y-4'>

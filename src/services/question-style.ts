@@ -14,6 +14,6 @@ export function applyQuestionStylesFilters(filters: FiltersSchema | undefined) {
 
 export function deleteQuestionStyles(ids: string | string[] | undefined) {
   let query = db.deleteFrom('QuestionStyle')
-  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }

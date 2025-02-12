@@ -52,6 +52,6 @@ export function applyCyclesInclude(include: IncludeSchema | undefined) {
 
 export function deleteCycles(ids: string | string[] | undefined) {
   let query = db.deleteFrom('Cycle')
-  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }

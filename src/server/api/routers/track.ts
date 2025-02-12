@@ -124,7 +124,7 @@ export const trackRouter = createTRPCRouter({
   bulkDelete: protectedProcedure
     .input(z.array(z.string().min(1)))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',

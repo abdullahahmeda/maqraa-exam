@@ -59,12 +59,12 @@ import { useSession } from 'next-auth/react'
 type Row = Selectable<SystemExam> & {
   cycle: Selectable<Cycle> | null
   curriculum:
-  | (Selectable<Curriculum> & {
-    track:
-    | (Selectable<Track> & { course: Selectable<Course> | null })
+    | (Selectable<Curriculum> & {
+        track:
+          | (Selectable<Track> & { course: Selectable<Course> | null })
+          | null
+      })
     | null
-  })
-  | null
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
@@ -102,13 +102,21 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
         // viewButton={{
         //   onClick: () => router.push(`/dashboard/exams/${row.original.id}`),
         // }}
-        deleteButton={session?.user.role === 'ADMIN' ? {
-          onClick: () => setOpen(true),
-        } : undefined}
-        editButton={session?.user.role === 'ADMIN' ? {
-          onClick: () =>
-            router.push(`/dashboard/exams/edit/${row.original.id}`),
-        } : undefined}
+        deleteButton={
+          session?.user.role.includes('ADMIN')
+            ? {
+                onClick: () => setOpen(true),
+              }
+            : undefined
+        }
+        editButton={
+          session?.user.role.includes('ADMIN')
+            ? {
+                onClick: () =>
+                  router.push(`/dashboard/exams/edit/${row.original.id}`),
+              }
+            : undefined
+        }
       />
       <AlertDialog open={open} onOpenChange={setOpen}>
         <AlertDialogContent>

@@ -11,6 +11,7 @@ generator kysely {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   STUDENT
   CORRECTOR

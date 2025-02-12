@@ -12,7 +12,7 @@ import {
   applyExamsFilters,
   applyExamsInclude,
   deleteExams,
-  whereCanReadExam
+  whereCanReadExam,
 } from '~/services/exam'
 import { listExamsSchema } from '~/validation/backend/queries/exam/list'
 import { createExamSchema } from '~/validation/backend/mutations/exam/create'
@@ -23,7 +23,7 @@ export const examRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createExamSchema)
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'أنت لا تملك الصلاحيات لهذه العملية',
@@ -228,7 +228,7 @@ export const examRouter = createTRPCRouter({
   export: protectedProcedure
     .input(exportSystemExamsSchema)
     .mutation(async ({ input, ctx }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
@@ -281,7 +281,7 @@ export const examRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
@@ -294,7 +294,7 @@ export const examRouter = createTRPCRouter({
   bulkDelete: protectedProcedure
     .input(z.array(z.string().min(1)))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
@@ -305,7 +305,7 @@ export const examRouter = createTRPCRouter({
     }),
 
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    if (ctx.session.user.role !== 'ADMIN')
+    if (!ctx.session.user.role.includes('ADMIN'))
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: 'لا تملك الصلاحيات لهذه العملية',

@@ -75,7 +75,7 @@ export const notificationRouter = createTRPCRouter({
                   if (to.custom.cycle !== 'all') {
                     where.push(
                       eb.or([
-                        eb('User.role', '=', 'ADMIN'),
+                        eb('User.role', 'in', ['ADMIN', 'SUPER_ADMIN']),
                         eb.exists(
                           eb
                             .selectFrom('UserCycle')

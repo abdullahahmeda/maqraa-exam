@@ -10,7 +10,7 @@ export default async function Layout({
 }) {
   const session = await getServerAuthSession()
 
-  if (session?.user.role !== 'ADMIN') notFound()
+  if (!session?.user.role.includes('ADMIN')) notFound()
 
   return (
     <>

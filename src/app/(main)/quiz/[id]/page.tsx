@@ -109,7 +109,7 @@ const QuizPage = async ({ params }: { params: Params }) => {
   const cannotView =
     quiz.examineeId &&
     session?.user.id !== quiz.examineeId &&
-    session?.user.role !== 'ADMIN'
+    !session?.user.role.includes('ADMIN')
 
   const cannotSubmit =
     !!quiz.submittedAt ||

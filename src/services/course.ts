@@ -13,6 +13,6 @@ export function applyCoursesFilters(filters: FiltersSchema | undefined) {
 
 export function deleteCourses(ids: string | string[] | undefined) {
   let query = db.deleteFrom('Course')
-  if (ids !== undefined) query = query.where('id', 'in', [...ids])
+  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }

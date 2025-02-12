@@ -39,7 +39,7 @@ async function canUserRead(
   user: { role: UserRole; id: string },
   quiz: Selectable<Quiz>,
 ) {
-  if (user.role === 'ADMIN') return true
+  if (user.role.includes('ADMIN')) return true
   if (quiz.examineeId === user.id) return true
   if (quiz.systemExamId) {
     const systemExam = await db

@@ -25,7 +25,7 @@ const ADMIN_USER = {
   name: 'Admin',
   email: 'admin@admin.com',
   password: bcrypt.hashSync('1234', 12),
-  role: UserRole.ADMIN,
+  role: UserRole.SUPER_ADMIN,
 }
 
 const DEFAULT_SETTINGS = {

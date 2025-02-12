@@ -33,7 +33,7 @@ export const sheetRouter = createTRPCRouter({
   listSheetNames: protectedProcedure
     .input(z.object({ url: spreadsheetUrlSchema }))
     .query(async ({ input, ctx }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'ليس لديك الصلاحيات لهذه العملية',

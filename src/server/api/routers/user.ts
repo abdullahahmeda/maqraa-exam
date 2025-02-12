@@ -91,7 +91,7 @@ export const userRouter = createTRPCRouter({
   create: protectedProcedure
     .input(createUserSchema)
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'ليس لديك الصلاحيات لهذه العملية',
@@ -159,7 +159,7 @@ export const userRouter = createTRPCRouter({
   import: protectedProcedure
     .input(importUsersSchema)
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'ليس لديك الصلاحيات لهذه العملية',
@@ -249,13 +249,20 @@ export const userRouter = createTRPCRouter({
   update: protectedProcedure
     .input(updateUserSchema)
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
 
       const { id: userId, email, name, role, password, phone } = input
+      const user = await ctx.db.selectFrom('User').selectAll().where('id', '=', userId).executeTakeFirstOrThrow()
+      if (ctx.session.user.role === 'ADMIN' && user.role === 'SUPER_ADMIN')
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: 'لا تملك الصلاحيات لهذه العملية',
+        })
+
       await ctx.db.transaction().execute(async (trx) => {
         await trx
           .updateTable('User')
@@ -463,7 +470,7 @@ export const userRouter = createTRPCRouter({
   delete: protectedProcedure
     .input(z.string())
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
@@ -476,7 +483,7 @@ export const userRouter = createTRPCRouter({
   bulkDelete: protectedProcedure
     .input(z.array(z.string().min(1)))
     .mutation(async ({ ctx, input }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
@@ -487,7 +494,7 @@ export const userRouter = createTRPCRouter({
     }),
 
   deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    if (ctx.session.user.role !== 'ADMIN')
+    if (!ctx.session.user.role.includes('ADMIN'))
       throw new TRPCError({
         code: 'FORBIDDEN',
         message: 'لا تملك الصلاحيات لهذه العملية',

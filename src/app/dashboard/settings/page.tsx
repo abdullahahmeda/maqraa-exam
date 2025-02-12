@@ -14,7 +14,7 @@ export async function generateMetadata() {
 const SettingsPage = async () => {
   const session = await getServerAuthSession()
 
-  if (session?.user.role !== 'ADMIN') notFound()
+  if (!session?.user.role.includes('ADMIN')) notFound()
 
   const siteName = await api.setting.getSiteName()
 

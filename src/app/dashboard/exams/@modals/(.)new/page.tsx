@@ -17,6 +17,8 @@ export default function NewExamModal() {
   const { data: cycles } = api.cycle.list.useQuery()
   const { data: courses } = api.course.list.useQuery()
 
+  console.log(cycles, courses)
+
   return (
     <Dialog
       open

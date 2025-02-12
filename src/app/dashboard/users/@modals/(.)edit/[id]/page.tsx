@@ -10,6 +10,7 @@ import { EditUserForm } from '../../../_components/edit-form'
 import { api } from '~/trpc/react'
 import { useParams, useRouter } from 'next/navigation'
 import { Spinner } from '~/components/ui/spinner'
+import { useSession } from 'next-auth/react'
 
 export default function EditCurriculumModal() {
   const router = useRouter()
@@ -21,6 +22,10 @@ export default function EditCurriculumModal() {
     },
   })
   const { data: cycles } = api.cycle.list.useQuery()
+  const { data: session } = useSession()
+
+  const doesNotHavePermissions =
+    session?.user?.role === 'ADMIN' && user?.role === 'SUPER_ADMIN'
 
   return (
     <Dialog
@@ -33,8 +38,15 @@ export default function EditCurriculumModal() {
         <DialogHeader>
           <DialogTitle>تعديل مستخدم</DialogTitle>
         </DialogHeader>
+
         {user && cycles ? (
-          <EditUserForm user={user} cycles={cycles.data} />
+          <>
+            {doesNotHavePermissions ? (
+              <p>لا تملك الصلاحيات الكافية لذلك</p>
+            ) : (
+              <EditUserForm user={user} cycles={cycles.data} />
+            )}
+          </>
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

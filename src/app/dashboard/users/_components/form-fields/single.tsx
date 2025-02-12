@@ -266,8 +266,6 @@ export function SingleUserFormFields<T extends FieldValues>({
     name: 'corrector.cycles' as FieldPath<T>,
   }) as CorrectorCycles
 
-  console.log(form.getValues())
-
   return (
     <>
       <FormField

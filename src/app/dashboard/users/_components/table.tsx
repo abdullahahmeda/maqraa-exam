@@ -44,6 +44,7 @@ import {
 import { enUserRoleToAr, userRoleMapping } from '~/utils/users'
 import { Badge } from '~/components/ui/badge'
 import set from 'lodash.set'
+import { useSession } from 'next-auth/react'
 
 type Row = Selectable<User> & {
   cycles: (Selectable<UserCycle> & { cycle: Selectable<Cycle> | null })[]
@@ -51,12 +52,14 @@ type Row = Selectable<User> & {
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const router = useRouter()
-
+  const { data: session } = useSession()
   const utils = api.useUtils()
 
   const [open, setOpen] = useState(false)
 
   const mutation = api.user.delete.useMutation()
+
+  const canEditOrDelete = session?.user?.role === 'SUPER_ADMIN' || (row.original.role !== 'SUPER_ADMIN' && session?.user?.role === 'ADMIN')
 
   useEffect(() => {
     router.prefetch(`/dashboard/users/edit/${row.original.id}`)
@@ -85,10 +88,12 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
         }}
         deleteButton={{
           onClick: () => setOpen(true),
+          className: canEditOrDelete ? 'hover:bg-red-100' : 'hidden'
         }}
         editButton={{
           onClick: () =>
             router.push(`/dashboard/users/edit/${row.original.id}`),
+          className: canEditOrDelete ? 'hover:bg-orange-100' : 'hidden'
         }}
       />
       <AlertDialog open={open} onOpenChange={setOpen}>

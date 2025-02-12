@@ -38,7 +38,6 @@ export const DatePicker = ({
       </PopoverTrigger>
       <PopoverContent className='w-auto p-0' align='start'>
         <Calendar
-          initialFocus
           selected={selected}
           onSelect={(
             day: Date | undefined,
