@@ -6,7 +6,7 @@ type Params = { id: string }
 
 export async function generateMetadata({ params }: { params: Params }) {
   const siteName = await api.setting.getSiteName()
-  const course = await api.course.get({ id: params.id })
+  const course = await api.course.getEdit({ id: params.id })
 
   return {
     title: `تعديل مقرر ${course?.name} | ${siteName}`,
@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Params }) {
 }
 
 export default async function EditCoursePage({ params }: { params: Params }) {
-  const course = await api.course.get({ id: params.id })
+  const course = await api.course.getEdit({ id: params.id })
 
   if (!course) return notFound()
 

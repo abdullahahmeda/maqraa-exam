@@ -15,7 +15,7 @@ export default function EditCourseModal() {
   const router = useRouter()
   const params = useParams()
 
-  const { data: course } = api.course.get.useQuery({ id: params?.id as string })
+  const { data: course } = api.course.getEdit.useQuery({ id: params?.id as string })
 
   return (
     <Dialog

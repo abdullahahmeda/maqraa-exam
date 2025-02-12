@@ -18,7 +18,7 @@ export default async function CoursesPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const courses = await api.course.list({
+  const courses = await api.course.getTableList({
     pagination: {
       pageIndex,
       pageSize: 50,

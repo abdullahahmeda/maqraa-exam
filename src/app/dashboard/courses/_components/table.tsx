@@ -190,7 +190,7 @@ export const CoursesTable = ({
     {},
   )
 
-  const { data: courses, isFetching } = api.course.list.useQuery(
+  const { data: courses, isFetching } = api.course.getTableList.useQuery(
     { pagination, filters },
     { initialData, refetchOnMount: false },
   )

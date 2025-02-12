@@ -6,3 +6,4 @@ export const listCourseSchema = z.object({
   filters: filtersSchema.optional(),
   pagination: paginationSchema.optional(),
 })
+export type ListCourseSchema = z.infer<typeof listCourseSchema>
