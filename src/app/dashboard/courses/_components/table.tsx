@@ -53,7 +53,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
     const promise = mutation.mutateAsync(id)
 
     void promise.then(() => {
-      void utils.course.list.invalidate()
+      void utils.course.getTableList.invalidate()
     })
 
     toast.promise(promise, {
