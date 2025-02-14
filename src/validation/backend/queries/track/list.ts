@@ -7,3 +7,4 @@ export const listTrackSchema = z.object({
   include: includeSchema.optional(),
   pagination: paginationSchema.optional(),
 })
+export type ListTrackSchema = z.infer<typeof listTrackSchema>

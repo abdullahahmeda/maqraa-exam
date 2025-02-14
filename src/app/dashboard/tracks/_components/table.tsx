@@ -54,7 +54,7 @@ const RowActionCell = ({ row }: { row: { original: Track } }) => {
     const promise = mutation.mutateAsync(id)
 
     void promise.then(() => {
-      void utils.track.list.invalidate()
+      void utils.track.getTableList.invalidate()
     })
 
     toast.promise(promise, {
@@ -220,7 +220,7 @@ export const TracksTable = ({
     {},
   )
 
-  const { data: tracks, isFetching } = api.track.list.useQuery(
+  const { data: tracks, isFetching } = api.track.getTableList.useQuery(
     { pagination, filters, include: { course: true } },
     { initialData, refetchOnMount: false },
   )

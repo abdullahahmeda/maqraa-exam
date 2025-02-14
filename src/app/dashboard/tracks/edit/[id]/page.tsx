@@ -6,7 +6,7 @@ type Params = { id: string }
 
 export async function generateMetadata({ params }: { params: Params }) {
   const siteName = await api.setting.getSiteName()
-  const track = await api.track.get({ id: params.id })
+  const track = await api.track.getEdit({ id: params.id })
 
   return {
     title: `تعديل مسار ${track?.name} | ${siteName}`,
@@ -14,7 +14,7 @@ export async function generateMetadata({ params }: { params: Params }) {
 }
 
 export default async function EditTrackPage({ params }: { params: Params }) {
-  const track = await api.track.get({ id: params.id })
+  const track = await api.track.getEdit({ id: params.id })
   const courses = await api.course.list()
 
   if (!track) return notFound()

@@ -14,7 +14,7 @@ import { Spinner } from '~/components/ui/spinner'
 export default function EditTrackModal() {
   const router = useRouter()
   const params = useParams()
-  const { data: track } = api.track.get.useQuery({ id: params?.id as string })
+  const { data: track } = api.track.getEdit.useQuery({ id: params?.id as string })
   const { data: courses } = api.course.list.useQuery()
   return (
     <Dialog

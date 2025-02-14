@@ -18,7 +18,7 @@ export default async function TracksPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const tracks = await api.track.list({
+  const tracks = await api.track.getTableList({
     pagination: { pageIndex, pageSize: 50 },
     include: { course: true },
   })
