@@ -56,7 +56,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
     const promise = mutation.mutateAsync(id)
 
     void promise.then(() => {
-      void utils.curriculum.list.invalidate()
+      void utils.curriculum.getTableList.invalidate()
     })
 
     toast.promise(promise, {
@@ -232,7 +232,7 @@ export const CurriculaTable = ({
     {},
   )
 
-  const { data: curricula, isFetching } = api.curriculum.list.useQuery(
+  const { data: curricula, isFetching } = api.curriculum.getTableList.useQuery(
     { pagination, filters, include: { track: { course: true } } },
     // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },

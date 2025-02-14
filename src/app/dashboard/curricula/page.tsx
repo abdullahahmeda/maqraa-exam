@@ -18,7 +18,7 @@ export default async function CurriculaPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const curricula = await api.curriculum.list({
+  const curricula = await api.curriculum.getTableList({
     pagination: { pageIndex, pageSize: 50 },
     include: { track: { course: true } },
   })

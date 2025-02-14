@@ -7,3 +7,4 @@ export const listCurriculumSchema = z.object({
   include: includeSchema.optional(),
   pagination: paginationSchema.optional(),
 })
+export type ListCurriculumSchema = z.infer<typeof listCurriculumSchema>
