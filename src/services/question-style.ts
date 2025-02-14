@@ -12,6 +12,11 @@ export function applyQuestionStylesFilters(filters: FiltersSchema | undefined) {
   }
 }
 
+export async function getAllQuestionStyles() {
+  const data = await db.selectFrom('QuestionStyle').selectAll().execute()
+  return data
+}
+
 export function deleteQuestionStyles(ids: string | string[] | undefined) {
   let query = db.deleteFrom('QuestionStyle')
   if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])

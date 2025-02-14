@@ -11,14 +11,11 @@ export async function generateMetadata() {
 }
 
 const QuestionPage = async ({ params }: { params: { id: string } }) => {
-  const question = await api.question.get({
-    id: params.id,
-    include: { course: true, style: true },
-  })
+  const question = await api.question.getShow({ id: params.id })
 
   if (!question) return notFound()
 
-  return <ViewOne question={question} />
+  return <div className='p-4 rounded-lg bg-white border'><ViewOne question={question} /></div>
 }
 
 export default QuestionPage

@@ -8,84 +8,46 @@ import { importQuestionsSchema } from '~/validation/importQuestionsSchema'
 import { getSpreadsheetIdFromURL } from '~/utils/strings'
 import { TRPCError } from '@trpc/server'
 import { GaxiosError } from 'gaxios'
-import { db } from '~/server/db'
 import { enDifficultyToAr, enTypeToAr } from '~/utils/questions'
-import { exportSheet, importFromGoogleSheet } from '~/services/sheet'
+import { exportSheet } from '~/services/sheet'
 import { type QuestionType } from '~/kysely/enums'
-import { type AnyColumn, sql } from 'kysely'
-import type { DB } from '~/kysely/types'
 import {
-  applyQuestionsFilters,
-  applyQuestionsInclude,
+  getQuestionsTableList,
+  getInfiniteQuestionsList,
+  getShowQuestion,
+  getExportQuestions,
   deleteQuestions,
+  importQuestions,
+  loadQuestionsGoogleSheet,
   listRandomQuestions,
 } from '~/services/question'
 import { filtersSchema } from '~/validation/backend/queries/question'
 import { listQuestionSchema } from '~/validation/backend/queries/question/list'
-import { applyPagination } from '~/utils/db'
-import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { infiniteListQuestionSchema } from '~/validation/backend/queries/question/infinite-list'
 import { getQuestionSchema } from '~/validation/backend/queries/question/get'
-import { importedQuestionSchema } from '~/validation/importedQuestionSchema'
 import { listRandomQuestionsSchema } from '~/validation/backend/queries/question/list-random'
+import { getAllQuestionStyles } from '~/services/question-style'
 
 export const questionRouter = createTRPCRouter({
   list: protectedProcedure
     .input(listQuestionSchema.optional())
-    .query(async ({ ctx, input }) => {
-      const where = await applyQuestionsFilters(input?.filters)
-
-      const count = Number(
-        (
-          await ctx.db
-            .selectFrom('Question')
-            .select(({ fn }) => fn.count<string>('id').as('count'))
-            .where(where)
-            .executeTakeFirstOrThrow()
-        ).count,
-      )
-
-      const query = applyPagination(
-        ctx.db
-          .selectFrom('Question')
-          .selectAll()
-          .select(applyQuestionsInclude(input?.include))
-          .where(where),
-        input?.pagination,
-      )
-
-      const rows = await query.execute()
-
-      return {
-        data: rows,
-        count,
-      }
+    .query(async ({ input }) => {
+      const data = await getQuestionsTableList(input)
+      return data
     }),
 
-  infiniteList: protectedProcedure
+  getTableList: protectedProcedure
+    .input(listQuestionSchema.optional())
+    .query(async ({ input }) => {
+      const data = await getQuestionsTableList(input)
+      return data
+    }),
+
+  getInfiniteList: protectedProcedure
     .input(infiniteListQuestionSchema.optional())
-    .query(async ({ ctx, input }) => {
-      const limit = 100 // default limit
-      const where = await applyQuestionsFilters(input?.filters)
-      let query = ctx.db
-        .selectFrom('Question')
-        .selectAll()
-        .select(applyQuestionsInclude(input?.include))
-        .where(where)
-        .limit(limit + 1)
-      if (input?.cursor) query = query.where('id', '>', input.cursor)
-      const questions = await query.execute()
-
-      let nextCursor: string | undefined = undefined
-      if (questions.length > limit) {
-        const nextItem = questions.pop() as { id: string }
-        nextCursor = nextItem.id
-      }
-
-      return {
-        data: questions,
-        nextCursor,
-      }
+    .query(async ({ input }) => {
+      const data = await getInfiniteQuestionsList(input)
+      return data
     }),
 
   listRandom: publicProcedure
@@ -95,64 +57,34 @@ export const questionRouter = createTRPCRouter({
       return rows
     }),
 
-  get: protectedProcedure
+  getShow: protectedProcedure
     .input(getQuestionSchema)
-    .query(async ({ input, ctx }) => {
-      const query = ctx.db
-        .selectFrom('Question')
-        .selectAll('Question')
-        .select(applyQuestionsInclude(input.include))
-        .where('Question.id', '=', input.id)
-
-      return query.executeTakeFirst()
+    .query(async ({ input }) => {
+      const data = await getShowQuestion(input.id)
+      return data
     }),
 
   import: protectedProcedure
     .input(importQuestionsSchema)
-    .mutation(async ({ ctx, input }) => {
+    .mutation(async ({ input }) => {
       const { url, sheetName, courseId } = input
       const spreadsheetId = getSpreadsheetIdFromURL(url)!
 
-      const questionStyles = (
-        await db.selectFrom('QuestionStyle').selectAll().execute()
-      ).reduce((acc, s) => ({ ...acc, [s.name]: s }), {}) as Record<
+      const questionStyles = (await getAllQuestionStyles()).reduce(
+        (acc, s) => ({ ...acc, [s.name]: s }),
+        {},
+      ) as Record<
         string,
         { id: string; type: QuestionType; columnChoices: string[] }
       >
 
       let data
       try {
-        data = await importFromGoogleSheet({
+        data = await loadQuestionsGoogleSheet({
           spreadsheetId,
           sheetName,
-          mapper: (row) => ({
-            number: row[0],
-            pageNumber: row[1],
-            partNumber: row[2],
-            hadithNumber: row[3],
-            type: row[4],
-            styleName: row[5],
-            difficulty: row[6],
-            text: row[7],
-            textForTrue: row[8],
-            textForFalse: row[9],
-            option1: row[10],
-            option2: row[11],
-            option3: row[12],
-            option4: row[13],
-            answer: row[14],
-            anotherAnswer: row[15],
-            isInsideShaded: row[16],
-            objective: row[17],
-            courseId,
-            questionStyles,
-          }),
-          validationSchema: importedQuestionSchema.transform((d) => ({
-            ...d,
-            questionStyles: undefined,
-            styleName: undefined,
-            styleId: questionStyles[d.styleName]!.id,
-          })),
+          courseId,
+          questionStyles
         })
       } catch (error) {
         if (error instanceof GaxiosError) {
@@ -187,84 +119,20 @@ export const questionRouter = createTRPCRouter({
         })
       }
 
-      const columns: AnyColumn<DB, 'Question'>[] = [
-        'number',
-        'pageNumber',
-        'partNumber',
-        'hadithNumber',
-        'type',
-        'styleId',
-        'difficulty',
-        'text',
-        'textForTrue',
-        'textForFalse',
-        'option1',
-        'option2',
-        'option3',
-        'option4',
-        'answer',
-        'anotherAnswer',
-        'isInsideShaded',
-        'objective',
-        'courseId',
-      ]
-
-      const rows = columns.map((col) =>
-        data.map((d) => d[col as keyof typeof d]),
-      )
-
-      await ctx.db
-        .insertInto('Question')
-        .columns(columns)
-        .expression(
-          () =>
-            sql`select * from unnest(
-              ${rows[0]}::integer[], 
-              ${rows[1]}::integer[],
-              ${rows[2]}::integer[],
-              ${rows[3]}::integer[],
-              ${rows[4]}::"QuestionType"[],
-              ${rows[5]}::text[],
-              ${rows[6]}::"QuestionDifficulty"[],
-              ${rows[7]}::text[],
-              ${rows[8]}::text[],
-              ${rows[9]}::text[],
-              ${rows[10]}::text[],
-              ${rows[11]}::text[],
-              ${rows[12]}::text[],
-              ${rows[13]}::text[],
-              ${rows[14]}::text[],
-              ${rows[15]}::text[],
-              ${rows[16]}::boolean[],
-              ${rows[17]}::text[],
-              ${rows[18]}::text[])`,
-        )
-        .execute()
+      await importQuestions(data)
       return true
     }),
 
   export: protectedProcedure
     .input(z.object({ filters: filtersSchema }).optional())
-    .mutation(async ({ input, ctx }) => {
+    .mutation(async ({ ctx }) => {
       if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
         })
-
-      const questions = await ctx.db
-        .selectFrom('Question')
-        .selectAll('Question')
-        .select((eb) =>
-          jsonObjectFrom(
-            eb
-              .selectFrom('QuestionStyle')
-              .selectAll('QuestionStyle')
-              .whereRef('Question.styleId', '=', 'QuestionStyle.id'),
-          ).as('style'),
-        )
-        .orderBy('number asc')
-        .execute()
+      // TODO: implement filtering
+      const questions = await getExportQuestions()
 
       return exportSheet(questions, (q) => ({
         'رقم السؤال': q.number,

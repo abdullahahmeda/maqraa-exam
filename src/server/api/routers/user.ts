@@ -15,7 +15,7 @@ import { compareSync, hashSync } from 'bcryptjs'
 import { forgotPasswordSchema } from '~/validation/forgotPasswordSchema'
 import { add } from 'date-fns'
 import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
-import { importFromGoogleSheet } from '~/services/sheet'
+import { loadGoogleSheet } from '~/services/sheet'
 import { Client } from '@upstash/qstash'
 import { env } from '~/env.js'
 import { sleep } from '~/utils/sleep'
@@ -178,7 +178,7 @@ export const userRouter = createTRPCRouter({
       }[]
       try {
         // const rows = await getRowsFromSheet(spreadsheetId, sheetName)
-        data = await importFromGoogleSheet({
+        data = await loadGoogleSheet({
           spreadsheetId,
           sheetName,
           mapper: (row) => ({

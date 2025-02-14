@@ -46,6 +46,11 @@ export const QuestionFormFields = <T extends FieldValues>({
 }: FormProps<T>) => {
   return (
     <>
+      <p>
+        <a target="_blank" className={buttonVariants({ variant: 'link' })} href='https://docs.google.com/spreadsheets/d/1p8nOkgeYW6aphlA7jp6hG3YULOAY3gwYi_wHRTJPsQ4/edit?usp=sharing'>
+          قالب فارغ للأسئلة
+        </a>
+      </p>
       <ImportFormFields
         form={form}
         fields={{

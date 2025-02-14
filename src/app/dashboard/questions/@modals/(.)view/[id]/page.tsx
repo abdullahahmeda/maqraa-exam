@@ -15,9 +15,8 @@ export default function ViewQuestionModal() {
   const params = useParams()
   const router = useRouter()
 
-  const { data: question } = api.question.get.useQuery({
+  const { data: question } = api.question.getShow.useQuery({
     id: params?.id as string,
-    include: { course: true, style: true },
   })
 
   return (

@@ -154,7 +154,7 @@ const columns: ColumnDef<Row>[] = [
     header: 'السؤال',
     cell: ({ row }) => (
       <Link
-        href={`/dashboard/questions/${row.original.modelQuestion?.question?.id}`}
+        href={`/dashboard/questions/view/${row.original.modelQuestion?.question?.id}`}
         className={buttonVariants({ variant: 'link' })}
       >
         عرض السؤال

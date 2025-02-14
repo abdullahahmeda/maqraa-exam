@@ -261,7 +261,7 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
     hasNextPage,
     refetch,
     isFetched,
-  } = api.question.infiniteList.useInfiniteQuery(
+  } = api.question.getInfiniteList.useInfiniteQuery(
     {
       filters: {
         courseId: filters.courseId,

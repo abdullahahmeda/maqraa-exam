@@ -6,3 +6,4 @@ export const infiniteListQuestionSchema = z.object({
   include: includeSchema.optional(),
   cursor: z.string().optional(),
 })
+export type InfiniteListQuestionSchema = z.infer<typeof infiniteListQuestionSchema>

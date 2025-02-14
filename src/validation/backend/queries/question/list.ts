@@ -7,3 +7,4 @@ export const listQuestionSchema = z.object({
   include: includeSchema.optional(),
   pagination: paginationSchema.optional(),
 })
+export type ListQuestionSchema = z.infer<typeof listQuestionSchema>

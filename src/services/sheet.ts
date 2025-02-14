@@ -41,7 +41,7 @@ export async function getRowsFromSheet(
   return response.data.values!
 }
 
-export async function importFromGoogleSheet<Z extends z.ZodType>({
+export async function loadGoogleSheet<Z extends z.ZodType>({
   spreadsheetId,
   sheetName,
   mapper,
