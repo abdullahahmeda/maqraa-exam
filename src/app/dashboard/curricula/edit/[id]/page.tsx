@@ -6,7 +6,7 @@ type Params = { id: string }
 
 export async function generateMetadata({ params }: { params: Params }) {
   const siteName = await api.setting.getSiteName()
-  const curriculum = await api.curriculum.get({ id: params.id })
+  const curriculum = await api.curriculum.getEdit({ id: params.id })
 
   return {
     title: `تعديل منهج ${curriculum?.name} | ${siteName}`,
@@ -18,7 +18,7 @@ export default async function EditCurriculumPage({
 }: {
   params: Params
 }) {
-  const curriculum = await api.curriculum.get({
+  const curriculum = await api.curriculum.getEdit({
     id: params.id,
     include: { parts: true },
   })

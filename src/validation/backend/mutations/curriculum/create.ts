@@ -43,3 +43,4 @@ export const createCurriculumSchema = z.object({
     )
     .min(1),
 })
+export type CreateCurriculumSchema = z.infer<typeof createCurriculumSchema>

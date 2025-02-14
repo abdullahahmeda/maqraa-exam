@@ -14,7 +14,7 @@ import { Spinner } from '~/components/ui/spinner'
 export default function EditCurriculumModal() {
   const router = useRouter()
   const params = useParams()
-  const { data: curriculum } = api.curriculum.get.useQuery({
+  const { data: curriculum } = api.curriculum.getEdit.useQuery({
     id: params?.id as string,
     include: { parts: true },
   })
