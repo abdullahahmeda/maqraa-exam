@@ -101,3 +101,28 @@ export function whereCanReadExam(session: Session) {
     return eb.and(conds)
   }
 }
+
+// export async function createExam({ students, modelId }) {
+//   return db.transaction().execute(async (trx) => {
+//           const systemExam = await trx
+//             .insertInto('SystemExam')
+//             .values({ ...data, defaultModelId: modelId })
+//             .returning('id')
+//             .executeTakeFirstOrThrow()
+//
+//           await trx
+//             .insertInto('Quiz')
+//             .values(
+//               students.map(({ id }) => ({
+//                 curriculumId: data.curriculumId,
+//                 modelId: model.id,
+//                 endsAt: data.endsAt,
+//                 type: data.type,
+//                 examineeId: id,
+//                 systemExamId: systemExam.id,
+//               })),
+//             )
+//             .execute()
+//
+//   })
+// }
