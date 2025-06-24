@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { paginationSchema } from '~/validation/pagination'
-import { filtersSchema, includeSchema } from './common'
+import { filtersSchema } from './common'
 
 export const listCycleSchema = z.object({
   filters: filtersSchema.optional(),
-  include: includeSchema.optional(),
   pagination: paginationSchema.optional(),
 })
+export type ListCycleSchema = z.infer<typeof listCycleSchema>

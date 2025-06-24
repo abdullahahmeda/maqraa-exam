@@ -13,9 +13,11 @@ import {
   applyExamsInclude,
   deleteExams,
   whereCanReadExam,
+  addStudentToExam,
 } from '~/services/exam'
 import { listExamsSchema } from '~/validation/backend/queries/exam/list'
 import { createExamSchema } from '~/validation/backend/mutations/exam/create'
+import { addStudentToExamSchema } from '~/validation/backend/mutations/exam/addStudentToExam'
 import { applyUsersFilters } from '~/services/user'
 import { applyQuestionsFilters } from '~/services/question'
 
@@ -190,6 +192,10 @@ export const examRouter = createTRPCRouter({
 
       return true
     }),
+
+  addStudentToExam: protectedProcedure.input(addStudentToExamSchema).mutation(async ({ ctx, input }) => {
+    void addStudentToExam(input)
+  }),
 
   list: protectedProcedure
     .input(listExamsSchema.optional())

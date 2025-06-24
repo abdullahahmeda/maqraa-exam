@@ -1,7 +1,6 @@
 'use client'
 
 import { BellIcon } from 'lucide-react'
-import { signOut } from 'next-auth/react'
 import { Button } from '~/components/ui/button'
 import { Notification } from '~/components/ui/notification'
 import {
@@ -27,8 +26,8 @@ export function Navbar({
   const utils = api.useUtils()
   const { data: notifications } = api.notification.fetch.useQuery(undefined, {
     initialData: initialNotifications,
-    refetchOnMount: true,
-    refetchOnWindowFocus: true,
+    refetchOnMount: false,
+    refetchOnWindowFocus: false,
     refetchInterval: 1000 * 60 * 5, // 5 mins
     refetchIntervalInBackground: true,
   })
@@ -93,12 +92,6 @@ export function Navbar({
               </Button>
             </PopoverContent>
           </Popover>
-          <Button
-            variant='outline'
-            onClick={() => signOut({ callbackUrl: '/' })}
-          >
-            تسجيل الخروج
-          </Button>
         </div>
       </div>
     </nav>

@@ -7,6 +7,7 @@ import {
   type IncludeSchema,
 } from '~/validation/backend/queries/exam/common'
 import { jsonObjectFrom } from 'kysely/helpers/postgres'
+import { type AddStudentToExamSchema } from '~/validation/backend/mutations/exam/addStudentToExam'
 
 export function applyExamsInclude(include: IncludeSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'SystemExam'>) => {
@@ -64,6 +65,22 @@ export function applyExamsInclude(include: IncludeSchema | undefined) {
         : []),
     ]
   }
+}
+
+export function getExam(id: string) {
+  return db.selectFrom('SystemExam').selectAll().where('id', '=', id).executeTakeFirst()
+}
+
+export async function addStudentToExam({ userId, examId }: AddStudentToExamSchema) {
+  const exam = await getExam(examId)
+  if (!exam) throw new Error('Exam not found')
+  return db.insertInto('Quiz').values({
+    type: exam.type,
+    examineeId: userId,
+    curriculumId: exam.curriculumId,
+    systemExamId: examId,
+    modelId: exam.defaultModelId
+  }).execute()
 }
 
 export function applyExamsFilters(filters: FiltersSchema | undefined) {

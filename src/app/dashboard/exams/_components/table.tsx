@@ -52,7 +52,6 @@ import {
   enTypeToAr as enExamTypeToAr,
 } from '~/utils/exams'
 import { formatDistanceToNow } from 'date-fns'
-import Link from 'next/link'
 import { buttonVariants } from '~/components/ui/button'
 import { useSession } from 'next-auth/react'
 
@@ -164,12 +163,12 @@ const columns: ColumnDef<Row>[] = [
     accessorKey: 'name',
     header: 'الإختبار',
     cell: ({ row }) => (
-      <Link
+      <a
         href={`/dashboard/exams/${row.original.id}`}
         className={buttonVariants({ variant: 'link' })}
       >
         {row.original.name}
-      </Link>
+      </a>
     ),
   },
   {
@@ -250,7 +249,7 @@ const columns: ColumnDef<Row>[] = [
     accessorKey: 'cycle.name',
     id: 'cycleId',
     header: ({ column }) => {
-      const { data: cycles, isLoading } = api.cycle.list.useQuery()
+      const { data: cycles, isLoading } = api.cycle.getList.useQuery()
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -259,7 +258,7 @@ const columns: ColumnDef<Row>[] = [
           label='الدورة'
           filter={
             <Combobox
-              items={[{ name: 'الكل', id: '' }, ...(cycles?.data ?? [])]}
+              items={[{ name: 'الكل', id: '' }, ...(cycles ?? [])]}
               loading={isLoading}
               labelKey='name'
               valueKey='id'

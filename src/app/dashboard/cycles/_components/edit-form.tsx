@@ -18,11 +18,7 @@ export const EditCycleForm = ({
   cycle,
   curricula,
 }: {
-  cycle: Selectable<Cycle> & {
-    cycleCurricula: (Selectable<CycleCurriculum> & {
-      curriculum: Selectable<Curriculum> | null
-    })[]
-  }
+  cycle: { id: string; name: string; cycleCurricula: { curriculumName: string; curriculumId: string }[] }
   curricula: Selectable<Curriculum>[]
 }) => {
   const router = useRouter()
@@ -31,8 +27,8 @@ export const EditCycleForm = ({
     defaultValues: {
       ...cycle,
       curricula: cycle.cycleCurricula.map((c) => ({
-        label: c.curriculum?.name,
-        value: c.curriculum?.id,
+        label: c.curriculumName,
+        value: c.curriculumId,
       })),
     },
   })

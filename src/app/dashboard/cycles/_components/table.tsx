@@ -34,11 +34,7 @@ import { type Selectable } from 'kysely'
 import { DataTableActions } from '~/components/ui/data-table-actions'
 import { deleteRows } from '~/utils/client/deleteRows'
 
-type Row = Selectable<Cycle> & {
-  cycleCurricula: (Selectable<CycleCurriculum> & {
-    curriculum: Selectable<Curriculum> | null
-  })[]
-}
+type Row = { id: string; name: string; cycleCurricula: { curriculumName: string; curriculumId: string }[] }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const router = useRouter()
@@ -55,10 +51,6 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
 
   const deleteCycle = (id: string) => {
     const promise = mutation.mutateAsync(id)
-
-    void promise.then(() => {
-      void utils.cycle.list.invalidate()
-    })
 
     toast.promise(promise, {
       loading: 'جاري حذف الدورة...',
@@ -154,7 +146,7 @@ const columns: ColumnDef<Row>[] = [
   },
   {
     accessorFn: (row) =>
-      row.cycleCurricula?.map((c) => c.curriculum?.name).join('، '),
+      row.cycleCurricula?.map((c) => c.curriculumName).join('، '),
     id: 'cycleCurricula.curriculumId',
     header: 'المناهج',
   },
@@ -200,8 +192,8 @@ export const CyclesTable = ({
     {},
   )
 
-  const { data: cycles, isFetching } = api.cycle.list.useQuery(
-    { pagination, filters, include: { cycleCurricula: { curriculum: true } } },
+  const { data: cycles, isFetching } = api.cycle.getListForTable.useQuery(
+    { pagination, filters },
     { initialData, refetchOnMount: false },
   )
 

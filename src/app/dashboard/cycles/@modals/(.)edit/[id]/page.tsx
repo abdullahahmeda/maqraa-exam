@@ -13,10 +13,9 @@ import { Spinner } from '~/components/ui/spinner'
 
 export default function EditCycleModal() {
   const router = useRouter()
-  const params = useParams()
-  const { data: cycle } = api.cycle.get.useQuery({
-    id: params?.id as string,
-    include: { cycleCurricula: { curriculum: true } },
+  const params = useParams<{ id: string }>()
+  const { data: cycle } = api.cycle.getOneForEdit.useQuery({
+    id: params.id,
   })
   const { data: curricula } = api.curriculum.list.useQuery()
 

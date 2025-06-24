@@ -21,7 +21,7 @@ export default function EditCurriculumModal() {
       cycles: { curriculum: { track: { course: true } }, cycle: true },
     },
   })
-  const { data: cycles } = api.cycle.list.useQuery()
+  const { data: cycles } = api.cycle.getList.useQuery()
   const { data: session } = useSession()
 
   const doesNotHavePermissions =
@@ -44,7 +44,7 @@ export default function EditCurriculumModal() {
             {doesNotHavePermissions ? (
               <p>لا تملك الصلاحيات الكافية لذلك</p>
             ) : (
-              <EditUserForm user={user} cycles={cycles.data} />
+              <EditUserForm user={user} cycles={cycles} />
             )}
           </>
         ) : (

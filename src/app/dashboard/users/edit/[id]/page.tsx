@@ -25,7 +25,7 @@ export default async function EditCurriculumPage({
       cycles: { curriculum: { track: { course: true } }, cycle: true },
     },
   })
-  const cycles = await api.cycle.list()
+  const cycles = await api.cycle.getList()
   const session = await getServerAuthSession()
 
   if (!user) return notFound()
@@ -36,7 +36,7 @@ export default async function EditCurriculumPage({
     <div className='space-y-4'>
       <h2 className='text-3xl font-bold'>تعديل بيانات مستخدم</h2>
       <div className='rounded-lg bg-gray-100 p-4'>
-        <EditUserForm user={user} cycles={cycles.data} />
+        <EditUserForm user={user} cycles={cycles} />
       </div>
     </div>
   )

@@ -10,13 +10,13 @@ export async function generateMetadata() {
 }
 
 export default async function NewUserPage() {
-  const cycles = await api.cycle.list()
+  const cycles = await api.cycle.getList()
 
   return (
     <div className='space-y-4'>
       <h2 className='text-3xl font-bold'>إضافة مستخدم</h2>
       <div className='rounded-lg bg-gray-100 p-4'>
-        <NewUserForm cycles={cycles.data} />
+        <NewUserForm cycles={cycles} />
       </div>
     </div>
   )

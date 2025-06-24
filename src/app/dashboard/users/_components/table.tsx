@@ -238,7 +238,7 @@ const columns: ColumnDef<Row>[] = [
     accessorFn: (row) => row.cycles?.map((c) => c.cycle?.name).join('، '),
     id: 'userCycle.cycleId',
     header: ({ column }) => {
-      const { data: cycles, isLoading } = api.cycle.list.useQuery()
+      const { data: cycles, isLoading } = api.cycle.getList.useQuery()
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -247,7 +247,7 @@ const columns: ColumnDef<Row>[] = [
           label='الدورات'
           filter={
             <Combobox
-              items={[{ name: 'الكل', id: '' }, ...(cycles?.data ?? [])]}
+              items={[{ name: 'الكل', id: '' }, ...(cycles ?? [])]}
               loading={isLoading}
               labelKey='name'
               valueKey='id'

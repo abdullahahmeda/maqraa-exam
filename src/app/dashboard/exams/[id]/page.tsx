@@ -10,6 +10,8 @@ import { SubmissionChart } from './_components/submission-chart'
 import { notFound } from 'next/navigation'
 import { getServerAuthSession } from '~/server/auth'
 import { whereCanReadExam } from '~/services/exam'
+import Link from 'next/link'
+import { buttonVariants } from '~/components/ui/button'
 
 export const metadata = {
   title: 'إختبارات النظام',
@@ -120,6 +122,9 @@ const ExamsPage = async ({
     <div>
       <div className='mb-4 flex items-center gap-2'>
         <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
+        <Link href={`/dashboard/exams/${id}/add-student`} className={buttonVariants()}>
+        إضافة طالب
+        </Link>
       </div>
       <div className='mb-4 rounded-md bg-white p-4 border'>
         <p>

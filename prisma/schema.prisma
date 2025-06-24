@@ -223,8 +223,8 @@ model Quiz {
   correctorId  String?
   systemExamId String?
   modelId      String
-  corrector    User?         @relation("Quiz_corrector", fields: [correctorId], references: [id], onDelete: Cascade)
-  examinee     User?         @relation("Quiz_examinee", fields: [examineeId], references: [id], onDelete: Cascade)
+  corrector    User?         @relation("Quiz_corrector", fields: [correctorId], references: [id], onDelete: SetNull)
+  examinee     User?         @relation("Quiz_examinee", fields: [examineeId], references: [id], onDelete: SetNull)
   curriculum   Curriculum?   @relation(fields: [curriculumId], references: [id], onDelete: Cascade)
   systemExam   SystemExam?   @relation(fields: [systemExamId], references: [id], onDelete: Cascade)
   model        Model         @relation(fields: [modelId], references: [id], onDelete: Cascade)
@@ -237,6 +237,7 @@ model Quiz {
   @@index([correctorId])
   @@index([curriculumId])
   @@index([systemExamId])
+  @@unique([systemExamId, examineeId])
 }
 
 model QuestionsGroup {
@@ -269,7 +270,7 @@ model Answer {
 }
 
 model Cycle {
-  id          String            @id() @default(dbgenerated("gen_random_uuid()"))
+  id          String            @id()
   name        String
   users       UserCycle[]
   systemExams SystemExam[]

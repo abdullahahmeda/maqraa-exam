@@ -13,7 +13,7 @@ import { api } from '~/trpc/react'
 
 export default function NewUserModal() {
   const router = useRouter()
-  const { data: cycles } = api.cycle.list.useQuery()
+  const { data: cycles } = api.cycle.getList.useQuery()
 
   return (
     <Dialog
@@ -27,7 +27,7 @@ export default function NewUserModal() {
           <DialogTitle>إضافة مستخدم</DialogTitle>
         </DialogHeader>
         {!!cycles ? (
-          <NewUserForm cycles={cycles.data} />
+          <NewUserForm cycles={cycles} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

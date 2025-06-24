@@ -14,10 +14,8 @@ import { Spinner } from '~/components/ui/spinner'
 export default function NewExamModal() {
   const router = useRouter()
 
-  const { data: cycles } = api.cycle.list.useQuery()
+  const { data: cycles } = api.cycle.getList.useQuery()
   const { data: courses } = api.course.list.useQuery()
-
-  console.log(cycles, courses)
 
   return (
     <Dialog
@@ -31,7 +29,7 @@ export default function NewExamModal() {
           <DialogTitle>إضافة إختبار</DialogTitle>
         </DialogHeader>
         {!!cycles && !!courses ? (
-          <NewExamForm cycles={cycles.data} courses={courses.data} />
+          <NewExamForm cycles={cycles} courses={courses.data} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

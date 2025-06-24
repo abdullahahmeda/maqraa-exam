@@ -8,7 +8,7 @@ type Params = {
 
 export async function generateMetadata({ params }: { params: Params }) {
   const siteName = await api.setting.getSiteName()
-  const cycle = await api.cycle.get({ id: params.id })
+  const cycle = await api.cycle.getOne({ id: params.id })
 
   return {
     title: `تعديل دورة ${cycle?.name} | ${siteName}`,
@@ -16,10 +16,7 @@ export async function generateMetadata({ params }: { params: Params }) {
 }
 
 export default async function EditCyclePage({ params }: { params: Params }) {
-  const cycle = await api.cycle.get({
-    id: params.id,
-    include: { cycleCurricula: { curriculum: true } },
-  })
+  const cycle = await api.cycle.getOneForEdit({ id: params.id })
   if (!cycle) return notFound()
 
   const curricula = await api.curriculum.list()

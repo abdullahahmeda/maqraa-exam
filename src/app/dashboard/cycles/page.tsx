@@ -18,12 +18,11 @@ export default async function CyclesPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const cycles = await api.cycle.list({
+  const cycles = await api.cycle.getListForTable({
     pagination: {
       pageIndex,
       pageSize: 50,
     },
-    include: { cycleCurricula: { curriculum: true } },
   })
 
   return (

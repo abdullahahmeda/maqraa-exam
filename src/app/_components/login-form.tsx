@@ -2,8 +2,8 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { signIn } from 'next-auth/react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { useState } from 'react'
+// import { useRouter } from 'next/navigation'
+// import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { Button, buttonVariants } from '~/components/ui/button'
 import {
@@ -24,39 +24,40 @@ type FieldValues = {
 }
 
 export function LoginForm() {
-  const router = useRouter()
-  const [isLoading, setIsLoading] = useState(false)
+  // const router = useRouter()
+  // const [isLoading, setIsLoading] = useState(false)
 
   const form = useForm<FieldValues>({
     resolver: zodResolver(loginSchema),
   })
 
   const onSubmit = (data: FieldValues) => {
-    setIsLoading(true)
-    signIn('credentials', { ...data, redirect: false })
-      .then((response) => {
-        if (!response?.ok) {
-          if (response?.error === 'CredentialsSignin') {
-            form.setError('root.serverError', {
-              message: 'هذه البيانات غير صحيحة',
-            })
-          } else {
-            form.setError('root.serverError', {
-              message: 'حدث خطأ أثناء تسجيل الدخول، يرجى إعادة المحاولة',
-            })
-          }
-          return
-        }
-        router.push('/dashboard')
-      })
-      .catch(() => {
-        form.setError('root.serverError', {
-          message: 'حدث خطأ غير متوقع، تأكد من اتصال الإنترنت لديك',
-        })
-      })
-      .finally(() => {
-        setIsLoading(false)
-      })
+    // setIsLoading(true)
+    return signIn('credentials', { ...data, redirect: true })
+      // .then((response) => {
+      //   console.log(response)
+      //   if (!response?.ok) {
+      //     if (response?.error === 'CredentialsSignin') {
+      //       form.setError('root.serverError', {
+      //         message: 'هذه البيانات غير صحيحة',
+      //       })
+      //     } else {
+      //       form.setError('root.serverError', {
+      //         message: 'حدث خطأ أثناء تسجيل الدخول، يرجى إعادة المحاولة',
+      //       })
+      //     }
+      //     return
+      //   }
+      //   router.push('/dashboard')
+      // })
+      // .catch(() => {
+      //   form.setError('root.serverError', {
+      //     message: 'حدث خطأ غير متوقع، تأكد من اتصال الإنترنت لديك',
+      //   })
+      // })
+      // .finally(() => {
+      //   setIsLoading(false)
+      // })
   }
 
   return (
@@ -106,7 +107,7 @@ export function LoginForm() {
                 نسيت كلمة السر؟
               </Link>
             </div>
-            <Button className='mt-2' loading={isLoading}>
+            <Button className='mt-2'>
               تسجيل الدخول
             </Button>
           </div>

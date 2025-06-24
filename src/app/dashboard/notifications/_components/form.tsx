@@ -87,7 +87,7 @@ export const CreateNotificationForm = () => {
     enabled: ['allExcept', 'selected'].includes(toBase),
   })
 
-  const { data: cycles, isLoading: cyclesLoading } = api.cycle.list.useQuery(
+  const { data: cycles, isLoading: cyclesLoading } = api.cycle.getList.useQuery(
     undefined,
     {
       enabled: toBase === 'custom',
@@ -261,10 +261,10 @@ export const CreateNotificationForm = () => {
                                   value={field.value}
                                   onSelect={field.onChange}
                                   items={
-                                    cycles?.data
+                                    cycles
                                       ? [
                                           { name: 'الكل', id: 'all' },
-                                          ...cycles.data,
+                                          ...cycles,
                                         ]
                                       : []
                                   }
