@@ -38,20 +38,20 @@ export const Navbar = () => {
                   </p>
                 </li>
                 <li className='block font-bold'>
-                  <Link
+                  <a
                     href='/dashboard'
                     className={buttonVariants({ variant: 'link' })}
                   >
                     لوحة التحكم
-                  </Link>
+                  </a>
                 </li>
                 <li className='block font-bold'>
-                  <Link
+                  <a
                     href='/start-quiz'
                     className={buttonVariants({ variant: 'link' })}
                   >
                     بدأ إختبار تجريبي
-                  </Link>
+                  </a>
                 </li>
                 <li className='block font-bold'>
                   <button
@@ -65,20 +65,20 @@ export const Navbar = () => {
             ) : (
               <>
                 <li className='block font-bold'>
-                  <Link
+                  <a
                     href='/'
                     className={buttonVariants({ variant: 'link' })}
                   >
                     دخول
-                  </Link>
+                  </a>
                 </li>
                 <li className='block font-bold'>
-                  <Link
+                  <a
                     href='/start-quiz'
                     className={buttonVariants({ variant: 'link' })}
                   >
                     بدأ إختبار تجريبي
-                  </Link>
+                  </a>
                 </li>
               </>
             )}

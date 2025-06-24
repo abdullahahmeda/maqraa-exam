@@ -1,8 +1,7 @@
 'use client'
 
-import { BellIcon, MenuIcon } from 'lucide-react'
+import { BellIcon } from 'lucide-react'
 import { signOut } from 'next-auth/react'
-import { Badge } from '~/components/ui/badge'
 import { Button } from '~/components/ui/button'
 import { Notification } from '~/components/ui/notification'
 import {
@@ -12,14 +11,11 @@ import {
 } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
 import { api } from '~/trpc/react'
+import { SidebarTrigger } from '~/components/ui/sidebar'
 
 export function Navbar({
-  isOpen,
-  toggle,
   notifications: initialNotifications,
 }: {
-  isOpen: boolean
-  toggle: () => unknown
   notifications: {
     id: string
     body: string
@@ -48,17 +44,10 @@ export function Navbar({
   const notificationsNotRead = notifications.filter((n) => !n.isRead)
 
   return (
-    <nav className='fixed left-0 right-0 top-0 z-10 h-16 border-b bg-white'>
-      <div className='flex h-full items-center justify-between px-4'>
+    <nav className='h-16 border-b'>
+      <div className='px-3 flex h-full items-center justify-between'>
         <div className='flex items-center'>
-          <Button
-            onClick={toggle}
-            size='icon'
-            variant={isOpen ? 'secondary' : 'ghost'}
-            className='ml-4'
-          >
-            <MenuIcon className='h-6 w-6' />
-          </Button>
+        <SidebarTrigger className='ml-4' />
           <h1 className='text-lg font-bold'>لوحة التحكم</h1>
         </div>
         <div className='flex items-center mr-auto gap-2'>
