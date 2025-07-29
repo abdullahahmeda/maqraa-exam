@@ -13,7 +13,7 @@ import type {
   SystemExam,
 } from '~/kysely/types'
 import { useEffect, useState } from 'react'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { Checkbox } from '~/components/ui/checkbox'
 import { FilterHeader } from '~/components/ui/filter-header'
 import { type Selectable } from 'kysely'
@@ -263,16 +263,11 @@ const columns: ColumnDef<Row>[] = [
   },
 ]
 
-export const ExamsTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const ExamsTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const page = searchParams?.get('page')
-  const utils = api.useUtils()
 
   const [rowSelection, setRowSelection] = useState({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -296,9 +291,9 @@ export const ExamsTable = ({
     {},
   )
 
-  const { data: exams, isFetching } = api.exam.getTableList.useQuery(
+  const { data: exams, isFetching, isPending, isError } = api.exam.getTableList.useQuery(
     { pagination, filters },
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
 
   useEffect(() => {
@@ -308,6 +303,13 @@ export const ExamsTable = ({
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnFilters])
+
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
 
   const pageCount = Math.ceil(exams.count / pagination.pageSize)
 
@@ -325,6 +327,7 @@ export const ExamsTable = ({
       mutateAsync: deleteAllMutation.mutateAsync,
     })
   }
+
 
   return (
     <>

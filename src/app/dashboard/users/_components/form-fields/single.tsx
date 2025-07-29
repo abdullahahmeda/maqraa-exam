@@ -40,7 +40,7 @@ import {
 } from '~/components/ui/tooltip'
 import { type UserRole } from '~/kysely/enums'
 import type { Cycle } from '~/kysely/types'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { generateRandomPassword } from '~/utils/strings'
 import { userRoleMapping } from '~/utils/users'
 

@@ -16,6 +16,7 @@ import { Badge } from '~/components/ui/badge'
 import { cn } from '~/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 import { buttonVariants } from './button'
+import { PopoverPortal } from '@radix-ui/react-popover'
 
 export interface Option {
   value: string
@@ -113,7 +114,7 @@ function transToGroupOption(options: Option[], groupBy?: string) {
     if (!groupOption[key]) {
       groupOption[key] = []
     }
-    groupOption[key]!.push(option)
+    groupOption[key].push(option)
   })
   return groupOption
 }
@@ -354,7 +355,7 @@ const MultipleSelector = React.forwardRef<
 
     return (
       <div ref={containerRef}>
-        <Popover open={open} onOpenChange={setOpen}>
+        <Popover open={open} onOpenChange={setOpen} modal>
           <PopoverTrigger asChild>
             <div
               role='combobox'
@@ -398,7 +399,8 @@ const MultipleSelector = React.forwardRef<
               ))}
             </div>
           </PopoverTrigger>
-          <PopoverContent className='p-0' container={containerRef.current}>
+          <PopoverPortal container={containerRef.current}>
+          <PopoverContent className='p-0'>
             <Command
               {...commandProps}
               onKeyDown={(e) => {
@@ -501,6 +503,7 @@ const MultipleSelector = React.forwardRef<
               </CommandList>
             </Command>
           </PopoverContent>
+          </PopoverPortal>
         </Popover>
       </div>
     )

@@ -13,13 +13,13 @@ import {
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
 import { toast } from 'sonner'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { type TRPCError } from '@trpc/server'
 import { Spinner } from '~/components/ui/spinner'
 
 export function DeleteCurriculumButton({ id }: { id: string }) {
   const [open, setOpen] = useState(false)
-
+  const utils = api.useUtils()
   const mutation = api.curriculum.delete.useMutation()
 
   const deleteCurriculum = (id: string) => {
@@ -30,6 +30,11 @@ export function DeleteCurriculumButton({ id }: { id: string }) {
       success: 'تم حذف المنهج بنجاح',
       error: (error: unknown) =>
         (error as TRPCError).message ?? 'تعذر حذف المنهج',
+    })
+
+    void promise.finally(() => {
+      void utils.curriculum.invalidate()
+      void utils.course.getOneForShow.invalidate()
     })
   }
   return (

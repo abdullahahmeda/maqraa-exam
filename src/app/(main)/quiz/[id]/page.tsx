@@ -20,7 +20,8 @@ import { QuestionType } from '~/kysely/enums'
 
 export type Params = { id: string }
 
-export async function generateMetadata({ params }: { params: Params }) {
+export async function generateMetadata(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const quiz = await db
     .selectFrom('Quiz')
     .leftJoin('SystemExam', 'Quiz.systemExamId', 'SystemExam.id')
@@ -35,7 +36,8 @@ export async function generateMetadata({ params }: { params: Params }) {
   }
 }
 
-const QuizPage = async ({ params }: { params: Params }) => {
+const QuizPage = async (props: { params: Promise<Params> }) => {
+  const params = await props.params;
   const session = await getServerAuthSession()
 
   const quiz = await db

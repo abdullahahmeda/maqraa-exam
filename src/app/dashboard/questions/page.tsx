@@ -1,6 +1,6 @@
 import { buttonVariants } from '~/components/ui/button'
 import { PlusIcon } from 'lucide-react'
-import { api } from '~/trpc/server'
+import { api, HydrateClient } from '~/trpc/server'
 import Link from 'next/link'
 import { QuestionsTable } from './_components/table'
 import { type Selectable } from 'kysely'
@@ -17,15 +17,16 @@ export async function generateMetadata() {
   }
 }
 
-export default async function QuestionsPage({
-  searchParams,
-}: {
-  searchParams: { page?: string }
-}) {
+export default async function QuestionsPage(
+  props: {
+    searchParams: Promise<{ page?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const questions = await getQuestionList({ 
-    pagination: { pageIndex, pageSize: 50, },
-  }, 'table')
+  await api.question.getTableList.prefetch({ 
+    pagination: { pageIndex, pageSize: 50, }, filters: {}
+  })
 
   const styles = await api.questionStyle.list(undefined)
 
@@ -34,7 +35,7 @@ export default async function QuestionsPage({
     {},
   ) as Record<string, Selectable<QuestionStyle>>
   return (
-    <>
+    <HydrateClient>
       <div className='mb-4 flex items-center'>
         <h2 className='ml-4 text-2xl font-bold'>الأسئلة</h2>
         <Link
@@ -48,9 +49,9 @@ export default async function QuestionsPage({
       </div>
       <DeleteModalProvider>
       <ViewModalProvider>
-      <QuestionsTable initialData={questions} questionStyles={questionStyles} />
+      <QuestionsTable questionStyles={questionStyles} />
       </ViewModalProvider>
       </DeleteModalProvider>
-    </>
+    </HydrateClient>
   )
 }

@@ -40,7 +40,7 @@ export const questionRouter = createTRPCRouter({
     }),
 
   getInfiniteList: protectedProcedure
-    .input(infiniteListQuestionSchema.optional())
+    .input(infiniteListQuestionSchema)
     .query(async ({ input }) => {
       return getQuestionList(input, 'infinite')
     }),

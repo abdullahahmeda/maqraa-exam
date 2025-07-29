@@ -9,7 +9,7 @@ import {
 import { NewUserForm } from '../../_components/new-form'
 import { useRouter } from 'next/navigation'
 import { Spinner } from '~/components/ui/spinner'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 
 export default function NewUserModal() {
   const router = useRouter()

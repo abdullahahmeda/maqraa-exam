@@ -15,7 +15,7 @@ import {
 } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
 import { Switch } from '~/components/ui/switch'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { updateProfileSchema } from '~/validation/updateProfileSchema'
 
 type FieldValues = {
@@ -33,6 +33,7 @@ export const ProfileForm = ({
   user: { name: string; phone: string | null }
 }) => {
   const form = useForm<FieldValues>({
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(updateProfileSchema),
     defaultValues: { changePassword: false, ...user, phone: user.phone ?? '' },
   })

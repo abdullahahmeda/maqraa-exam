@@ -14,11 +14,12 @@ export async function generateMetadata() {
   }
 }
 
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: { callbackUrl?: string }
-}) {
+export default async function LoginPage(
+  props: {
+    searchParams: Promise<{ callbackUrl?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
   const session = await getServerAuthSession()
 
   if (session?.user) return redirect('/dashboard')

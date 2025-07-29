@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Spinner } from '~/components/ui/spinner'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { EditCurriculumForm } from '../../curricula/_components/edit-form'
 
 export function EditCurriculumButton({ id }: { id: string }) {

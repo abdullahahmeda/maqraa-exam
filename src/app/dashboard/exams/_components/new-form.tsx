@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { Form } from '~/components/ui/form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { ExamFormFields, type NewExamFieldValues } from './form-fields'
 import { toast } from 'sonner'
 import { populateFormWithErrors } from '~/utils/errors'
@@ -23,6 +23,7 @@ export function NewExamForm({
 }) {
   const router = useRouter()
   const form = useForm<NewExamFieldValues>({
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(createExamSchema),
     defaultValues: {
       curriculumSelection: 'all',

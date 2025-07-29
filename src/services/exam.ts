@@ -9,7 +9,7 @@ import { type AddStudentToExamSchema } from '~/validation/backend/mutations/exam
 import { applyPagination } from '~/utils/db'
 
 export async function getExamList(
-  input: (ListExamsSchema & { user?: User }) | undefined,
+  input: { user: User } & (ListExamsSchema | undefined),
   context: 'table',
 ) {
   switch (context) {
@@ -21,7 +21,7 @@ export async function getExamList(
 async function _getExamTableList({
   user,
   ...input
-}?: ListExamsSchema & { user?: User }) {
+}: { user: User } & (ListExamsSchema | undefined)) {
   const where = applyExamsFilters(input?.filters)
 
   const count = Number(
@@ -70,7 +70,10 @@ export async function getExam(
   { id }: { id: string },
   context?: 'base',
 ): ReturnType<typeof _getExam>
-export async function getExam({ id, user }: { id: string; user?: User | undefined }, context: 'show' | 'base' = 'base') {
+export async function getExam(
+  { id, user }: { id: string; user?: User | undefined },
+  context: 'show' | 'base' = 'base',
+) {
   switch (context) {
     case 'show':
       return _getExamDataForShow({ id, user })
@@ -88,7 +91,13 @@ function _getExam({ id }: { id: string }) {
     .executeTakeFirst()
 }
 
-function _getExamDataForShow({ id, user }: { id: string; user: User | undefined }) {
+function _getExamDataForShow({
+  id,
+  user,
+}: {
+  id: string
+  user: User | undefined
+}) {
   return db
     .selectFrom('SystemExam')
     .where('SystemExam.id', '=', id)
@@ -165,7 +174,7 @@ export async function getExamStats({ id }: { id: string }) {
     submittedQuizCount,
     correctedQuizCount,
     avgStats,
-    submissionsDates
+    submissionsDates,
   }
 }
 

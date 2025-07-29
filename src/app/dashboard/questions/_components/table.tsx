@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import { Spinner } from '~/components/ui/spinner'
 import { type TRPCError } from '@trpc/server'
@@ -480,10 +480,8 @@ const columns: ColumnDef<Row>[] = [
 ]
 
 export const QuestionsTable = ({
-  initialData,
   questionStyles,
 }: {
-  initialData: { data: Row[]; count: number }
   questionStyles: Record<string, Selectable<QuestionStyle>>
 }) => {
   const router = useRouter()
@@ -516,9 +514,9 @@ export const QuestionsTable = ({
     {},
   )
 
-  const { data: questions, isFetching } = api.question.getTableList.useQuery(
+  const { data: questions, isFetching, isPending, isError } = api.question.getTableList.useQuery(
     { pagination, filters },
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
 
   useEffect(() => {
@@ -527,6 +525,13 @@ export const QuestionsTable = ({
       pageSize,
     }))
   }, [columnFilters])
+  
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
 
   const pageCount = Math.ceil(questions.count / pagination.pageSize)
 
@@ -535,7 +540,6 @@ export const QuestionsTable = ({
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -543,7 +547,6 @@ export const QuestionsTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 

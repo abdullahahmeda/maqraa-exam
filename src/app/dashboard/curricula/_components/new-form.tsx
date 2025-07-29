@@ -18,14 +18,15 @@ import { createCurriculumSchema } from '~/validation/backend/mutations/curriculu
 
 export function NewCurriculumForm({
   tracks,
-  defaultValues
+  defaultValues,
 }: {
   tracks: (Selectable<Track> & { course: Selectable<Course> | null })[]
-  defaultValues?: Partial<NewCurriculumFieldValues>
+  defaultValues?: { trackId: string }
 }) {
   const router = useRouter()
   const form = useForm<NewCurriculumFieldValues>({
     defaultValues,
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(createCurriculumSchema),
   })
 

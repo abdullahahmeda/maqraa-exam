@@ -1,8 +1,8 @@
-import { buttonVariants } from '~/components/ui/button'
-import { PlusIcon } from 'lucide-react'
-import { api } from '~/trpc/server'
-import Link from 'next/link'
+import { api, HydrateClient } from '~/trpc/server'
 import { CyclesTable } from './_components/table'
+import { AddCycleButton } from './_components/add-cycle-button'
+import { DeleteModalProvider } from './_components/delete-modal'
+import { EditModalProvider } from './_components/edit-modal'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -12,33 +12,30 @@ export async function generateMetadata() {
   }
 }
 
-export default async function CyclesPage({
-  searchParams,
-}: {
-  searchParams: { page?: string }
+export default async function CyclesPage(props: {
+  searchParams: Promise<{ page?: string }>
 }) {
+  const searchParams = await props.searchParams
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const cycles = await api.cycle.getListForTable({
+  await api.cycle.getTableList.prefetch({
     pagination: {
       pageIndex,
       pageSize: 50,
     },
+    filters: {},
   })
 
   return (
-    <>
+    <HydrateClient>
       <div className='mb-4 flex items-center'>
         <h2 className='ml-4 text-2xl font-bold'>الدورات</h2>
-        <Link
-          className={buttonVariants()}
-          href='/dashboard/cycles/new'
-          prefetch
-        >
-          <PlusIcon className='ml-2 h-4 w-4' />
-          إضافة دورة
-        </Link>
+        <AddCycleButton />
       </div>
-      <CyclesTable initialData={cycles} />
-    </>
+      <EditModalProvider>
+        <DeleteModalProvider>
+          <CyclesTable />
+        </DeleteModalProvider>
+      </EditModalProvider>
+    </HydrateClient>
   )
 }

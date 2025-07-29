@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { Spinner } from '~/components/ui/spinner'
 import { type ReactNode, createContext, useState, useContext } from 'react'
 import { Badge } from '~/components/ui/badge'
@@ -17,7 +17,7 @@ type Id = undefined | string
 
 const ModalContext = createContext({
   questionId: undefined as Id,
-  setQuestionId: (_id: Id) => {},
+  setQuestionId: (_id: Id) => { return; },
 })
 
 export function useViewModal() {

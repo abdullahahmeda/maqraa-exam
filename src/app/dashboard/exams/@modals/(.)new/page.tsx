@@ -8,7 +8,7 @@ import {
 } from '~/components/ui/dialog'
 import { NewExamForm } from '../../_components/new-form'
 import { useRouter } from 'next/navigation'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { Spinner } from '~/components/ui/spinner'
 
 export default function NewExamModal() {

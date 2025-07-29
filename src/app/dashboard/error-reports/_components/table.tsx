@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import { Spinner } from '~/components/ui/spinner'
 import { type TRPCError } from '@trpc/server'
@@ -178,11 +178,7 @@ const columns: ColumnDef<Row>[] = [
   },
 ]
 
-export const ErrorReportsTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const ErrorReportsTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -208,7 +204,7 @@ export const ErrorReportsTable = ({
   const bulkDeleteMutation = api.errorReport.bulkDelete.useMutation()
   const deleteAllMutation = api.errorReport.deleteAll.useMutation()
 
-  const { data: errorReports, isFetching } = api.errorReport.list.useQuery(
+  const { data: errorReports, isFetching, isPending, isError } = api.errorReport.list.useQuery(
     {
       pagination,
       include: {
@@ -218,8 +214,16 @@ export const ErrorReportsTable = ({
         },
       },
     },
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
+
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
+
 
   const pageCount = Math.ceil(errorReports.count / pagination.pageSize)
 
@@ -228,7 +232,6 @@ export const ErrorReportsTable = ({
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -236,7 +239,6 @@ export const ErrorReportsTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 

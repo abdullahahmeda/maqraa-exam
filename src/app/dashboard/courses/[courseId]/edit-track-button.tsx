@@ -9,13 +9,13 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Spinner } from '~/components/ui/spinner'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { EditTrackForm } from '../../tracks/_components/edit-form'
 
 export function EditTrackButton({ id }: { id: string }) {
   const [modalOpen, setModalOpen] = useState(false)
-  const { data: track, isLoading: isTrackLoading } = api.track.getEdit.useQuery({ id }, { enabled: modalOpen })
-  const { data: courses, isLoading: isCoursesLoading } = api.course.getList.useQuery()
+  const { data: track, isPending: isTrackLoading } = api.track.getEdit.useQuery({ id }, { enabled: modalOpen })
+  const { data: courses, isPending: isCoursesLoading } = api.course.getList.useQuery()
   const isLoading = isTrackLoading || isCoursesLoading
   return (
     <>
@@ -30,7 +30,7 @@ export function EditTrackButton({ id }: { id: string }) {
             <DialogTitle>تعديل المسار</DialogTitle>
           </DialogHeader>
           {!isLoading ? (
-            <EditTrackForm track={track!} courses={courses} />
+            <EditTrackForm track={track!} courses={courses!} />
           ) : (
             <div className='flex justify-center'>
               <Spinner className='h-4 w-4' />

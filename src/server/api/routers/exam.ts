@@ -5,13 +5,10 @@ import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
 import { z } from 'zod'
-import { applyPagination } from '~/utils/db'
-import { type ExpressionBuilder, sql } from 'kysely'
-import type { DB } from '~/kysely/types'
+import {  sql } from 'kysely'
 import {
   getExamList,
   deleteExams,
-  whereCanReadExam,
   addStudentToExam,
 } from '~/services/exam'
 import { listExamsSchema } from '~/validation/backend/queries/exam/list'

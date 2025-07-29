@@ -45,7 +45,7 @@ export const courseRouter = createTRPCRouter({
       return getCourseList(undefined, 'grid')
     }),
 
-  getDataForShow: adminProcedure.input(getCourseSchema).query(async ({ input }) => {
+  getOneForShow: adminProcedure.input(getCourseSchema).query(async ({ input }) => {
     const data = getCourseDataForShow(input.id)
     return data
   }),

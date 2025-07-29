@@ -5,7 +5,8 @@ import { getServerAuthSession } from '~/server/auth'
 
 type Params = { id: string }
 
-export async function generateMetadata({ params }: { params: Params }) {
+export async function generateMetadata(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const siteName = await api.setting.getSiteName()
   const user = await api.user.get({ id: params.id })
 
@@ -14,11 +15,12 @@ export async function generateMetadata({ params }: { params: Params }) {
   }
 }
 
-export default async function EditCurriculumPage({
-  params,
-}: {
-  params: Params
-}) {
+export default async function EditCurriculumPage(
+  props: {
+    params: Promise<Params>
+  }
+) {
+  const params = await props.params;
   const user = await api.user.get({
     id: params.id,
     include: {

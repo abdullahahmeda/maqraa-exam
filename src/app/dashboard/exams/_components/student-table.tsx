@@ -7,14 +7,12 @@ import {
   type PaginationState,
 } from '@tanstack/react-table'
 import { type Selectable } from 'kysely'
-import { FileCheck2Icon, LinkIcon, LogInIcon, EyeIcon } from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import { LogInIcon, EyeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { Badge } from '~/components/ui/badge'
-import { Button, buttonVariants } from '~/components/ui/button'
+import { buttonVariants } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
 import {
   Tooltip,
@@ -22,9 +20,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import type { Model, Quiz, SystemExam, User } from '~/kysely/types'
+import type { Quiz } from '~/kysely/types'
 import { cn } from '~/lib/utils'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 
@@ -128,7 +126,7 @@ const columns = [
   }),
   columnHelper.accessor('correctorName', {
     header: 'المصحح',
-    cell: (info) => info.getValue() || '-',
+    cell: (info) => info.getValue() ?? '-',
     meta: {
       textAlign: 'center',
     },
@@ -143,11 +141,7 @@ const columns = [
   }),
 ]
 
-export const StudentQuizzesTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const StudentQuizzesTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -172,12 +166,17 @@ export const StudentQuizzesTable = ({
     {},
   )
 
-  const { data: quizzes, isFetching } = api.quiz.getTableListForStudent.useQuery(
+  const {
+    data: quizzes,
+    isFetching,
+    isPending,
+    isError,
+  } = api.quiz.getTableListForStudent.useQuery(
     {
       pagination,
       filters: { ...filters, systemExamId: 'not_null' },
     },
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
 
   useEffect(() => {
@@ -187,6 +186,13 @@ export const StudentQuizzesTable = ({
     }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnFilters])
+
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
 
   const pageCount = Math.ceil(quizzes.count / pagination.pageSize)
 

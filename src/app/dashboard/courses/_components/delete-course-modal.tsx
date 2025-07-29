@@ -10,17 +10,18 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { Spinner } from '~/components/ui/spinner'
 import { toast } from 'sonner'
+import { type TRPCError } from '@trpc/server'
 
 export function DeleteCourseModal({ id, setOpen }: { id: string | undefined; setOpen: () => void }) {
   const utils = api.useUtils()
 
   const mutation = api.course.delete.useMutation()
 
-  const deleteCourse = (id: string) => {
-    const promise = mutation.mutateAsync(id as string)
+  const deleteCourse = () => {
+    const promise = mutation.mutateAsync(id!)
 
     toast.promise(promise, {
       loading: 'جاري حذف المقرر...',
@@ -28,7 +29,7 @@ export function DeleteCourseModal({ id, setOpen }: { id: string | undefined; set
       error: (error: unknown) =>
         (error as TRPCError).message ?? 'تعذر حذف المقرر',
     })
-    promise.finally(() => void utils.course.invalidate())
+    void promise.finally(() => void utils.course.invalidate())
   }
   return (
     <AlertDialog open={id != undefined} onOpenChange={setOpen}>
@@ -41,7 +42,7 @@ export function DeleteCourseModal({ id, setOpen }: { id: string | undefined; set
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>إلغاء</AlertDialogCancel>
-          <AlertDialogAction onClick={() => deleteCourse(id)}>
+          <AlertDialogAction onClick={deleteCourse}>
             {mutation.isPending && <Spinner className='ml-2 h-4 w-4' />}
             حذف
           </AlertDialogAction>

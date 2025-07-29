@@ -26,7 +26,8 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
+import { AddCourseButton } from './add-course-button'
 
 export type NewQuestionFieldValues = {
   url: string
@@ -84,16 +85,7 @@ export const QuestionFormFields = <T extends FieldValues>({
               <TooltipProvider delayDuration={100}>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Link
-                      className={buttonVariants({
-                        size: 'icon',
-                        variant: 'secondary',
-                      })}
-                      href='/dashboard/courses/new'
-                      prefetch
-                    >
-                      <PlusIcon className='h-4 w-4' />
-                    </Link>
+                  <AddCourseButton />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>إنشاء مقرر</p>

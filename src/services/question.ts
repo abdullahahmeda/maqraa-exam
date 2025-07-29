@@ -110,7 +110,7 @@ export async function applyQuestionsFilters(
 export async function getQuestionList(input: ListQuestionSchema | undefined, context: 'table'): ReturnType<typeof _getQuestionTableList>
 export async function getQuestionList(input: ListRandomQuestionsSchema, context: 'random'): ReturnType<typeof _getRandomQuestionList>
 export async function getQuestionList(input: InfiniteListQuestionSchema, context: 'infinite'): ReturnType<typeof _getInfiniteQuestionList>
-export async function getQuestionList(input: ListQuestionSchema | InfiniteListQuestionSchema | ListRandomQuestionsSchema | undefined, context: 'table' | 'random' | 'infinte') {
+export async function getQuestionList(input: ListQuestionSchema | InfiniteListQuestionSchema | ListRandomQuestionsSchema | undefined, context: 'table' | 'random' | 'infinite') {
   switch (context) {
     case 'table':
       return _getQuestionTableList(input as ListQuestionSchema | undefined)
@@ -161,7 +161,7 @@ async function _getInfiniteQuestionList(
     .selectFrom('Question')
     .selectAll('Question')
     .innerJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
-    .select(['QuestionStyle.name'])
+    .select(['QuestionStyle.name as styleName'])
     .where(where)
     .limit(limit + 1)
   if (input?.cursor) query = query.where('id', '>', input.cursor)

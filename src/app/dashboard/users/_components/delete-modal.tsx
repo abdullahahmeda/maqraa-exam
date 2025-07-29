@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { Spinner } from '~/components/ui/spinner'
 import { type ReactNode, createContext, useState, useContext } from 'react'
 import { toast } from 'sonner'
@@ -20,7 +20,7 @@ type Id = undefined | string
 
 const ModalContext = createContext({
   userId: undefined as Id,
-  setUserId: (_id: Id) => {},
+  setUserId: (_id: Id) => { return; },
 })
 
 export function useDeleteModal() {
@@ -85,7 +85,7 @@ function Modal({
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>إلغاء</AlertDialogCancel>
-          <AlertDialogAction onClick={() => deleteUser(id!)}>
+          <AlertDialogAction onClick={deleteUser}>
             {mutation.isPending && <Spinner className='ml-2 h-4 w-4' />}
             حذف
           </AlertDialogAction>

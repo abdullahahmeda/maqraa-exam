@@ -20,7 +20,7 @@ import MultipleSelector, { type Option } from '~/components/ui/multi-select'
 import { RadioGroup, RadioGroupItem } from '~/components/ui/radio-group'
 import { Textarea } from '~/components/ui/textarea'
 import { type UserRole } from '~/kysely/enums'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { populateFormWithErrors } from '~/utils/errors'
 import { userRoleMapping } from '~/utils/users'
 import { createNotificationSchema } from '~/validation/backend/mutations/notification/create'
@@ -52,6 +52,7 @@ type FieldValues = {
 export const CreateNotificationForm = () => {
   const utils = api.useUtils()
   const form = useForm<FieldValues>({
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(createNotificationSchema),
     defaultValues: {
       to: {

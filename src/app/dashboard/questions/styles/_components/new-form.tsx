@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { Form } from '~/components/ui/form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import {
   QuestionStyleFormFields,
   type NewQuestionStyleFieldValues,

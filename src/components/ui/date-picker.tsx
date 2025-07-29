@@ -1,14 +1,16 @@
+'use client'
+
 import { Popover, PopoverContent, PopoverTrigger } from './popover'
 import { Button } from './button'
 import { Calendar } from './calendar'
 import { CalendarIcon } from 'lucide-react'
 import { cn } from '~/lib/utils'
-import type { ActiveModifiers, DayPickerSingleProps } from 'react-day-picker'
+import type { DayPickerSingleProps, Modifiers, PropsBase as DayPickerBaseProps } from 'react-day-picker'
 import { format } from 'date-fns'
-import { type MouseEvent as ReactMouseEvent, useState } from 'react'
-import { arSA} from 'date-fns/locale'
+import { type MouseEvent as ReactMouseEvent, type KeyboardEvent as ReactKeyboardEvent, useState } from 'react'
+import { arSA } from 'date-fns/locale'
 
-type Props = DayPickerSingleProps & { placeholder?: string }
+type Props = DayPickerSingleProps & Pick<DayPickerBaseProps, 'disabled' | 'locale'> & { placeholder?: string }
 
 export const DatePicker = ({
   selected,
@@ -42,8 +44,8 @@ export const DatePicker = ({
           onSelect={(
             day: Date | undefined,
             selectedDay: Date,
-            activeModifiers: ActiveModifiers,
-            e: ReactMouseEvent<Element, MouseEvent>,
+            activeModifiers: Modifiers,
+            e: ReactMouseEvent | ReactKeyboardEvent,
           ) => {
             if (onSelect) {
               onSelect(day, selectedDay, activeModifiers, e)

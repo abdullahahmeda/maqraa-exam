@@ -65,15 +65,15 @@ export function whereCanReadQuiz(user: User | undefined) {
 }
 
 export async function getQuizList(
-  input: ListQuizSchema & { user: User },
+  input: { user: User } & (ListQuizSchema | undefined),
   context: 'exam-table',
 ) : ReturnType<typeof _getQuizTableListForExam>
 export async function getQuizList(
-  input: ListQuizSchema & { user: User },
+  input: { user: User } & (ListQuizSchema | undefined),
   context: 'student-table',
 ) : ReturnType<typeof _getQuizTableListForStudent>
 export async function getQuizList(
-  input: ListQuizSchema & { user: User },
+  input: { user: User } & (ListQuizSchema | undefined),
   context: 'exam-table' | 'student-table',
 ) {
   switch (context) {
@@ -84,7 +84,7 @@ export async function getQuizList(
   }
 }
 async function _getQuizTableListForStudent(
-  { user, ...input }: (ListQuizSchema & { user: User | undefined }) | undefined,
+  { user, ...input }: { user: User } & (ListQuizSchema | undefined),
 ) {
   const where = applyFilters(input?.filters)
 
@@ -125,7 +125,7 @@ async function _getQuizTableListForStudent(
 }
 
 async function _getQuizTableListForExam(
-  { user, ...input }: (ListQuizSchema & { user: User | undefined }) | undefined,
+  { user, ...input }: { user: User } & (ListQuizSchema | undefined),
 ) {
   const where = applyFilters(input?.filters)
 

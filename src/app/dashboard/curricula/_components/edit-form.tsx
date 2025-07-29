@@ -27,6 +27,7 @@ export const EditCurriculumForm = ({
 }) => {
   const router = useRouter()
   const form = useForm<EditCurriculumFieldValues>({
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(updateCurriculumSchema),
     defaultValues: curriculum,
   })

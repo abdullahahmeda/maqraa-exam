@@ -28,9 +28,9 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import type { Model, Quiz, SystemExam, User } from '~/kysely/types'
+import type { Quiz, SystemExam } from '~/kysely/types'
 import { cn } from '~/lib/utils'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 import { saveAs } from 'file-saver'
@@ -257,7 +257,7 @@ const columns = [
   }),
   columnHelper.accessor('correctorName', {
     header: 'المصحح',
-    cell: (info) => info.getValue() || '-',
+    cell: (info) => info.getValue() ?? '-',
     meta: {
       textAlign: 'center',
     },
@@ -283,7 +283,6 @@ export const ExamTable = ({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const page = searchParams?.get('page')
-  const utils = api.useUtils()
 
   const [rowSelection, setRowSelection] = useState({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])

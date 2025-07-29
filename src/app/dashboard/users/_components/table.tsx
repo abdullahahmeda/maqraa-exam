@@ -11,11 +11,7 @@ import { DataTable } from '~/components/ui/data-table'
 import { RowActions } from '~/components/ui/row-actions'
 import type { User, UserCycle, Cycle } from '~/kysely/types'
 import { useCallback, useEffect, useState } from 'react'
-import { api } from '~/trpc/react'
-import { toast } from 'sonner'
-import { Spinner } from '~/components/ui/spinner'
-import { type TRPCError } from '@trpc/server'
-// import { ExportCollectionTypesButton } from './export-button'
+import { api } from '~/utils/api'
 import { Checkbox } from '~/components/ui/checkbox'
 import { FilterHeader } from '~/components/ui/filter-header'
 import { Input } from '~/components/ui/input'
@@ -48,27 +44,28 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const { setUserId: openViewUserModal } = useViewModal()
   const { setUserId: openDeleteUserModal } = useDeleteModal()
 
-  const canEditOrDelete = session?.user?.role === 'SUPER_ADMIN' || (row.original.role !== 'SUPER_ADMIN' && session?.user?.role === 'ADMIN')
+  const canEditOrDelete =
+    session?.user?.role === 'SUPER_ADMIN' ||
+    (row.original.role !== 'SUPER_ADMIN' && session?.user?.role === 'ADMIN')
 
   useEffect(() => {
     router.prefetch(`/dashboard/users/edit/${row.original.id}`)
   }, [router, row.original.id])
 
-
   return (
     <>
       <RowActions
         infoButton={{
-          onClick: () => openViewUserModal(row.original.id)
+          onClick: () => openViewUserModal(row.original.id),
         }}
         deleteButton={{
           onClick: () => openDeleteUserModal(row.original.id),
-          className: canEditOrDelete ? 'hover:bg-red-100' : 'hidden'
+          className: canEditOrDelete ? 'hover:bg-red-100' : 'hidden',
         }}
         editButton={{
           onClick: () =>
             router.push(`/dashboard/users/edit/${row.original.id}`),
-          className: canEditOrDelete ? 'hover:bg-orange-100' : 'hidden'
+          className: canEditOrDelete ? 'hover:bg-orange-100' : 'hidden',
         }}
       />
     </>
@@ -228,16 +225,11 @@ const columns: ColumnDef<Row>[] = [
   },
 ]
 
-export const UsersTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const UsersTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const page = searchParams?.get('page')
-  const utils = api.useUtils()
 
   const [rowSelection, setRowSelection] = useState({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -245,7 +237,6 @@ export const UsersTable = ({
     pageIndex: Math.max((Number(page) || 1) - 1, 0),
     pageSize: 50,
   }
-
 
   const setPagination: OnChangeFn<PaginationState> = (updater) => {
     const params = new URLSearchParams(searchParams?.toString())
@@ -261,12 +252,24 @@ export const UsersTable = ({
     return set(acc, id, value)
   }, {})
 
-  const { data: user, isFetching } = api.user.getTableList.useQuery(
+  const {
+    data: users,
+    isPending,
+    isError,
+    isFetching,
+  } = api.user.getTableList.useQuery(
     { pagination, filters },
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
 
-  const pageCount = Math.ceil(user.count / pagination.pageSize)
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
+
+  const pageCount = Math.ceil(users.count / pagination.pageSize)
 
   const selectedRows = Object.keys(rowSelection)
 
@@ -289,13 +292,13 @@ export const UsersTable = ({
         <DataTableActions
           deleteAll={{
             handle: handleDeleteAll,
-            data: { disabled: user?.count === 0 },
+            data: { disabled: users?.count === 0 },
           }}
           bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
         />
       </div>
       <DataTable
-        data={user.data}
+        data={users.data}
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { EditUserForm } from '../../../_components/edit-form'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { useParams, useRouter } from 'next/navigation'
 import { Spinner } from '~/components/ui/spinner'
 import { useSession } from 'next-auth/react'

@@ -24,13 +24,19 @@ type SearchParams = {
   page?: string
 }
 
-const ExamsPage = async ({
-  params: { id },
-  searchParams,
-}: {
-  params: Params
-  searchParams: SearchParams
-}) => {
+const ExamsPage = async (
+  props: {
+    params: Promise<Params>
+    searchParams: Promise<SearchParams>
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
+
+  const {
+    id
+  } = params;
+
   const session = (await getServerAuthSession())!
   if (session.user.role === 'STUDENT') notFound()
 

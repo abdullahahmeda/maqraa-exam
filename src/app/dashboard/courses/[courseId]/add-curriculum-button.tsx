@@ -9,7 +9,7 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { Spinner } from '~/components/ui/spinner'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { NewCurriculumForm } from '../../curricula/_components/new-form'
 import {
   Tooltip,

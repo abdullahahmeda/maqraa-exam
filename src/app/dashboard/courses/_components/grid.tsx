@@ -1,8 +1,6 @@
 'use client'
 
-import { api } from '~/trpc/react'
-import type { Course } from '~/kysely/types'
-import { type Selectable } from 'kysely'
+import { api } from '~/utils/api'
 import { BookOpenIcon, TrashIcon, EditIcon } from 'lucide-react'
 import { Button, buttonVariants } from '~/components/ui/button'
 import { cn } from '~/lib/utils'
@@ -10,13 +8,11 @@ import { useState } from 'react'
 import { DeleteCourseModal } from './delete-course-modal'
 import { EditCourseModal } from './edit-course-modal'
 
-type Row = Selectable<Course>
 
-export function CoursesGrid({ initialData }: { initialData: Row[] }) {
+export function CoursesGrid() {
   const [courseToDelete, setCourseToDelete] = useState<string | undefined>()
   const [courseToEdit, setCourseToEdit] = useState<string | undefined>()
   const { data: courses } = api.course.getGridList.useQuery(undefined, {
-    initialData,
     refetchOnMount: false,
   })
 
@@ -34,7 +30,7 @@ export function CoursesGrid({ initialData }: { initialData: Row[] }) {
             <BookOpenIcon className='mx-auto w-10 h-10' />
             <h4 className='text-center'>{course.name}</h4>
           </a>
-          <div className='flex gap-2 justify-center items-end px-4'>
+          <div className='flex gap-2 mt-4 justify-center items-end px-4'>
             <Button onClick={() => setCourseToEdit(course.id)}>
               <EditIcon className='h-4 w-4 ml-2' />
               تعديل

@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { resetPasswordSchema } from '~/validation/resetPasswordSchema'
 
 type FieldValues = {

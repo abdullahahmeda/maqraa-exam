@@ -9,7 +9,7 @@ import {
   PopoverTrigger,
 } from '~/components/ui/popover'
 import { Separator } from '~/components/ui/separator'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { SidebarTrigger } from '~/components/ui/sidebar'
 
 export function Navbar({

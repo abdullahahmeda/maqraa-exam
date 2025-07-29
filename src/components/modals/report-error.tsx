@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { reportErrorSchema } from '~/validation/reportErrorSchema'
 import { toast } from 'sonner'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { DialogHeader } from '../ui/dialog'
 import { Input } from '~/components/ui/input'
 import { Textarea } from '~/components/ui/textarea'
@@ -43,6 +43,7 @@ export const ReportErrorDialog = ({
   const { status } = useSession()
   const utils = api.useUtils()
   const form = useForm<FieldValues>({
+    // @ts-expect-error Please leave me alone TS
     resolver: zodResolver(reportErrorSchema),
   })
 

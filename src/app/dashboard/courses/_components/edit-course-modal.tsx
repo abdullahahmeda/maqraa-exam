@@ -7,22 +7,20 @@ import {
   DialogTitle,
 } from '~/components/ui/dialog'
 import { EditCourseForm } from './edit-form'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { Spinner } from '~/components/ui/spinner'
 
 function Content({ id }: { id: string }) {
   const {
     data: course,
-    isLoading,
+    isPending,
     isError,
-  } = api.course.getEdit.useQuery(
-    { id },
-    { enabled: id != undefined },
-  )
+  } = api.course.getEdit.useQuery({ id }, { enabled: id != undefined })
+
   if (isError) {
     return <p className='text-red-600'>حدث خطأ أثناء تحميل البيانات</p>
   }
-  if (isLoading) {
+  if (isPending) {
     return (
       <div className='flex justify-center'>
         <Spinner className='h-4 w-4' />

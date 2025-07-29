@@ -2,7 +2,7 @@
 
 import { formatDistanceToNow } from 'date-fns'
 import { ar } from 'date-fns/locale'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { cn } from '~/lib/utils'
 import { useRouter } from 'next/navigation'
 import { LinkIcon } from 'lucide-react'

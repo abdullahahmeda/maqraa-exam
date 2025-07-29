@@ -51,7 +51,7 @@ import {
 } from '~/components/ui/tooltip'
 import { QuestionDifficulty, QuestionType, QuizType } from '~/kysely/enums'
 import type { Course, Cycle, Question } from '~/kysely/types'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { difficultyMapping, typeMapping } from '~/utils/questions'
 
 export type Group = {
