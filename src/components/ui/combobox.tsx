@@ -88,6 +88,12 @@ export const Combobox = <T,>({
         <PopoverContent
           className={cn('p-0', popoverClassName)}
           style={{ width: triggerRef.current?.clientWidth }}
+onWheel={(e) => {
+    e.stopPropagation();
+  }}
+  onTouchMove={(e) => {
+    e.stopPropagation();
+  }}
         >
           <Command shouldFilter={false}>
             <CommandInput

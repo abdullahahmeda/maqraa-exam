@@ -17,7 +17,7 @@ export default function EditCycleModal() {
   const { data: cycle } = api.cycle.getOneForEdit.useQuery({
     id: params.id,
   })
-  const { data: curricula } = api.curriculum.list.useQuery()
+  const { data: curricula } = api.curriculum.getList.useQuery()
 
   return (
     <Dialog
@@ -31,7 +31,7 @@ export default function EditCycleModal() {
           <DialogTitle>تعديل دورة</DialogTitle>
         </DialogHeader>
         {!!cycle && !!curricula ? (
-          <EditCycleForm cycle={cycle} curricula={curricula.data} />
+          <EditCycleForm cycle={cycle} curricula={curricula} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

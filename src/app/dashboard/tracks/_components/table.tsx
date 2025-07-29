@@ -153,7 +153,7 @@ const columns: ColumnDef<Track>[] = [
     accessorKey: 'course.name',
     id: 'courseId',
     header: ({ column }) => {
-      const { data: courses, isLoading } = api.course.list.useQuery()
+      const { data: courses, isLoading } = api.course.getList.useQuery()
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -162,7 +162,7 @@ const columns: ColumnDef<Track>[] = [
           label='المقرر'
           filter={
             <Combobox
-              items={[{ name: 'الكل', id: '' }, ...(courses?.data ?? [])]}
+              items={[{ name: 'الكل', id: '' }, ...(courses ?? [])]}
               loading={isLoading}
               labelKey='name'
               valueKey='id'

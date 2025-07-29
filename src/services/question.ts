@@ -11,7 +11,6 @@ import type { CurriculumPart, DB } from '~/kysely/types'
 import { db } from '~/server/db'
 import { applyPagination } from '~/utils/db'
 import {
-  type IncludeSchema,
   type FiltersSchema,
 } from '~/validation/backend/queries/question/common'
 import { InfiniteListQuestionSchema } from '~/validation/backend/queries/question/infinite-list'
@@ -107,7 +106,22 @@ export async function applyQuestionsFilters(
   }
 }
 
-export async function getQuestionsTableList(input?: ListQuestionSchema) {
+
+export async function getQuestionList(input: ListQuestionSchema | undefined, context: 'table'): ReturnType<typeof _getQuestionTableList>
+export async function getQuestionList(input: ListRandomQuestionsSchema, context: 'random'): ReturnType<typeof _getRandomQuestionList>
+export async function getQuestionList(input: InfiniteListQuestionSchema, context: 'infinite'): ReturnType<typeof _getInfiniteQuestionList>
+export async function getQuestionList(input: ListQuestionSchema | InfiniteListQuestionSchema | ListRandomQuestionsSchema | undefined, context: 'table' | 'random' | 'infinte') {
+  switch (context) {
+    case 'table':
+      return _getQuestionTableList(input as ListQuestionSchema | undefined)
+    case 'random':
+      return _getRandomQuestionList(input as ListRandomQuestionsSchema)
+    case 'infinite':
+      return _getInfiniteQuestionList(input as InfiniteListQuestionSchema)
+  }
+}
+
+async function _getQuestionTableList(input?: ListQuestionSchema) {
   const where = await applyQuestionsFilters(input?.filters)
 
   const count = Number(
@@ -123,8 +137,9 @@ export async function getQuestionsTableList(input?: ListQuestionSchema) {
   const query = applyPagination(
     db
       .selectFrom('Question')
-      .selectAll()
-      .select(applyQuestionsInclude(input?.include))
+      .innerJoin('Course', 'Course.id', 'Question.courseId')
+      .selectAll('Question')
+      .select(['Course.name as courseName'])
       .where(where),
     input?.pagination,
   )
@@ -137,15 +152,16 @@ export async function getQuestionsTableList(input?: ListQuestionSchema) {
   }
 }
 
-export async function getInfiniteQuestionsList(
+async function _getInfiniteQuestionList(
   input?: InfiniteListQuestionSchema,
 ) {
   const limit = 100 // default limit
   const where = await applyQuestionsFilters(input?.filters)
   let query = db
     .selectFrom('Question')
-    .selectAll()
-    .select(applyQuestionsInclude(input?.include))
+    .selectAll('Question')
+    .innerJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
+    .select(['QuestionStyle.name'])
     .where(where)
     .limit(limit + 1)
   if (input?.cursor) query = query.where('id', '>', input.cursor)
@@ -176,6 +192,27 @@ export async function getQuestionShow(id: string) {
     .where('Question.id', '=', id)
     .executeTakeFirst()
   return question
+}
+
+export async function getOneQuestion(id: string, context: 'show') {
+  return db
+    .selectFrom('Question')
+    .selectAll('Question')
+    .select((eb) => [
+      jsonObjectFrom(
+        eb
+          .selectFrom('Course')
+          .selectAll('Course')
+          .whereRef('Question.courseId', '=', 'Course.id'),
+      ).$notNull().as('course'),
+      jsonObjectFrom(
+        eb
+          .selectFrom('QuestionStyle')
+          .selectAll('QuestionStyle')
+          .whereRef('Question.styleId', '=', 'QuestionStyle.id'),
+      ).$notNull().as('style'),
+    ])
+    .where('Question.id', '=', id).executeTakeFirst()
 }
 
 export async function getShowQuestion(id: string) {
@@ -321,33 +358,6 @@ export async function getExportQuestions() {
   return questions
 }
 
-export function applyQuestionsInclude(include: IncludeSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'Question'>) => {
-    return [
-      ...(include?.course
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('Course')
-                .selectAll('Course')
-                .whereRef('Question.courseId', '=', 'Course.id'),
-            ).as('course'),
-          ]
-        : []),
-      ...(include?.style
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('QuestionStyle')
-                .selectAll('QuestionStyle')
-                .whereRef('Question.styleId', '=', 'QuestionStyle.id'),
-            ).as('style'),
-          ]
-        : []),
-    ]
-  }
-}
-
 export function deleteQuestions(ids: string | string[] | undefined) {
   let query = db.deleteFrom('Question')
   if (ids !== undefined)
@@ -355,12 +365,13 @@ export function deleteQuestions(ids: string | string[] | undefined) {
   return query.execute()
 }
 
-export async function listRandomQuestions(input: ListRandomQuestionsSchema) {
+async function _getRandomQuestionList(input: ListRandomQuestionsSchema) {
   const where = await applyQuestionsFilters(input.filters)
   return db
     .selectFrom('Question')
     .selectAll('Question')
-    .select(applyQuestionsInclude(input.include))
+    .innerJoin('QuestionStyle', 'Question.styleId', 'QuestionStyle.id')
+    .select(['QuestionStyle.name as styleName'])
     .where(where)
     .limit(input.limit)
     .orderBy(sql`RANDOM()`)

@@ -280,6 +280,7 @@ model Cycle {
 model Course {
   id        String     @id() @default(dbgenerated("gen_random_uuid()"))
   name      String     @unique
+  note String?
   tracks    Track[]
   questions Question[]
 

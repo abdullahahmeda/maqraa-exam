@@ -12,14 +12,19 @@ import { Button } from '~/components/ui/button'
 import { type Course } from '~/kysely/types'
 import { type Selectable } from 'kysely'
 import { createTrackSchema } from '~/validation/backend/mutations/track/create'
+import { useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 
 export function NewTrackForm({ courses }: { courses: Selectable<Course>[] }) {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const form = useForm<NewTrackFieldValues>({
+    defaultValues: {
+      courseId: searchParams.get('courseId')
+    },
     resolver: zodResolver(createTrackSchema),
   })
 
-  const utils = api.useUtils()
   const mutation = api.track.create.useMutation({
     onError(error) {
       toast.error(error.message ?? 'حدث خطأ غير متوقع')
@@ -27,7 +32,6 @@ export function NewTrackForm({ courses }: { courses: Selectable<Course>[] }) {
     },
     onSuccess() {
       toast.success('تم إضافة المسار بنجاح')
-      void utils.track.invalidate()
 
       if (history.state === null) router.push('/dashboard/tracks')
       else router.back()

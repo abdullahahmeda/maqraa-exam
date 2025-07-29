@@ -29,9 +29,9 @@ import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 
 export type Row = Selectable<Quiz> & {
-  corrector: Selectable<User> | null
-  systemExam: Selectable<SystemExam> | null
-  model: Selectable<Model> | null
+  correctorName: string | null
+  systemExamName: string
+  modelTotal: number
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
@@ -68,7 +68,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
 const columnHelper = createColumnHelper<Row>()
 
 const columns = [
-  columnHelper.accessor('systemExam.name', {
+  columnHelper.accessor('systemExamName', {
     header: 'الإختبار',
     meta: {
       textAlign: 'center',
@@ -80,9 +80,9 @@ const columns = [
       typeof getValue() === 'number'
         ? `${
             !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-          }${getValue()} من ${row.original.model?.total} (${percentage(
+          }${getValue()} من ${row.original.modelTotal} (${percentage(
             getValue()!,
-            row.original.model!.total,
+            row.original.modelTotal,
           )}%)`
         : '-',
   }),
@@ -126,7 +126,7 @@ const columns = [
       textAlign: 'center',
     },
   }),
-  columnHelper.accessor('corrector.name', {
+  columnHelper.accessor('correctorName', {
     header: 'المصحح',
     cell: (info) => info.getValue() || '-',
     meta: {
@@ -172,13 +172,11 @@ export const StudentQuizzesTable = ({
     {},
   )
 
-  const { data: quizzes, isFetching } = api.quiz.list.useQuery(
+  const { data: quizzes, isFetching } = api.quiz.getTableListForStudent.useQuery(
     {
       pagination,
       filters: { ...filters, systemExamId: 'not_null' },
-      include: { corrector: true, systemExam: true },
     },
-    // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },
   )
 
@@ -196,7 +194,6 @@ export const StudentQuizzesTable = ({
     <div>
       <DataTable
         data={quizzes.data}
-        // @xts-expect-error Vercel is playing with us
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

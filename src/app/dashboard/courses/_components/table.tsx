@@ -52,10 +52,6 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const deleteCourse = (id: string) => {
     const promise = mutation.mutateAsync(id)
 
-    void promise.then(() => {
-      void utils.course.getTableList.invalidate()
-    })
-
     toast.promise(promise, {
       loading: 'جاري حذف المقرر...',
       success: 'تم حذف المقرر بنجاح',
@@ -164,7 +160,6 @@ export const CoursesTable = ({
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const page = searchParams?.get('page')
-  const utils = api.useUtils()
 
   const [rowSelection, setRowSelection] = useState({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -173,7 +168,6 @@ export const CoursesTable = ({
     pageSize: 50,
   }
 
-  const invalidate = () => utils.course.invalidate()
 
   const setPagination: OnChangeFn<PaginationState> = (updater) => {
     const params = new URLSearchParams(searchParams?.toString())
@@ -190,7 +184,7 @@ export const CoursesTable = ({
     {},
   )
 
-  const { data: courses, isFetching } = api.course.getTableList.useQuery(
+  const { data: courses, isFetching } = api.course.getGridList.useQuery(
     { pagination, filters },
     { initialData, refetchOnMount: false },
   )
@@ -209,7 +203,6 @@ export const CoursesTable = ({
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -217,7 +210,6 @@ export const CoursesTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 

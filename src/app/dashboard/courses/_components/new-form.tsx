@@ -26,9 +26,6 @@ export function NewCourseForm() {
     onSuccess() {
       toast.success('تم إضافة المقرر بنجاح')
       void utils.course.invalidate()
-
-      if (history.state === null) router.push('/dashboard/courses')
-      else router.back()
     },
   })
 

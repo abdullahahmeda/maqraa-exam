@@ -13,7 +13,7 @@ import { api } from '~/trpc/react'
 
 export default function NewTrackModal() {
   const router = useRouter()
-  const { data: courses } = api.course.list.useQuery()
+  const { data: courses } = api.course.getList.useQuery()
 
   return (
     <Dialog
@@ -24,10 +24,10 @@ export default function NewTrackModal() {
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>إضافة مقرر</DialogTitle>
+          <DialogTitle>إضافة مسار</DialogTitle>
         </DialogHeader>
         {courses ? (
-          <NewTrackForm courses={courses.data} />
+          <NewTrackForm courses={courses} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

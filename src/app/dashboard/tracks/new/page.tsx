@@ -10,13 +10,13 @@ export async function generateMetadata() {
 }
 
 export default async function NewTrackPage() {
-  const courses = await api.course.list()
+  const courses = await api.course.getList()
 
   return (
     <div className='space-y-4'>
       <h2 className='text-3xl font-bold'>إضافة مسار</h2>
       <div className='rounded-lg bg-gray-100 p-4'>
-        <NewTrackForm courses={courses.data} />
+        <NewTrackForm courses={courses} />
       </div>
     </div>
   )

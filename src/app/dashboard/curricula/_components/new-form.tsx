@@ -18,11 +18,14 @@ import { createCurriculumSchema } from '~/validation/backend/mutations/curriculu
 
 export function NewCurriculumForm({
   tracks,
+  defaultValues
 }: {
   tracks: (Selectable<Track> & { course: Selectable<Course> | null })[]
+  defaultValues?: Partial<NewCurriculumFieldValues>
 }) {
   const router = useRouter()
   const form = useForm<NewCurriculumFieldValues>({
+    defaultValues,
     resolver: zodResolver(createCurriculumSchema),
   })
 

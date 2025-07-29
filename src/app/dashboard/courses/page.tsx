@@ -1,8 +1,8 @@
 import { buttonVariants } from '~/components/ui/button'
-import { PlusIcon } from 'lucide-react'
+import { CoursesGrid } from './_components/grid'
+import { AddCourseButton } from './_components/add-course-button'
 import { api } from '~/trpc/server'
-import Link from 'next/link'
-import { CoursesTable } from './_components/table'
+import { getCourseList } from '~/services/course'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -12,33 +12,16 @@ export async function generateMetadata() {
   }
 }
 
-export default async function CoursesPage({
-  searchParams,
-}: {
-  searchParams: { page?: string }
-}) {
-  const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const courses = await api.course.getTableList({
-    pagination: {
-      pageIndex,
-      pageSize: 50,
-    },
-  })
+export default async function CoursesPage() {
+  const courses = await getCourseList(undefined, 'grid')
 
   return (
     <>
       <div className='mb-4 flex items-center'>
         <h2 className='ml-4 text-2xl font-bold'>المقررات</h2>
-        <Link
-          className={buttonVariants()}
-          href='/dashboard/courses/new'
-          prefetch
-        >
-          <PlusIcon className='ml-2 h-4 w-4' />
-          إضافة مقرر
-        </Link>
+        <AddCourseButton />
       </div>
-      <CoursesTable initialData={courses} />
+      <CoursesGrid initialData={courses} />
     </>
   )
 }

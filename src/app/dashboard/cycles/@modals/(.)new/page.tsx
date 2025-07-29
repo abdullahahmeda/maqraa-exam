@@ -14,7 +14,7 @@ import { Spinner } from '~/components/ui/spinner'
 export default function NewCycleModal() {
   const router = useRouter()
 
-  const { data: curricula } = api.curriculum.list.useQuery()
+  const { data: curricula } = api.curriculum.getList.useQuery()
 
   return (
     <Dialog
@@ -28,7 +28,7 @@ export default function NewCycleModal() {
           <DialogTitle>إضافة دورة</DialogTitle>
         </DialogHeader>
         {!!curricula ? (
-          <NewCycleForm curricula={curricula.data} />
+          <NewCycleForm curricula={curricula} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

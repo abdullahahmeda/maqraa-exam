@@ -41,10 +41,10 @@ export const menuItems = {
           label: 'إختبارات النظام',
           key: '/dashboard/exams'
         },
-        {
-          label: 'الإختبارات التجريبية',
-          key: '/dashboard/quizzes'
-        }
+        // {
+        //   label: 'الإختبارات التجريبية',
+        //   key: '/dashboard/quizzes'
+        // }
       ]
     },
     // {
@@ -59,18 +59,8 @@ export const menuItems = {
     },
     {
       icon: ConstructionIcon,
-      label: 'المناهج',
-      key: '/dashboard/curricula',
-    },
-    {
-      icon: ConstructionIcon,
       label: 'الدورات',
       key: '/dashboard/cycles',
-    },
-    {
-      icon: ConstructionIcon,
-      label: 'المسارات',
-      key: '/dashboard/tracks',
     },
     {
       icon: BugIcon,
@@ -131,18 +121,8 @@ export const menuItems = {
     },
     {
       icon: ConstructionIcon,
-      label: 'المناهج',
-      key: '/dashboard/curricula',
-    },
-    {
-      icon: ConstructionIcon,
       label: 'الدورات',
       key: '/dashboard/cycles',
-    },
-    {
-      icon: ConstructionIcon,
-      label: 'المسارات',
-      key: '/dashboard/tracks',
     },
     {
       icon: BugIcon,

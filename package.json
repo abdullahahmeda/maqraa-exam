@@ -12,14 +12,14 @@
     "db:transition": "tsx scripts/db-transitions/addTotalToModel.ts"
   },
   "dependencies": {
-    "@auth/kysely-adapter": "^0.6.1",
+    "@auth/kysely-adapter": "^1.10.0",
     "@dnd-kit/core": "^6.0.8",
     "@dnd-kit/sortable": "^7.0.2",
     "@hookform/resolvers": "^3.3.4",
     "@logtail/node": "^0.3.3",
     "@neondatabase/serverless": "^0.4.26",
     "@paralleldrive/cuid2": "^2.2.2",
-    "@radix-ui/react-accordion": "^1.1.2",
+    "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.0.5",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-checkbox": "^1.0.4",
@@ -60,7 +60,7 @@
     "fuzzysort": "^2.0.4",
     "generate-password": "^1.7.0",
     "googleapis": "^111.0.0",
-    "kysely": "^0.26.3",
+    "kysely": "^0.27.5",
     "kysely-neon": "^1.3.0",
     "lodash.debounce": "^4.0.8",
     "lodash.difference": "^4.5.0",
@@ -90,7 +90,7 @@
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",
     "ws": "^8.14.2",
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/xlsx-0.20.1.tgz",
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
     "zod": "^3.22.4"
   },
   "devDependencies": {
@@ -136,8 +136,5 @@
   "ct3aMetadata": {
     "initVersion": "7.26.0"
   },
-  "packageManager": "npm@9.8.1",
-  "overrides": {
-    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.1/xlsx-0.20.1.tgz"
-  }
+  "packageManager": "npm@9.8.1"
 }

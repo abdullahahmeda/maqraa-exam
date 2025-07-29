@@ -12,14 +12,12 @@ import { enDifficultyToAr, enTypeToAr } from '~/utils/questions'
 import { exportSheet } from '~/services/sheet'
 import { type QuestionType } from '~/kysely/enums'
 import {
-  getQuestionsTableList,
-  getInfiniteQuestionsList,
+  getQuestionList,
   getShowQuestion,
   getExportQuestions,
   deleteQuestions,
   importQuestions,
   loadQuestionsGoogleSheet,
-  listRandomQuestions,
 } from '~/services/question'
 import { filtersSchema } from '~/validation/backend/queries/question'
 import { listQuestionSchema } from '~/validation/backend/queries/question/list'
@@ -32,29 +30,25 @@ export const questionRouter = createTRPCRouter({
   list: protectedProcedure
     .input(listQuestionSchema.optional())
     .query(async ({ input }) => {
-      const data = await getQuestionsTableList(input)
-      return data
+      return getQuestionList(input, 'table')
     }),
 
   getTableList: protectedProcedure
     .input(listQuestionSchema.optional())
     .query(async ({ input }) => {
-      const data = await getQuestionsTableList(input)
-      return data
+      return getQuestionList(input, 'table')
     }),
 
   getInfiniteList: protectedProcedure
     .input(infiniteListQuestionSchema.optional())
     .query(async ({ input }) => {
-      const data = await getInfiniteQuestionsList(input)
-      return data
+      return getQuestionList(input, 'infinite')
     }),
 
-  listRandom: publicProcedure
+  getRandomList: publicProcedure
     .input(listRandomQuestionsSchema)
     .query(async ({ input }) => {
-      const rows = await listRandomQuestions(input)
-      return rows
+      return getQuestionList(input, 'random')
     }),
 
   getShow: protectedProcedure

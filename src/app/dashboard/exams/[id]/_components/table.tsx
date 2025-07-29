@@ -15,16 +15,6 @@ import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '~/components/ui/alert-dialog'
 import { Badge } from '~/components/ui/badge'
 import { Button, buttonVariants } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
@@ -44,41 +34,18 @@ import { api } from '~/trpc/react'
 import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 import { saveAs } from 'file-saver'
+import { useDeleteModal } from './delete-modal'
 
 export type Row = Selectable<Quiz> & {
-  examinee: Selectable<User> | null
-  corrector: Selectable<User> | null
-  model: Selectable<Model> | null
+  examineeName: string
+  examineeEmail: string
+  correctorName: string | null
+  modelTotal: number
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
-  const router = useRouter()
   const { data: session } = useSession()
-
-  const utils = api.useUtils()
-
-  const [open, setOpen] = useState(false)
-
-  const mutation = api.quiz.delete.useMutation()
-
-  useEffect(() => {
-    router.prefetch(`/dashboard/quiz/edit/${row.original.id}`)
-  }, [router, row.original.id])
-
-  const deleteQuiz = (id: string) => {
-    const promise = mutation.mutateAsync(id)
-
-    void promise.then(() => {
-      void utils.quiz.list.invalidate()
-    })
-
-    toast.promise(promise, {
-      loading: 'جاري حذف الإختبار...',
-      success: 'تم حذف الإختبار بنجاح',
-      error: (error: unknown) =>
-        (error as TRPCError).message ?? 'تعذر حذف الإختبار',
-    })
-  }
+  const { setQuizId: openDeleteQuizModal } = useDeleteModal()
 
   if (session!.user.role === 'STUDENT') {
     const cannotEnterQuiz =
@@ -157,30 +124,10 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
       {session?.user.role.includes('ADMIN') && (
         <RowActions
           deleteButton={{
-            onClick: () => setOpen(true),
-          }}
-          editButton={{
-            onClick: () =>
-              router.push(`/dashboard/quizzes/${row.original.id}/edit`),
+            onClick: () => openDeleteQuizModal(row.original.id),
           }}
         />
       )}
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل تريد حقاً حذف هذا الإمتحان؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              هذا سيحذف المناهج والإختبارات المرتبطة به أيضاً
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogAction onClick={() => deleteQuiz(row.original.id)}>
-              تأكيد
-            </AlertDialogAction>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   )
 }
@@ -188,7 +135,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
 const columnHelper = createColumnHelper<Row>()
 
 const columns = [
-  columnHelper.accessor('examinee.name', {
+  columnHelper.accessor('examineeName', {
     header: function Header({ column }) {
       const [value, setValue] = useState(
         (column.getFilterValue() as string) ?? '',
@@ -222,7 +169,7 @@ const columns = [
       textAlign: 'center',
     },
   }),
-  columnHelper.accessor('examinee.email', {
+  columnHelper.accessor('examineeEmail', {
     header: function Header({ column }) {
       const [value, setValue] = useState(
         (column.getFilterValue() as string) ?? '',
@@ -262,9 +209,9 @@ const columns = [
       typeof getValue() === 'number'
         ? `${
             !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-          }${getValue()} من ${row.original.model?.total} (${percentage(
+          }${getValue()} من ${row.original.modelTotal} (${percentage(
             getValue()!,
-            row.original.model!.total,
+            row.original.modelTotal,
           )}%)`
         : '-',
   }),
@@ -308,7 +255,7 @@ const columns = [
       textAlign: 'center',
     },
   }),
-  columnHelper.accessor('corrector.name', {
+  columnHelper.accessor('correctorName', {
     header: 'المصحح',
     cell: (info) => info.getValue() || '-',
     meta: {
@@ -345,8 +292,6 @@ export const ExamTable = ({
     pageSize: 50,
   }
 
-  const invalidate = () => utils.exam.invalidate()
-
   const setPagination: OnChangeFn<PaginationState> = (updater) => {
     const params = new URLSearchParams(searchParams?.toString())
     const newState =
@@ -360,13 +305,11 @@ export const ExamTable = ({
     {},
   )
 
-  const { data: quizzes, isFetching } = api.quiz.list.useQuery(
+  const { data: quizzes, isFetching } = api.quiz.getTableListForExam.useQuery(
     {
       pagination,
       filters: { ...filters, systemExamId: systemExam.id },
-      include: { examinee: true, corrector: true, model: true },
     },
-    // @ts-expect-error No error here, just because dynamic "include" typings
     { initialData, refetchOnMount: false },
   )
 

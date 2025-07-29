@@ -106,7 +106,7 @@ const AutomaticQuestionsFormFields = <T extends FieldValues>({
   const [type, setType] = useState<'all' | QuestionType>('all')
 
   const { refetch: fetchRandomQuestions, isFetching } =
-    api.question.listRandom.useQuery(
+    api.question.getRandomList.useQuery(
       {
         filters: {
           courseId: filters.courseId,
@@ -117,7 +117,6 @@ const AutomaticQuestionsFormFields = <T extends FieldValues>({
             type: filters.curriculumType,
           },
         },
-        include: { style: true },
         limit: numberOfQuestions,
       },
       { enabled: false },
@@ -274,7 +273,6 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
         pageNumber: pageNumber || undefined,
         hadithNumber: hadithNumber || undefined,
       },
-      include: { style: true },
     },
     {
       enabled: false,
@@ -432,7 +430,7 @@ const ManualQuestionsFormFields = <T extends FieldValues>({
                     <Badge>رقم الجزء: {question.partNumber}</Badge>
                     <Badge>رقم الصفحة: {question.pageNumber}</Badge>
                     <Badge>رقم الحديث: {question.hadithNumber}</Badge>
-                    <Badge>نوع السؤال: {question.style?.name}</Badge>
+                    <Badge>نوع السؤال: {question.styleName}</Badge>
                   </div>
                 </QuestionCard>
               </div>

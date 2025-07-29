@@ -15,7 +15,7 @@ export default function EditTrackModal() {
   const router = useRouter()
   const params = useParams()
   const { data: track } = api.track.getEdit.useQuery({ id: params?.id as string })
-  const { data: courses } = api.course.list.useQuery()
+  const { data: courses } = api.course.getList.useQuery()
   return (
     <Dialog
       open
@@ -28,7 +28,7 @@ export default function EditTrackModal() {
           <DialogTitle>تعديل مسار</DialogTitle>
         </DialogHeader>
         {track && courses ? (
-          <EditTrackForm track={track} courses={courses.data} />
+          <EditTrackForm track={track} courses={courses} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

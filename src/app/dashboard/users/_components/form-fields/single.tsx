@@ -104,7 +104,7 @@ const StudentCycleForm = <T extends FieldValues>({
   form: UseFormReturn<T>
   path: string
 }) => {
-  const { data: courses } = api.course.list.useQuery()
+  const { data: courses } = api.course.getList.useQuery()
 
   const courseId = useWatch({
     control: form.control,
@@ -121,7 +121,7 @@ const StudentCycleForm = <T extends FieldValues>({
     { enabled: !!courseId },
   )
 
-  const { data: curricula } = api.curriculum.list.useQuery(
+  const { data: curricula } = api.curriculum.getList.useQuery(
     { filters: { trackId } },
     { enabled: !!trackId },
   )
@@ -141,7 +141,7 @@ const StudentCycleForm = <T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {courses?.data.map((course) => (
+                {courses?.map((course) => (
                   <SelectItem key={course.id} value={course.id}>
                     {course.name}
                   </SelectItem>
@@ -189,7 +189,7 @@ const StudentCycleForm = <T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {curricula?.data.map((curriculum) => (
+                {curricula?.map((curriculum) => (
                   <SelectItem key={curriculum.id} value={curriculum.id}>
                     {curriculum.name}
                   </SelectItem>
@@ -211,9 +211,7 @@ const CorrectorCycleForm = <T extends FieldValues>({
   form: UseFormReturn<T>
   path: string
 }) => {
-  const { data: curricula } = api.curriculum.list.useQuery({
-    include: { track: { course: true } },
-  })
+  const { data: curricula } = api.curriculum.getList.useQuery()
 
   return (
     <div>
@@ -226,12 +224,7 @@ const CorrectorCycleForm = <T extends FieldValues>({
             <FormControl>
               <MultipleSelector
                 placeholder='اختر الدورات'
-                defaultOptions={
-                  curricula?.data.map((c) => ({
-                    label: `${c.track?.course?.name}: ${c.name}`,
-                    value: c.id,
-                  })) ?? []
-                }
+                defaultOptions={curricula?.map(c => ({ label: c.name, value: c.id }))  ?? []}
                 onChange={field.onChange}
                 commandProps={{ className: 'h-60' }}
                 value={field.value}

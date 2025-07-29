@@ -20,7 +20,6 @@ export default async function EditCurriculumPage({
 }) {
   const curriculum = await api.curriculum.getEdit({
     id: params.id,
-    include: { parts: true },
   })
   const tracks = await api.track.list({
     include: { course: true },

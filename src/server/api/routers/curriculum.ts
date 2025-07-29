@@ -12,8 +12,8 @@ import { updateCurriculumSchema } from '~/validation/backend/mutations/curriculu
 import {
   createCurriculum,
   updateCurriculum,
-  getEditCurriculum,
-  getCurriculaTableList,
+  getOneCurriculum,
+  getCurriculumList,
   deleteCurricula,
 } from '~/services/curriculum'
 
@@ -28,22 +28,19 @@ export const curriculumRouter = createTRPCRouter({
   getEdit: protectedProcedure
     .input(getCurriculumSchema)
     .query(async ({ input }) => {
-      const data = await getEditCurriculum(input.id)
-      return data
+      return getOneCurriculum(input.id, 'edit')
     }),
 
-  list: publicProcedure
+  getList: publicProcedure
     .input(listCurriculumSchema.optional())
     .query(async ({ input }) => {
-      const data = await getCurriculaTableList(input)
-      return data
+      return getCurriculumList(input)
     }),
 
   getTableList: protectedProcedure
     .input(listCurriculumSchema.optional())
     .query(async ({ ctx, input }) => {
-      const data = await getCurriculaTableList(input)
-      return data
+      return getCurriculumList(input, 'table')
     }),
 
   update: protectedProcedure

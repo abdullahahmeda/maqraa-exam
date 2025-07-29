@@ -83,7 +83,7 @@ export const CreateNotificationForm = () => {
     createNotification.mutate(data)
   }
 
-  const { data: users } = api.user.list.useQuery(undefined, {
+  const { data: users } = api.user.getTableList.useQuery(undefined, {
     enabled: ['allExcept', 'selected'].includes(toBase),
   })
 

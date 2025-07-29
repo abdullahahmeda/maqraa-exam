@@ -6,18 +6,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from '~/components/ui/dialog'
-import { useParams, useRouter } from 'next/navigation'
-import { api } from '~/trpc/react'
-import { ViewOne } from '../../../_components/view-one'
+import { NewTrackForm } from '../../../../tracks/_components/new-form'
+import { useRouter } from 'next/navigation'
 import { Spinner } from '~/components/ui/spinner'
+import { api } from '~/trpc/react'
 
-export default function ViewQuestionModal() {
-  const params = useParams()
+export default function NewTrackModal() {
   const router = useRouter()
-
-  const { data: question } = api.question.getShow.useQuery({
-    id: params?.id as string,
-  })
+  const { data: courses } = api.course.getList.useQuery()
 
   return (
     <Dialog
@@ -28,10 +24,10 @@ export default function ViewQuestionModal() {
     >
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>عرض سؤال</DialogTitle>
+          <DialogTitle>إضافة مسار</DialogTitle>
         </DialogHeader>
-        {question ? (
-          <ViewOne question={question} />
+        {courses ? (
+          <NewTrackForm courses={courses} />
         ) : (
           <div className='flex justify-center'>
             <Spinner className='h-4 w-4' />

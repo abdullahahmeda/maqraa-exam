@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { ExamsTable } from './_components/table'
 import { StudentQuizzesTable } from './_components/student-table'
 import { getServerAuthSession } from '~/server/auth'
+import { getExamList } from '~/services/exam'
+import { DeleteModalProvider } from './_components/delete-modal'
+import { getQuizList } from '~/services/quiz'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -20,17 +23,17 @@ export default async function ExamsPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const session = await getServerAuthSession()
+  const session = (await getServerAuthSession())!
 
-  if (session?.user.role === 'STUDENT') {
-    const exams = await api.quiz.list({
+  if (session.user.role === 'STUDENT') {
+    const exams = await getQuizList({
+      user: session.user,
       pagination: {
         pageIndex,
         pageSize: 50,
       },
       filters: { systemExamId: 'not_null' },
-      include: { examinee: true, corrector: true, systemExam: true },
-    })
+    }, 'student-table')
 
     return (
       <>
@@ -42,13 +45,13 @@ export default async function ExamsPage({
     )
   }
 
-  const exams = await api.exam.list({
+  const exams = await getExamList({
+    user: session.user,
     pagination: {
       pageIndex,
       pageSize: 50,
     },
-    include: { curriculum: { track: { course: true } }, cycle: true },
-  })
+  }, 'table')
 
   return (
     <>
@@ -59,7 +62,9 @@ export default async function ExamsPage({
           إضافة إختبار
         </Link>
       </div>
-      <ExamsTable initialData={exams} />
+      <DeleteModalProvider>
+        <ExamsTable initialData={exams} />
+      </DeleteModalProvider>
     </>
   )
 }

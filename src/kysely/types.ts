@@ -30,6 +30,7 @@ export type Answer = {
 export type Course = {
     id: Generated<string>;
     name: string;
+    note: string | null;
 };
 export type Curriculum = {
     id: Generated<string>;
@@ -46,7 +47,7 @@ export type CurriculumPart = {
     curriculumId: string;
 };
 export type Cycle = {
-    id: Generated<string>;
+    id: string;
     name: string;
 };
 export type CycleCurriculum = {

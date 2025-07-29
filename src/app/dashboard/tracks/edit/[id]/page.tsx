@@ -15,7 +15,7 @@ export async function generateMetadata({ params }: { params: Params }) {
 
 export default async function EditTrackPage({ params }: { params: Params }) {
   const track = await api.track.getEdit({ id: params.id })
-  const courses = await api.course.list()
+  const courses = await api.course.getList()
 
   if (!track) return notFound()
 
@@ -23,7 +23,7 @@ export default async function EditTrackPage({ params }: { params: Params }) {
     <div className='space-y-4'>
       <h2 className='text-3xl font-bold'>تعديل مسار</h2>
       <div className='rounded-lg bg-gray-100 p-4'>
-        <EditTrackForm track={track} courses={courses.data} />
+        <EditTrackForm track={track} courses={courses} />
       </div>
     </div>
   )

@@ -5,6 +5,9 @@ import Link from 'next/link'
 import { QuestionsTable } from './_components/table'
 import { type Selectable } from 'kysely'
 import type { QuestionStyle } from '~/kysely/types'
+import { getQuestionList } from '~/services/question'
+import { ViewModalProvider } from './_components/view-modal'
+import { DeleteModalProvider } from './_components/delete-modal'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -20,13 +23,9 @@ export default async function QuestionsPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const questions = await api.question.list({
-    pagination: {
-      pageIndex,
-      pageSize: 50,
-    },
-    include: { course: true },
-  })
+  const questions = await getQuestionList({ 
+    pagination: { pageIndex, pageSize: 50, },
+  }, 'table')
 
   const styles = await api.questionStyle.list(undefined)
 
@@ -47,7 +46,11 @@ export default async function QuestionsPage({
           إضافة أسئلة
         </Link>
       </div>
+      <DeleteModalProvider>
+      <ViewModalProvider>
       <QuestionsTable initialData={questions} questionStyles={questionStyles} />
+      </ViewModalProvider>
+      </DeleteModalProvider>
     </>
   )
 }

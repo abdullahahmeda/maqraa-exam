@@ -3,6 +3,8 @@ import { PlusIcon } from 'lucide-react'
 import { api } from '~/trpc/server'
 import Link from 'next/link'
 import { UsersTable } from './_components/table'
+import { ViewModalProvider } from './_components/view-modal'
+import { DeleteModalProvider } from './_components/delete-modal'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -18,9 +20,8 @@ export default async function UsersPage({
   searchParams: { page?: string }
 }) {
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const users = await api.user.list({
+  const users = await api.user.getTableList({
     pagination: { pageIndex, pageSize: 50 },
-    include: { cycles: { cycle: true } },
   })
 
   return (
@@ -32,7 +33,11 @@ export default async function UsersPage({
           إضافة
         </Link>
       </div>
-      <UsersTable initialData={users} />
+      <DeleteModalProvider>
+        <ViewModalProvider>
+          <UsersTable initialData={users} />
+        </ViewModalProvider>
+      </DeleteModalProvider>
     </>
   )
 }

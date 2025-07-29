@@ -10,28 +10,10 @@ import type {
 import { DataTable } from '~/components/ui/data-table'
 import { RowActions } from '~/components/ui/row-actions'
 import type {
-  Course,
-  Curriculum,
-  Cycle,
   SystemExam,
-  Track,
 } from '~/kysely/types'
 import { useEffect, useState } from 'react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '~/components/ui/alert-dialog'
 import { api } from '~/trpc/react'
-import { toast } from 'sonner'
-import { Spinner } from '~/components/ui/spinner'
-import { type TRPCError } from '@trpc/server'
-// import { ExportCollectionTypesButton } from './export-button'
 import { Checkbox } from '~/components/ui/checkbox'
 import { FilterHeader } from '~/components/ui/filter-header'
 import { type Selectable } from 'kysely'
@@ -54,46 +36,24 @@ import {
 import { formatDistanceToNow } from 'date-fns'
 import { buttonVariants } from '~/components/ui/button'
 import { useSession } from 'next-auth/react'
+import { useDeleteModal } from './delete-modal'
 
 type Row = Selectable<SystemExam> & {
-  cycle: Selectable<Cycle> | null
-  curriculum:
-    | (Selectable<Curriculum> & {
-        track:
-          | (Selectable<Track> & { course: Selectable<Course> | null })
-          | null
-      })
-    | null
+  cycleName: string
+  curriculumName: string
+  trackName: string
+  courseName: string
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const router = useRouter()
+  const { setExamId: openDeleteExamModal } = useDeleteModal()
   const { data: session } = useSession()
-
-  const utils = api.useUtils()
-
-  const [open, setOpen] = useState(false)
-
-  const mutation = api.exam.delete.useMutation()
 
   useEffect(() => {
     router.prefetch(`/dashboard/exams/edit/${row.original.id}`)
   }, [router, row.original.id])
 
-  const deleteExam = (id: string) => {
-    const promise = mutation.mutateAsync(id)
-
-    void promise.then(() => {
-      void utils.exam.list.invalidate()
-    })
-
-    toast.promise(promise, {
-      loading: 'جاري حذف الإختبار...',
-      success: 'تم حذف الإختبار بنجاح',
-      error: (error: unknown) =>
-        (error as TRPCError).message ?? 'تعذر حذف الإختبار',
-    })
-  }
 
   return (
     <>
@@ -104,7 +64,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
         deleteButton={
           session?.user.role.includes('ADMIN')
             ? {
-                onClick: () => setOpen(true),
+                onClick: () => openDeleteExamModal(row.original.id),
               }
             : undefined
         }
@@ -117,23 +77,6 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
             : undefined
         }
       />
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              هذا سيحذف هذا المقرر وكل ما يتعلق به.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteExam(row.original.id)}>
-              {mutation.isPending && <Spinner className='ml-2 h-4 w-4' />}
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
@@ -172,13 +115,18 @@ const columns: ColumnDef<Row>[] = [
     ),
   },
   {
-    accessorFn: (row) =>
-      `${row.curriculum?.track?.course?.name} :${row.curriculum?.name}`,
+    accessorKey: 'courseName',
+    header: 'المقرر'
+  },
+  {
+    accessorKey: 'trackName',
+    header: 'المسار'
+  },
+  {
+    accessorKey: 'curriculumName',
     id: 'curriculumId',
     header: ({ column }) => {
-      const { data: curricula, isLoading } = api.curriculum.list.useQuery({
-        include: { track: { course: true } },
-      })
+      const { data: curricula, isLoading } = api.curriculum.getList.useQuery()
       const filterValue = column.getFilterValue() as string | undefined
 
       return (
@@ -188,10 +136,7 @@ const columns: ColumnDef<Row>[] = [
             <Combobox
               items={[
                 { name: 'الكل', id: '' },
-                ...(curricula?.data.map((c) => ({
-                  ...c,
-                  name: `${c.track?.course?.name}: ${c.name}`,
-                })) ?? []),
+                ...(curricula ?? [])
               ]}
               loading={isLoading}
               labelKey='name'
@@ -246,7 +191,7 @@ const columns: ColumnDef<Row>[] = [
     cell: ({ row }) => enExamTypeToAr(row.original.type),
   },
   {
-    accessorKey: 'cycle.name',
+    accessorKey: 'cycleName',
     id: 'cycleId',
     header: ({ column }) => {
       const { data: cycles, isLoading } = api.cycle.getList.useQuery()
@@ -336,8 +281,6 @@ export const ExamsTable = ({
     pageSize: 50,
   }
 
-  const invalidate = () => utils.exam.invalidate()
-
   const setPagination: OnChangeFn<PaginationState> = (updater) => {
     const params = new URLSearchParams(searchParams?.toString())
     const newState =
@@ -353,12 +296,8 @@ export const ExamsTable = ({
     {},
   )
 
-  const { data: exams, isFetching } = api.exam.list.useQuery(
-    {
-      pagination,
-      filters,
-      include: { curriculum: { track: { course: true } }, cycle: true },
-    },
+  const { data: exams, isFetching } = api.exam.getTableList.useQuery(
+    { pagination, filters },
     { initialData, refetchOnMount: false },
   )
 
@@ -377,7 +316,6 @@ export const ExamsTable = ({
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -385,7 +323,6 @@ export const ExamsTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 
