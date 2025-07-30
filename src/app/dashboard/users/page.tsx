@@ -1,8 +1,10 @@
 import { buttonVariants } from '~/components/ui/button'
 import { PlusIcon } from 'lucide-react'
-import { api } from '~/trpc/server'
+import { api, HydrateClient } from '~/trpc/server'
 import Link from 'next/link'
 import { UsersTable } from './_components/table'
+import { ViewModalProvider } from './_components/view-modal'
+import { DeleteModalProvider } from './_components/delete-modal'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -12,19 +14,19 @@ export async function generateMetadata() {
   }
 }
 
-export default async function UsersPage({
-  searchParams,
-}: {
-  searchParams: { page?: string }
-}) {
+export default async function UsersPage(
+  props: {
+    searchParams: Promise<{ page?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const users = await api.user.list({
-    pagination: { pageIndex, pageSize: 50 },
-    include: { cycles: { cycle: true } },
+  await api.user.getTableList.prefetch({
+    pagination: { pageIndex, pageSize: 50 }, filters: {}
   })
 
   return (
-    <>
+    <HydrateClient>
       <div className='mb-4 flex items-center'>
         <h2 className='ml-4 text-2xl font-bold'>المستخدمين</h2>
         <Link className={buttonVariants()} href='/dashboard/users/new' prefetch>
@@ -32,7 +34,11 @@ export default async function UsersPage({
           إضافة
         </Link>
       </div>
-      <UsersTable initialData={users} />
-    </>
+      <DeleteModalProvider>
+        <ViewModalProvider>
+          <UsersTable />
+        </ViewModalProvider>
+      </DeleteModalProvider>
+    </HydrateClient>
   )
 }

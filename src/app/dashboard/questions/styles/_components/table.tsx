@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import { Spinner } from '~/components/ui/spinner'
 import { type TRPCError } from '@trpc/server'
@@ -206,11 +206,7 @@ const columns: ColumnDef<Row>[] = [
   },
 ]
 
-export const QuestionStylesTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const QuestionStylesTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -241,9 +237,9 @@ export const QuestionStylesTable = ({
     {},
   )
 
-  const { data: questionStyle, isFetching } = api.questionStyle.list.useQuery(
+  const { data: questionStyle, isFetching, isPending, isError } = api.questionStyle.list.useQuery(
     { pagination, filters },
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
 
   useEffect(() => {
@@ -253,6 +249,14 @@ export const QuestionStylesTable = ({
     }))
   }, [columnFilters])
 
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
+
+
   const pageCount = Math.ceil(questionStyle.count / pagination.pageSize)
 
   const selectedRows = Object.keys(rowSelection)
@@ -260,7 +264,6 @@ export const QuestionStylesTable = ({
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -268,7 +271,6 @@ export const QuestionStylesTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 

@@ -2,7 +2,7 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
 import { Form } from '~/components/ui/form'
@@ -45,6 +45,7 @@ export const EditUserForm = ({
 }) => {
   const router = useRouter()
   const form = useForm<EditUserFieldValues>({
+    // @ts-expect-error Please leave me alone TS
     resolver: zodResolver(updateUserSchema),
     defaultValues: {
       ...user,

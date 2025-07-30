@@ -28,7 +28,7 @@ import type { Selectable } from 'kysely'
 import type { Quiz, QuestionStyle } from '~/kysely/types'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import {
   Form,

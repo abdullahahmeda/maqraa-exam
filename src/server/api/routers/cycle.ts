@@ -12,7 +12,7 @@ import {
   getCycleForEdit,
   getCyclesForTable,
   getCycles,
-  updateCycle
+  updateCycle,
 } from '~/services/cycle'
 
 export const cycleRouter = createTRPCRouter({
@@ -23,13 +23,17 @@ export const cycleRouter = createTRPCRouter({
       return true
     }),
 
-  getOne: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-    return getCycle(input.id)
-  }),
-  
-  getOneForEdit: protectedProcedure.input(z.object({ id: z.string() })).query(async ({ ctx, input }) => {
-    return getCycleForEdit(input.id)
-  }),
+  getOne: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return getCycle(input.id)
+    }),
+
+  getOneForEdit: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .query(async ({ ctx, input }) => {
+      return getCycleForEdit(input.id)
+    }),
 
   getList: protectedProcedure
     .input(listCycleSchema.optional())
@@ -37,7 +41,7 @@ export const cycleRouter = createTRPCRouter({
       return getCycles(input)
     }),
 
-    getListForTable: protectedProcedure
+  getTableList: protectedProcedure
     .input(listCycleSchema.optional())
     .query(async ({ ctx, input }) => {
       return getCyclesForTable(input)

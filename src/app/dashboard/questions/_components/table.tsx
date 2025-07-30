@@ -21,7 +21,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import { Spinner } from '~/components/ui/spinner'
 import { type TRPCError } from '@trpc/server'
@@ -49,47 +49,23 @@ import {
   typeMapping,
 } from '~/utils/questions'
 import { Badge } from '~/components/ui/badge'
+import { useViewModal } from './view-modal'
+import { useDeleteModal } from './delete-modal'
 
-type Row = Selectable<Question> & { course: Selectable<Course> | null }
+type Row = Selectable<Question> & { courseName: string }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
-  const router = useRouter()
-
-  const utils = api.useUtils()
-
-  const [open, setOpen] = useState(false)
-
-  const mutation = api.question.delete.useMutation()
-
-  useEffect(() => {
-    router.prefetch(`/dashboard/questions/edit/${row.original.id}`)
-    router.prefetch(`/dashboard/questions/view/${row.original.id}`)
-  }, [router, row.original.id])
-
-  const deleteQuestion = (id: string) => {
-    const promise = mutation.mutateAsync(id)
-
-    void promise.then(() => {
-      void utils.question.list.invalidate()
-    })
-
-    toast.promise(promise, {
-      loading: 'جاري حذف السؤال...',
-      success: 'تم حذف السؤال بنجاح',
-      error: (error: unknown) =>
-        (error as TRPCError).message ?? 'تعذر حذف السؤال',
-    })
-  }
+  const { setQuestionId: openViewQuestionModal } = useViewModal()
+  const { setQuestionId: openDeleteQuestionModal } = useDeleteModal()
 
   return (
     <>
       <RowActions
         deleteButton={{
-          onClick: () => setOpen(true),
+          onClick: () => openDeleteQuestionModal(row.original.id)
         }}
         infoButton={{
-          onClick: () =>
-            router.push(`/dashboard/questions/view/${row.original.id}`),
+          onClick: () => openViewQuestionModal(row.original.id)
         }}
         // TODO: add edit feature
         // editButton={{
@@ -97,23 +73,6 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
         //     router.push(`/dashboard/questions/edit/${row.original.id}`),
         // }}
       />
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              هذا سيحذف هذا السؤال وكل ما يتعلق به.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteQuestion(row.original.id)}>
-              {mutation.isPending && <Spinner className='ml-2 h-4 w-4' />}
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
@@ -182,92 +141,92 @@ const columns: ColumnDef<Row>[] = [
       textAlign: 'center',
     },
   },
-  {
-    accessorKey: 'partNumber',
-    header: function Header({ column }) {
-      const [value, setValue] = useState(
-        (column.getFilterValue() as string) ?? '',
-      )
-
-      const debouncedChangeColumnValue = useCallback(
-        debounce(
-          (value: number | undefined) => column.setFilterValue(value),
-          500,
-        ),
-        [],
-      )
-
-      return (
-        <FilterHeader
-          label='رقم الجزء'
-          filter={
-            <Input
-              type='number'
-              value={value}
-              onChange={(e) => {
-                const value = e.target.valueAsNumber
-                if (isNaN(value)) {
-                  setValue('')
-                  debouncedChangeColumnValue(undefined)
-                } else {
-                  setValue('' + value)
-                  debouncedChangeColumnValue(value)
-                }
-              }}
-            />
-          }
-          column={column}
-        />
-      )
-    },
-    filterFn: () => true,
-    meta: {
-      textAlign: 'center',
-    },
-  },
-  {
-    accessorKey: 'pageNumber',
-    header: function Header({ column }) {
-      const [value, setValue] = useState(
-        (column.getFilterValue() as string) ?? '',
-      )
-
-      const debouncedChangeColumnValue = useCallback(
-        debounce(
-          (value: number | undefined) => column.setFilterValue(value),
-          500,
-        ),
-        [],
-      )
-
-      return (
-        <FilterHeader
-          label='رقم الصفحة'
-          filter={
-            <Input
-              type='number'
-              value={value}
-              onChange={(e) => {
-                const value = e.target.valueAsNumber
-                if (isNaN(value)) {
-                  setValue('')
-                  debouncedChangeColumnValue(undefined)
-                } else {
-                  setValue('' + value)
-                  debouncedChangeColumnValue(value)
-                }
-              }}
-            />
-          }
-          column={column}
-        />
-      )
-    },
-    filterFn: () => true,
-    meta: {
-      textAlign: 'center',
-    },
-  },
+  // {
+  //   accessorKey: 'partNumber',
+  //   header: function Header({ column }) {
+  //     const [value, setValue] = useState(
+  //       (column.getFilterValue() as string) ?? '',
+  //     )
+  //
+  //     const debouncedChangeColumnValue = useCallback(
+  //       debounce(
+  //         (value: number | undefined) => column.setFilterValue(value),
+  //         500,
+  //       ),
+  //       [],
+  //     )
+  //
+  //     return (
+  //       <FilterHeader
+  //         label='رقم الجزء'
+  //         filter={
+  //           <Input
+  //             type='number'
+  //             value={value}
+  //             onChange={(e) => {
+  //               const value = e.target.valueAsNumber
+  //               if (isNaN(value)) {
+  //                 setValue('')
+  //                 debouncedChangeColumnValue(undefined)
+  //               } else {
+  //                 setValue('' + value)
+  //                 debouncedChangeColumnValue(value)
+  //               }
+  //             }}
+  //           />
+  //         }
+  //         column={column}
+  //       />
+  //     )
+  //   },
+  //   filterFn: () => true,
+  //   meta: {
+  //     textAlign: 'center',
+  //   },
+  // },
+  // {
+  //   accessorKey: 'pageNumber',
+  //   header: function Header({ column }) {
+  //     const [value, setValue] = useState(
+  //       (column.getFilterValue() as string) ?? '',
+  //     )
+  //
+  //     const debouncedChangeColumnValue = useCallback(
+  //       debounce(
+  //         (value: number | undefined) => column.setFilterValue(value),
+  //         500,
+  //       ),
+  //       [],
+  //     )
+  //
+  //     return (
+  //       <FilterHeader
+  //         label='رقم الصفحة'
+  //         filter={
+  //           <Input
+  //             type='number'
+  //             value={value}
+  //             onChange={(e) => {
+  //               const value = e.target.valueAsNumber
+  //               if (isNaN(value)) {
+  //                 setValue('')
+  //                 debouncedChangeColumnValue(undefined)
+  //               } else {
+  //                 setValue('' + value)
+  //                 debouncedChangeColumnValue(value)
+  //               }
+  //             }}
+  //           />
+  //         }
+  //         column={column}
+  //       />
+  //     )
+  //   },
+  //   filterFn: () => true,
+  //   meta: {
+  //     textAlign: 'center',
+  //   },
+  // },
   {
     accessorKey: 'hadithNumber',
     header: function Header({ column }) {
@@ -346,10 +305,10 @@ const columns: ColumnDef<Row>[] = [
     },
   },
   {
-    accessorKey: 'course.name',
+    accessorKey: 'courseName',
     id: 'courseId',
     header: function Header({ column }) {
-      const { data: courses, isLoading } = api.course.list.useQuery()
+      const { data: courses, isLoading } = api.course.getList.useQuery()
 
       const filterValue = column.getFilterValue() as string | undefined
 
@@ -358,7 +317,7 @@ const columns: ColumnDef<Row>[] = [
           label='المقرر'
           filter={
             <Combobox
-              items={[{ name: 'الكل', id: '' }, ...(courses?.data ?? [])]}
+              items={[{ name: 'الكل', id: '' }, ...(courses ?? [])]}
               loading={isLoading}
               labelKey='name'
               valueKey='id'
@@ -493,17 +452,17 @@ const columns: ColumnDef<Row>[] = [
       textAlign: 'center',
     },
   },
-  {
-    accessorKey: 'answer',
-    header: 'الإجابة',
-    meta: {
-      tdClassName: 'truncate max-w-[300px]',
-    },
-  },
-  {
-    accessorKey: 'anotherAnswer',
-    header: 'إجابة أخرى',
-  },
+  // {
+  //   accessorKey: 'answer',
+  //   header: 'الإجابة',
+  //   meta: {
+  //     tdClassName: 'truncate max-w-[300px]',
+  //   },
+  // },
+  // {
+  //   accessorKey: 'anotherAnswer',
+  //   header: 'إجابة أخرى',
+  // },
   {
     accessorKey: 'isInsideShaded',
     header: 'داخل المظلل',
@@ -521,10 +480,8 @@ const columns: ColumnDef<Row>[] = [
 ]
 
 export const QuestionsTable = ({
-  initialData,
   questionStyles,
 }: {
-  initialData: { data: Row[]; count: number }
   questionStyles: Record<string, Selectable<QuestionStyle>>
 }) => {
   const router = useRouter()
@@ -557,10 +514,9 @@ export const QuestionsTable = ({
     {},
   )
 
-  const { data: questions, isFetching } = api.question.list.useQuery(
-    { pagination, filters, include: { course: true } },
-    // @ts-expect-error No error here, just because dynamic "include" typings
-    { initialData, refetchOnMount: false },
+  const { data: questions, isFetching, isPending, isError } = api.question.getTableList.useQuery(
+    { pagination, filters },
+    { refetchOnMount: false },
   )
 
   useEffect(() => {
@@ -569,6 +525,13 @@ export const QuestionsTable = ({
       pageSize,
     }))
   }, [columnFilters])
+  
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
 
   const pageCount = Math.ceil(questions.count / pagination.pageSize)
 
@@ -577,7 +540,6 @@ export const QuestionsTable = ({
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -585,7 +547,6 @@ export const QuestionsTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 

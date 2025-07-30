@@ -1,5 +1,6 @@
 import { api } from '~/trpc/server'
 import { StartQuizForm } from './_components/form'
+import { getCourseList } from '~/services/course'
 
 export async function generateMetadata() {
   const siteName = await api.setting.getSiteName()
@@ -10,13 +11,13 @@ export async function generateMetadata() {
 }
 
 const HomePage = async () => {
-  const courses = await api.course.list()
+  const courses = await getCourseList(undefined)
 
   return (
     <>
       <div className='container mx-auto py-10'>
         <div className='mx-auto max-w-md rounded-md bg-white p-4 border'>
-          <StartQuizForm courses={courses.data} />
+          <StartQuizForm courses={courses} />
         </div>
       </div>
     </>

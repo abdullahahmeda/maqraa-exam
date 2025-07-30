@@ -18,7 +18,7 @@ import {
 import { Input } from '~/components/ui/input'
 import { type QuestionType } from '~/kysely/enums'
 import { cn } from '~/lib/utils'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { percentage } from '~/utils/percentage'
 import { normalizeText } from '~/utils/strings'
 import { correctQuizSchema } from '~/validation/correctQuizSchema'
@@ -109,6 +109,7 @@ export const CorrectQuizForm = ({
   }
 }) => {
   const form = useForm<FieldValues>({
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(correctQuizSchema),
     defaultValues: {
       id: quiz.id,

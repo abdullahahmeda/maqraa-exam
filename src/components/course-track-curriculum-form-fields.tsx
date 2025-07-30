@@ -5,7 +5,7 @@ import {
   type UseFormReturn,
   useWatch,
 } from 'react-hook-form'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import {
   FormField,
   FormItem,
@@ -42,7 +42,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
   const course = useWatch({ control, name: fields.course })
   const track = useWatch({ control, name: fields.track })
 
-  const { data: courses } = api.course.list.useQuery()
+  const { data: courses } = api.course.getList.useQuery()
 
   const tracksDisabled = !course
   const { data: tracks } = api.track.list.useQuery(
@@ -51,11 +51,8 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
   )
 
   const curriculaDisabled = !course || !track
-  const { data: curricula } = api.curriculum.list.useQuery(
-    {
-      filters: { trackId: track },
-      include: { parts: true },
-    },
+  const { data: curricula } = api.curriculum.getList.useQuery(
+    { filters: { trackId: track } },
     { enabled: !curriculaDisabled },
   )
 
@@ -84,7 +81,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {courses?.data.map((course) => (
+                {courses?.map((course) => (
                   <SelectItem key={course.id} value={course.id}>
                     {course.name}
                   </SelectItem>
@@ -152,7 +149,7 @@ export const CourseTrackCurriculumFormFields = <T extends FieldValues>({
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
-                {curricula?.data.map((curriculum) => (
+                {curricula?.map((curriculum) => (
                   <SelectItem key={curriculum.id} value={curriculum.id}>
                     {curriculum.name}
                   </SelectItem>

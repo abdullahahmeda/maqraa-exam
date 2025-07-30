@@ -23,14 +23,15 @@ export async function generateMetadata() {
 
 type Params = { id: string }
 
-const CorrectQuizPage = async ({ params }: { params: Params }) => {
-  const session = await getServerAuthSession()
-  if (session!.user.role === 'STUDENT') notFound()
+const CorrectQuizPage = async (props: { params: Promise<Params> }) => {
+  const params = await props.params;
+  const session = (await getServerAuthSession())!
+  if (session.user.role === 'STUDENT') notFound()
 
   const quiz = await db
     .selectFrom('Quiz')
     .where('Quiz.id', '=', params.id)
-    .where(whereCanReadQuiz(session!))
+    .where(whereCanReadQuiz(session.user))
     .leftJoin('User', 'Quiz.examineeId', 'User.id')
     .leftJoin('Model', 'Quiz.modelId', 'Model.id')
     .selectAll('Quiz')

@@ -11,21 +11,7 @@ import { DataTable } from '~/components/ui/data-table'
 import { RowActions } from '~/components/ui/row-actions'
 import type { User, UserCycle, Cycle } from '~/kysely/types'
 import { useCallback, useEffect, useState } from 'react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
-import { toast } from 'sonner'
-import { Spinner } from '~/components/ui/spinner'
-import { type TRPCError } from '@trpc/server'
-// import { ExportCollectionTypesButton } from './export-button'
+import { api } from '~/utils/api'
 import { Checkbox } from '~/components/ui/checkbox'
 import { FilterHeader } from '~/components/ui/filter-header'
 import { Input } from '~/components/ui/input'
@@ -45,6 +31,8 @@ import { enUserRoleToAr, userRoleMapping } from '~/utils/users'
 import { Badge } from '~/components/ui/badge'
 import set from 'lodash.set'
 import { useSession } from 'next-auth/react'
+import { useViewModal } from './view-modal'
+import { useDeleteModal } from './delete-modal'
 
 type Row = Selectable<User> & {
   cycles: (Selectable<UserCycle> & { cycle: Selectable<Cycle> | null })[]
@@ -53,66 +41,33 @@ type Row = Selectable<User> & {
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
   const router = useRouter()
   const { data: session } = useSession()
-  const utils = api.useUtils()
+  const { setUserId: openViewUserModal } = useViewModal()
+  const { setUserId: openDeleteUserModal } = useDeleteModal()
 
-  const [open, setOpen] = useState(false)
-
-  const mutation = api.user.delete.useMutation()
-
-  const canEditOrDelete = session?.user?.role === 'SUPER_ADMIN' || (row.original.role !== 'SUPER_ADMIN' && session?.user?.role === 'ADMIN')
+  const canEditOrDelete =
+    session?.user?.role === 'SUPER_ADMIN' ||
+    (row.original.role !== 'SUPER_ADMIN' && session?.user?.role === 'ADMIN')
 
   useEffect(() => {
     router.prefetch(`/dashboard/users/edit/${row.original.id}`)
   }, [router, row.original.id])
 
-  const deleteUser = (id: string) => {
-    const promise = mutation.mutateAsync(id)
-
-    void promise.then(() => {
-      void utils.user.list.invalidate()
-    })
-
-    toast.promise(promise, {
-      loading: 'جاري حذف المستخدم...',
-      success: 'تم حذف المستخدم بنجاح',
-      error: (error: unknown) =>
-        (error as TRPCError).message ?? 'تعذر حذف المستخدم',
-    })
-  }
-
   return (
     <>
       <RowActions
         infoButton={{
-          onClick: () => router.push(`/dashboard/users/${row.original.id}`),
+          onClick: () => openViewUserModal(row.original.id),
         }}
         deleteButton={{
-          onClick: () => setOpen(true),
-          className: canEditOrDelete ? 'hover:bg-red-100' : 'hidden'
+          onClick: () => openDeleteUserModal(row.original.id),
+          className: canEditOrDelete ? 'hover:bg-red-100' : 'hidden',
         }}
         editButton={{
           onClick: () =>
             router.push(`/dashboard/users/edit/${row.original.id}`),
-          className: canEditOrDelete ? 'hover:bg-orange-100' : 'hidden'
+          className: canEditOrDelete ? 'hover:bg-orange-100' : 'hidden',
         }}
       />
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              هذا سيحذف هذا المستخدم وكل ما يتعلق به.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteUser(row.original.id)}>
-              {mutation.isPending && <Spinner className='ml-2 h-4 w-4' />}
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
@@ -270,16 +225,11 @@ const columns: ColumnDef<Row>[] = [
   },
 ]
 
-export const UsersTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const UsersTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const page = searchParams?.get('page')
-  const utils = api.useUtils()
 
   const [rowSelection, setRowSelection] = useState({})
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
@@ -287,8 +237,6 @@ export const UsersTable = ({
     pageIndex: Math.max((Number(page) || 1) - 1, 0),
     pageSize: 50,
   }
-
-  const invalidate = () => utils.user.invalidate()
 
   const setPagination: OnChangeFn<PaginationState> = (updater) => {
     const params = new URLSearchParams(searchParams?.toString())
@@ -304,20 +252,30 @@ export const UsersTable = ({
     return set(acc, id, value)
   }, {})
 
-  const { data: user, isFetching } = api.user.list.useQuery(
-    { pagination, filters, include: { cycles: { cycle: true } } },
-    // @ts-expect-error No error here, just because dynamic "include" typings
-    { initialData, refetchOnMount: false },
+  const {
+    data: users,
+    isPending,
+    isError,
+    isFetching,
+  } = api.user.getTableList.useQuery(
+    { pagination, filters },
+    { refetchOnMount: false },
   )
 
-  const pageCount = Math.ceil(user.count / pagination.pageSize)
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
+
+  const pageCount = Math.ceil(users.count / pagination.pageSize)
 
   const selectedRows = Object.keys(rowSelection)
 
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -325,7 +283,6 @@ export const UsersTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 
@@ -335,13 +292,13 @@ export const UsersTable = ({
         <DataTableActions
           deleteAll={{
             handle: handleDeleteAll,
-            data: { disabled: user?.count === 0 },
+            data: { disabled: users?.count === 0 },
           }}
           bulkDelete={{ handle: handleBulkDelete, data: { selectedRows } }}
         />
       </div>
       <DataTable
-        data={user.data}
+        data={users.data}
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

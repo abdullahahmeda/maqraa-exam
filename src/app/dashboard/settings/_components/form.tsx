@@ -14,7 +14,7 @@ import {
 } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
 import { SettingKey } from '~/kysely/enums'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { updateSettingsSchema } from '~/validation/backend/mutations/setting/update'
 
 type FieldValues = {

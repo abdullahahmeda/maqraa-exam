@@ -3,6 +3,7 @@ import {
   createTRPCRouter,
   protectedProcedure,
   publicProcedure,
+  adminProcedure,
 } from '~/server/api/trpc'
 import { TRPCError } from '@trpc/server'
 import { importUsersSchema } from '~/validation/importUsersSchema'
@@ -25,10 +26,9 @@ import { listUserSchema } from '~/validation/backend/queries/user/list'
 import { createUserSchema } from '~/validation/backend/mutations/user/create'
 import { updateUserSchema } from '~/validation/backend/mutations/user/update'
 import { getBaseUrl } from '~/utils/getBaseUrl'
-import { applyPagination } from '~/utils/db'
 import {
-  applyUsersFilters,
   applyUsersInclude,
+  getUserList,
   deleteUsers,
 } from '~/services/user'
 
@@ -50,56 +50,21 @@ export const userRouter = createTRPCRouter({
       .executeTakeFirst()
   }),
 
-  list: protectedProcedure
+  getList: protectedProcedure
     .input(listUserSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyUsersFilters(input?.filters)
-
-      const count = Number(
-        (
-          await ctx.db
-            .selectFrom('User')
-            .select(({ fn }) => fn.count<string>('id').as('count'))
-            .where(where)
-            .executeTakeFirstOrThrow()
-        ).count,
-      )
-
-      const query = applyPagination(
-        ctx.db
-          .selectFrom('User')
-          .selectAll()
-          .where(where)
-          .select(applyUsersInclude(input?.include)),
-        input?.pagination,
-      )
-
-      const rows = await query.execute()
-
-      return {
-        data: rows,
-        count,
-      }
+      return getUserList(input)
     }),
-  // count: protectedProcedure
-  //   .input(z.object({ filters: filtersSchema.optional() }).optional())
-  //   .query(async ({ ctx, input }) => {
-  //     const userService = new UserService(ctx.db)
-  //     const count = await userService.getCount(input?.filters)
-  //     return count
-  //   }),
-  create: protectedProcedure
+
+  getTableList: protectedProcedure
+    .input(listUserSchema.optional())
+    .query(async ({ input }) => {
+      return getUserList(input, 'table')
+    }),
+
+  create: adminProcedure
     .input(createUserSchema)
     .mutation(async ({ ctx, input }) => {
-      if (!ctx.session.user.role.includes('ADMIN'))
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'ليس لديك الصلاحيات لهذه العملية',
-        })
-
-      // const userService = new UserService(ctx.db)
-      // await userService.create(input)
-
       const { email, password, name, role, phone } = input
       const hashedPassword = hashPassword(password!)
       await ctx.db.transaction().execute(async (trx) => {

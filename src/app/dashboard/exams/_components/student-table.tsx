@@ -7,14 +7,12 @@ import {
   type PaginationState,
 } from '@tanstack/react-table'
 import { type Selectable } from 'kysely'
-import { FileCheck2Icon, LinkIcon, LogInIcon, EyeIcon } from 'lucide-react'
-import { useSession } from 'next-auth/react'
+import { LogInIcon, EyeIcon } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 import { Badge } from '~/components/ui/badge'
-import { Button, buttonVariants } from '~/components/ui/button'
+import { buttonVariants } from '~/components/ui/button'
 import { DataTable } from '~/components/ui/data-table'
 import {
   Tooltip,
@@ -22,16 +20,16 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '~/components/ui/tooltip'
-import type { Model, Quiz, SystemExam, User } from '~/kysely/types'
+import type { Quiz } from '~/kysely/types'
 import { cn } from '~/lib/utils'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 
 export type Row = Selectable<Quiz> & {
-  corrector: Selectable<User> | null
-  systemExam: Selectable<SystemExam> | null
-  model: Selectable<Model> | null
+  correctorName: string | null
+  systemExamName: string
+  modelTotal: number
 }
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
@@ -68,7 +66,7 @@ const RowActionCell = ({ row }: { row: { original: Row } }) => {
 const columnHelper = createColumnHelper<Row>()
 
 const columns = [
-  columnHelper.accessor('systemExam.name', {
+  columnHelper.accessor('systemExamName', {
     header: 'الإختبار',
     meta: {
       textAlign: 'center',
@@ -80,9 +78,9 @@ const columns = [
       typeof getValue() === 'number'
         ? `${
             !row.original.correctedAt ? 'الدرجة المتوقعة: ' : ''
-          }${getValue()} من ${row.original.model?.total} (${percentage(
+          }${getValue()} من ${row.original.modelTotal} (${percentage(
             getValue()!,
-            row.original.model!.total,
+            row.original.modelTotal,
           )}%)`
         : '-',
   }),
@@ -126,9 +124,9 @@ const columns = [
       textAlign: 'center',
     },
   }),
-  columnHelper.accessor('corrector.name', {
+  columnHelper.accessor('correctorName', {
     header: 'المصحح',
-    cell: (info) => info.getValue() || '-',
+    cell: (info) => info.getValue() ?? '-',
     meta: {
       textAlign: 'center',
     },
@@ -143,11 +141,7 @@ const columns = [
   }),
 ]
 
-export const StudentQuizzesTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const StudentQuizzesTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -172,14 +166,17 @@ export const StudentQuizzesTable = ({
     {},
   )
 
-  const { data: quizzes, isFetching } = api.quiz.list.useQuery(
+  const {
+    data: quizzes,
+    isFetching,
+    isPending,
+    isError,
+  } = api.quiz.getTableListForStudent.useQuery(
     {
       pagination,
       filters: { ...filters, systemExamId: 'not_null' },
-      include: { corrector: true, systemExam: true },
     },
-    // @ts-expect-error No error here, just because dynamic "include" typings
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
 
   useEffect(() => {
@@ -190,13 +187,19 @@ export const StudentQuizzesTable = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnFilters])
 
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
+
   const pageCount = Math.ceil(quizzes.count / pagination.pageSize)
 
   return (
     <div>
       <DataTable
         data={quizzes.data}
-        // @xts-expect-error Vercel is playing with us
         columns={columns}
         columnFilters={{
           onColumnFiltersChange: setColumnFilters,

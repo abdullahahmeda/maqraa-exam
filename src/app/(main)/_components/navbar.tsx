@@ -65,12 +65,12 @@ export const Navbar = () => {
             ) : (
               <>
                 <li className='block font-bold'>
-                  <a
+                  <Link
                     href='/'
                     className={buttonVariants({ variant: 'link' })}
                   >
                     دخول
-                  </a>
+                  </Link>
                 </li>
                 <li className='block font-bold'>
                   <a

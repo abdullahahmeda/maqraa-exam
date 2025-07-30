@@ -6,6 +6,8 @@ import {
   type IncludeSchema,
 } from '~/validation/backend/queries/user/common'
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres'
+import { ListUserSchema } from '~/validation/backend/queries/user/list'
+import { applyPagination } from '~/utils/db'
 
 export function applyUsersFilters(filters: FiltersSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'User'>) => {
@@ -139,9 +141,79 @@ export function applyUsersInclude(include: IncludeSchema | undefined) {
     ]
   }
 }
+export async function getUserList(
+  input: ListUserSchema | undefined,
+  context: 'table',
+): ReturnType<typeof _getUserTableList>
+export async function getUserList(
+  input: ListUserSchema | undefined,
+  context?: 'base',
+): ReturnType<typeof _getUserList>
+export async function getUserList(
+  input: ListUserSchema | undefined,
+  context: 'table' | 'base' = 'base',
+) {
+  switch (context) {
+    case 'table':
+      return _getUserTableList(input)
+    case 'base':
+    default:
+      return _getUserList(input)
+  }
+}
+
+async function _getUserList(input: ListUserSchema | undefined) {
+  const where = applyUsersFilters(input?.filters)
+  return db.selectFrom('User').selectAll().where(where).execute()
+}
+
+async function _getUserTableList(input: ListUserSchema | undefined) {
+  const where = applyUsersFilters(input?.filters)
+  const count = Number(
+    (
+      await db
+        .selectFrom('User')
+        .select(({ fn }) => fn.count<string>('id').as('count'))
+        .where(where)
+        .executeTakeFirstOrThrow()
+    ).count,
+  )
+
+  const query = applyPagination(
+    db
+      .selectFrom('User')
+      .selectAll('User')
+      .where(where)
+      .select((eb) =>
+        jsonArrayFrom(
+          eb
+            .selectFrom('UserCycle')
+            .selectAll('UserCycle')
+            .whereRef('UserCycle.userId', '=', 'User.id')
+            .select((eb) =>
+              jsonObjectFrom(
+                eb
+                  .selectFrom('Cycle')
+                  .selectAll('Cycle')
+                  .whereRef('UserCycle.cycleId', '=', 'Cycle.id'),
+              ).as('cycle'),
+            ),
+        ).as('cycles'),
+      ),
+    input?.pagination,
+  )
+
+  const rows = await query.execute()
+
+  return {
+    data: rows,
+    count,
+  }
+}
 
 export function deleteUsers(ids: string | string[] | undefined) {
   let query = db.deleteFrom('User').where('role', '!=', 'SUPER_ADMIN')
-  if (ids !== undefined) query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
+  if (ids !== undefined)
+    query = query.where('id', 'in', typeof ids === 'string' ? [ids] : [...ids])
   return query.execute()
 }

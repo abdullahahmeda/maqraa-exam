@@ -2,16 +2,17 @@ import { api } from '~/trpc/server'
 import { Badge } from '~/components/ui/badge'
 import { formatDate } from '~/utils/formatDate'
 import { enTypeToAr } from '~/utils/exams'
-import { db } from '~/server/db'
 import { CircularProgress } from '~/components/ui/circular-progress'
 import { ExamTable } from './_components/table'
-import { sql } from 'kysely'
 import { SubmissionChart } from './_components/submission-chart'
 import { notFound } from 'next/navigation'
 import { getServerAuthSession } from '~/server/auth'
-import { whereCanReadExam } from '~/services/exam'
-import Link from 'next/link'
-import { buttonVariants } from '~/components/ui/button'
+import { getExam, getExamStats } from '~/services/exam'
+import { Button } from '~/components/ui/button'
+import { Dialog, DialogTrigger } from '~/components/ui/dialog'
+import { AddStudentModal } from './_components/add-student-modal'
+import { DeleteModalProvider } from './_components/delete-modal'
+import { getQuizList } from '~/services/quiz'
 
 export const metadata = {
   title: 'إختبارات النظام',
@@ -23,108 +24,56 @@ type SearchParams = {
   page?: string
 }
 
-const ExamsPage = async ({
-  params: { id },
-  searchParams,
-}: {
-  params: Params
-  searchParams: SearchParams
-}) => {
-  const session = await getServerAuthSession()
-  if (session?.user.role === 'STUDENT') notFound()
+const ExamsPage = async (
+  props: {
+    params: Promise<Params>
+    searchParams: Promise<SearchParams>
+  }
+) => {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
 
-  const systemExam = await db
-    .selectFrom('SystemExam')
-    .where('SystemExam.id', '=', id)
-    .where(whereCanReadExam(session!))
-    .leftJoin('Cycle', 'SystemExam.cycleId', 'Cycle.id')
-    .leftJoin('Curriculum', 'SystemExam.curriculumId', 'Curriculum.id')
-    .leftJoin('Track', 'Curriculum.trackId', 'Track.id')
-    .leftJoin('Course', 'Track.courseId', 'Course.id')
-    .selectAll('SystemExam')
-    .select([
-      'Course.name as courseName',
-      'Curriculum.name as curriculumName',
-      'Cycle.name as cycleName',
-    ])
-    .executeTakeFirst()
+  const {
+    id
+  } = params;
 
+  const session = (await getServerAuthSession())!
+  if (session.user.role === 'STUDENT') notFound()
+
+  const systemExam = await getExam({ id, user: session.user }, 'show')
   if (!systemExam) notFound()
 
-  const quizCount = Number(
-    (
-      await db
-        .selectFrom('Quiz')
-        .select(({ fn }) => [fn.count('id').as('total')])
-        .where('systemExamId', '=', id)
-        .executeTakeFirst()
-    )?.total,
-  )
-
-  const submittedQuizCount = Number(
-    (
-      await db
-        .selectFrom('Quiz')
-        .select(({ fn }) => [fn.count('id').as('total')])
-        .where('systemExamId', '=', id)
-        .where('submittedAt', 'is not', null)
-        .executeTakeFirst()
-    )?.total,
-  )
+  const {
+    quizCount,
+    submittedQuizCount,
+    correctedQuizCount,
+    avgStats,
+    submissionsDates,
+  } = await getExamStats({ id })
 
   const submittedQuizPercentage = (submittedQuizCount / quizCount) * 100
 
-  const correctedQuizCount = Number(
-    (
-      await db
-        .selectFrom('Quiz')
-        .select(({ fn }) => [fn.count('id').as('total')])
-        .where('systemExamId', '=', id)
-        .where('correctorId', 'is not', null)
-        .executeTakeFirst()
-    )?.total,
-  )
-
-  const avgStats = await db
-    .selectFrom('Quiz')
-    .select(({ fn }) => [
-      fn.avg('grade').as('gradeAvg'),
-      fn.avg('percentage').as('percentageAvg'),
-    ])
-    .where('systemExamId', '=', id)
-    .where('correctedAt', 'is not', null)
-    .executeTakeFirstOrThrow()
-
-  const submissionsDates = await db
-    .selectFrom('Quiz')
-    .select(({ fn }) => [
-      fn.count<string>('id').as('total'),
-      sql`CAST(${sql.ref('submittedAt')} AS DATE)`.as('submittedAt'),
-    ])
-    .where('systemExamId', '=', id)
-    .where('submittedAt', 'is not', null)
-    .groupBy(sql`CAST(${sql.ref('submittedAt')} AS DATE)`)
-    .$narrowType<{ submittedAt: Date }>()
-    .execute()
-
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
 
-  const quizzes = await api.quiz.list({
+  const quizzes = await getQuizList({
+    user: session.user,
     pagination: {
       pageIndex,
       pageSize: 50,
     },
     filters: { systemExamId: id },
-    include: { examinee: true, corrector: true, model: true },
-  })
+  }, 'exam-table')
 
   return (
     <div>
       <div className='mb-4 flex items-center gap-2'>
         <h2 className='text-2xl font-bold'>إختبارات النظام</h2>
-        <Link href={`/dashboard/exams/${id}/add-student`} className={buttonVariants()}>
-        إضافة طالب
-        </Link>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>إضافة طالب</Button>
+          </DialogTrigger>
+          <AddStudentModal />
+        </Dialog>
       </div>
       <div className='mb-4 rounded-md bg-white p-4 border'>
         <p>
@@ -195,7 +144,9 @@ const ExamsPage = async ({
         )}
       </div>
       <div className='p-4 rounded-md border bg-white'>
-        <ExamTable initialData={quizzes} systemExam={systemExam} />
+        <DeleteModalProvider>
+          <ExamTable initialData={quizzes} systemExam={systemExam} />
+        </DeleteModalProvider>
       </div>
     </div>
   )

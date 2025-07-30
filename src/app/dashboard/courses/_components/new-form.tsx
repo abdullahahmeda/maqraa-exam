@@ -3,7 +3,7 @@
 import { useForm } from 'react-hook-form'
 import { Form } from '~/components/ui/form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { CourseFormFields, type NewCourseFieldValues } from './form-fields'
 import { toast } from 'sonner'
 import { populateFormWithErrors } from '~/utils/errors'
@@ -12,8 +12,8 @@ import { Button } from '~/components/ui/button'
 import { createCourseSchema } from '~/validation/backend/mutations/course/create'
 
 export function NewCourseForm() {
-  const router = useRouter()
   const form = useForm<NewCourseFieldValues>({
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(createCourseSchema),
   })
 
@@ -26,9 +26,6 @@ export function NewCourseForm() {
     onSuccess() {
       toast.success('تم إضافة المقرر بنجاح')
       void utils.course.invalidate()
-
-      if (history.state === null) router.push('/dashboard/courses')
-      else router.back()
     },
   })
 

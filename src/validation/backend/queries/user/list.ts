@@ -7,3 +7,4 @@ export const listUserSchema = z.object({
   include: includeSchema.optional(),
   pagination: paginationSchema.optional(),
 })
+export type ListUserSchema = z.infer<typeof listUserSchema>

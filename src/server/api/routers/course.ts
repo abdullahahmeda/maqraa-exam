@@ -12,8 +12,9 @@ import { listCourseSchema } from '~/validation/backend/queries/course/list'
 import { updateCourseSchema } from '~/validation/backend/mutations/course/update'
 import {
   createCourse,
-  getCoursesTableList,
+  getCourseList,
   getEditCourse,
+  getCourseDataForShow,
   updateCourse,
   deleteCourses,
 } from '~/services/course'
@@ -32,19 +33,22 @@ export const courseRouter = createTRPCRouter({
   }),
 
   // TODO: rename this
-  list: publicProcedure
+  getList: publicProcedure
     .input(listCourseSchema.optional())
     .query(async ({ input }) => {
-      const data = getCoursesTableList(input)
-      return data
+      return getCourseList(undefined)
     }),
 
-  getTableList: protectedProcedure
+  getGridList: protectedProcedure
     .input(listCourseSchema.optional())
     .query(async ({ input }) => {
-      const data = getCoursesTableList(input)
-      return data
+      return getCourseList(undefined, 'grid')
     }),
+
+  getOneForShow: adminProcedure.input(getCourseSchema).query(async ({ input }) => {
+    const data = getCourseDataForShow(input.id)
+    return data
+  }),
 
   update: adminProcedure
     .input(updateCourseSchema)

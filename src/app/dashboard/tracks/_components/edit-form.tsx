@@ -10,7 +10,7 @@ import type { Track, Course } from '~/kysely/types'
 import { populateFormWithErrors } from '~/utils/errors'
 import { useRouter } from 'next/navigation'
 import { type Selectable } from 'kysely'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { updateTrackSchema } from '~/validation/backend/mutations/track/update'
 
 export const EditTrackForm = ({

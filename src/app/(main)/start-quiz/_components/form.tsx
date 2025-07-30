@@ -3,7 +3,7 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import { type Selectable } from 'kysely'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { toast } from 'sonner'
 import { Button } from '~/components/ui/button'
@@ -29,7 +29,7 @@ import { Spinner } from '~/components/ui/spinner'
 import { type QuestionDifficulty } from '~/kysely/enums'
 import type { Course } from '~/kysely/types'
 import { cn } from '~/lib/utils'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { populateFormWithErrors } from '~/utils/errors'
 import { difficultyMapping } from '~/utils/questions'
 import { createQuizSchema } from '~/validation/backend/mutations/quiz/create'
@@ -59,6 +59,7 @@ export const StartQuizForm = ({
   const router = useRouter()
 
   const form = useForm<FieldValues>({
+    // @ts-expect-error Please leave me alone TS
     resolver: zodResolver(createQuizSchema),
     defaultValues: {
       repeatFromSameHadith: false,

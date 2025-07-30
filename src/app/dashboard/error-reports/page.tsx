@@ -1,4 +1,4 @@
-import { api } from '~/trpc/server'
+import { api, HydrateClient } from '~/trpc/server'
 import { ErrorReportsTable } from './_components/table'
 
 export async function generateMetadata() {
@@ -9,13 +9,14 @@ export async function generateMetadata() {
   }
 }
 
-export default async function ErrorReportsPage({
-  searchParams,
-}: {
-  searchParams: { page?: string }
-}) {
+export default async function ErrorReportsPage(
+  props: {
+    searchParams: Promise<{ page?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const errorReports = await api.errorReport.list({
+  await api.errorReport.list.prefetch({
     include: {
       user: true,
       modelQuestion: {
@@ -29,11 +30,11 @@ export default async function ErrorReportsPage({
   })
 
   return (
-    <>
+    <HydrateClient>
       <div className='mb-4 flex items-center'>
         <h2 className='ml-4 text-2xl font-bold'>البلاغات</h2>
       </div>
-      <ErrorReportsTable initialData={errorReports} />
-    </>
+      <ErrorReportsTable />
+    </HydrateClient>
   )
 }

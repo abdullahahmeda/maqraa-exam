@@ -3,7 +3,7 @@
 import { useForm, useWatch } from 'react-hook-form'
 import { Form } from '~/components/ui/form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import { populateFormWithErrors } from '~/utils/errors'
 import { useRouter } from 'next/navigation'
@@ -31,6 +31,7 @@ type FieldValues =
 export function NewUserForm({ cycles }: { cycles: Selectable<Cycle>[] }) {
   const router = useRouter()
   const form = useForm<FieldValues>({
+    // @ts-expect-error Please leave me alone TS
     resolver: zodResolver(
       z.union([
         createUserSchema.and(z.object({ type: z.literal('single') })),

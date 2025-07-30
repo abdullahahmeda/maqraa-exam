@@ -9,85 +9,37 @@ import type {
 } from '@tanstack/react-table'
 import { DataTable } from '~/components/ui/data-table'
 import { RowActions } from '~/components/ui/row-actions'
-import type { Curriculum, CycleCurriculum, Cycle } from '~/kysely/types'
 import { useCallback, useEffect, useState } from 'react'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '~/components/ui/alert-dialog'
-import { api } from '~/trpc/react'
-import { toast } from 'sonner'
-import { Spinner } from '~/components/ui/spinner'
-import { type TRPCError } from '@trpc/server'
-// import { ExportCollectionTypesButton } from './export-button'
+import { api } from '~/utils/api'
 import { Checkbox } from '~/components/ui/checkbox'
 import { FilterHeader } from '~/components/ui/filter-header'
 import { Input } from '~/components/ui/input'
 import debounce from 'lodash.debounce'
-import { type Selectable } from 'kysely'
 import { DataTableActions } from '~/components/ui/data-table-actions'
 import { deleteRows } from '~/utils/client/deleteRows'
+import { useDeleteModal } from './delete-modal'
+import { useEditModal } from './edit-modal'
 
-type Row = { id: string; name: string; cycleCurricula: { curriculumName: string; curriculumId: string }[] }
+type Row = {
+  id: string
+  name: string
+  cycleCurricula: { curriculumName: string; curriculumId: string }[]
+}
 
 const RowActionCell = ({ row }: { row: { original: Row } }) => {
-  const router = useRouter()
-
-  const utils = api.useUtils()
-
-  const [open, setOpen] = useState(false)
-
-  const mutation = api.cycle.delete.useMutation()
-
-  useEffect(() => {
-    router.prefetch(`/dashboard/cycles/edit/${row.original.id}`)
-  }, [router, row.original.id])
-
-  const deleteCycle = (id: string) => {
-    const promise = mutation.mutateAsync(id)
-
-    toast.promise(promise, {
-      loading: 'جاري حذف الدورة...',
-      success: 'تم حذف الدورة بنجاح',
-      error: (error: unknown) =>
-        (error as TRPCError).message ?? 'تعذر حذف الدورة',
-    })
-  }
+  const { setCycleId: openDeleteCycleModal } = useDeleteModal()
+  const { setCycleId: openEditCycleModal } = useEditModal()
 
   return (
     <>
       <RowActions
         deleteButton={{
-          onClick: () => setOpen(true),
+          onClick: () => openDeleteCycleModal(row.original.id),
         }}
         editButton={{
-          onClick: () =>
-            router.push(`/dashboard/cycles/edit/${row.original.id}`),
+          onClick: () => openEditCycleModal(row.original.id),
         }}
       />
-      <AlertDialog open={open} onOpenChange={setOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>هل أنت متأكد؟</AlertDialogTitle>
-            <AlertDialogDescription>
-              هذا سيحذف الدورة هذه وكل ما يتعلق بها.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>إلغاء</AlertDialogCancel>
-            <AlertDialogAction onClick={() => deleteCycle(row.original.id)}>
-              {mutation.isPending && <Spinner className='ml-2 h-4 w-4' />}
-              حذف
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   )
 }
@@ -157,11 +109,7 @@ const columns: ColumnDef<Row>[] = [
   },
 ]
 
-export const CyclesTable = ({
-  initialData,
-}: {
-  initialData: { data: Row[]; count: number }
-}) => {
+export const CyclesTable = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
@@ -192,9 +140,9 @@ export const CyclesTable = ({
     {},
   )
 
-  const { data: cycles, isFetching } = api.cycle.getListForTable.useQuery(
+  const { data: cycles, isFetching, isPending, isError } = api.cycle.getTableList.useQuery(
     { pagination, filters },
-    { initialData, refetchOnMount: false },
+    { refetchOnMount: false },
   )
 
   useEffect(() => {
@@ -204,6 +152,13 @@ export const CyclesTable = ({
     }))
   }, [columnFilters])
 
+  if (isPending) {
+    return <DataTable data={[]} columns={columns} isFetching rowId='id' />
+  }
+  if (isError) {
+    return <p className='text-red-600'>حدث خطأ أثناء التحميل</p>
+  }
+
   const pageCount = Math.ceil(cycles.count / pagination.pageSize)
 
   const selectedRows = Object.keys(rowSelection)
@@ -211,7 +166,6 @@ export const CyclesTable = ({
   const handleBulkDelete = () => {
     deleteRows({
       mutateAsync: () => bulkDeleteMutation.mutateAsync(selectedRows),
-      invalidate,
       setRowSelection,
     })
   }
@@ -219,7 +173,6 @@ export const CyclesTable = ({
   const handleDeleteAll = () => {
     deleteRows({
       mutateAsync: deleteAllMutation.mutateAsync,
-      invalidate,
     })
   }
 

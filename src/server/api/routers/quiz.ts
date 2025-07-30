@@ -10,30 +10,18 @@ import { editQuizSchema } from '~/validation/editQuizSchema'
 import { exportSheet } from '~/services/sheet'
 import { percentage } from '~/utils/percentage'
 import { formatDate } from '~/utils/formatDate'
-import type { DB, Quiz } from '~/kysely/types'
-import {
-  type Expression,
-  type ExpressionBuilder,
-  type SqlBool,
-  type Selectable,
-  sql,
-} from 'kysely'
-import { applyPagination } from '~/utils/db'
+import type { Quiz } from '~/kysely/types'
+import { type Selectable } from 'kysely'
 import { correctQuestion } from '~/utils/strings'
 import sampleSize from 'lodash.samplesize'
 import { QuestionDifficulty, QuestionType, UserRole } from '~/kysely/enums'
 import { db } from '~/server/db'
 import { createQuizSchema } from '~/validation/backend/mutations/quiz/create'
 import { listQuizSchema } from '~/validation/backend/queries/quiz/list'
-import {
-  type FiltersSchema,
-  type IncludeSchema,
-} from '~/validation/backend/queries/quiz/common'
-import { jsonObjectFrom } from 'kysely/helpers/postgres'
 import { submitQuizSchema } from '~/validation/backend/mutations/quiz/submit'
 import { getQuizSchema } from '~/validation/backend/queries/quiz/get'
 import { applyQuestionsFilters } from '~/services/question'
-import { whereCanReadQuiz } from '~/services/quiz'
+import { getQuizList } from '~/services/quiz'
 
 async function canUserRead(
   user: { role: UserRole; id: string },
@@ -64,89 +52,66 @@ async function canUserRead(
   return false
 }
 
-function applyInclude(include: IncludeSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'Quiz'>) => {
-    return [
-      ...(include?.curriculum
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('Curriculum')
-                .selectAll('Curriculum')
-                .whereRef('Quiz.curriculumId', '=', 'Curriculum.id'),
-            ).as('curriculum'),
-          ]
-        : []),
-
-      ...(include?.model
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('Model')
-                .selectAll('Model')
-                .whereRef('Quiz.modelId', '=', 'Model.id'),
-            ).as('model'),
-          ]
-        : []),
-
-      ...(include?.corrector
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('User')
-                .selectAll('User')
-                .whereRef('Quiz.correctorId', '=', 'User.id'),
-            ).as('corrector'),
-          ]
-        : []),
-
-      ...(include?.examinee
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('User')
-                .selectAll('User')
-                .whereRef('Quiz.examineeId', '=', 'User.id'),
-            ).as('examinee'),
-          ]
-        : []),
-
-      ...(include?.systemExam
-        ? [
-            jsonObjectFrom(
-              eb
-                .selectFrom('SystemExam')
-                .selectAll('SystemExam')
-                .whereRef('Quiz.systemExamId', '=', 'SystemExam.id'),
-            ).as('systemExam'),
-          ]
-        : []),
-    ]
-  }
-}
-
-function applyFilters(filters: FiltersSchema | undefined) {
-  return (eb: ExpressionBuilder<DB, 'Quiz'>) => {
-    const where: Expression<SqlBool>[] = []
-    if (filters?.systemExamId !== undefined) {
-      if (filters.systemExamId === null)
-        where.push(eb('Quiz.systemExamId', 'is', null))
-      else if (filters.systemExamId === 'not_null')
-        where.push(eb('Quiz.systemExamId', 'is not', null))
-      else where.push(eb('Quiz.systemExamId', '=', filters.systemExamId))
-    }
-    if (filters?.examinee?.name)
-      where.push(
-        eb.exists(
-          eb
-            .selectFrom('User')
-            .where('User.name', 'like', `%${filters.examinee.name}%`)
-            .whereRef('Quiz.examineeId', '=', 'User.id'),
-        ),
-      )
-    return eb.and(where)
-  }
-}
+// function applyInclude(include: IncludeSchema | undefined) {
+//   return (eb: ExpressionBuilder<DB, 'Quiz'>) => {
+//     return [
+//       ...(include?.curriculum
+//         ? [
+//             jsonObjectFrom(
+//               eb
+//                 .selectFrom('Curriculum')
+//                 .selectAll('Curriculum')
+//                 .whereRef('Quiz.curriculumId', '=', 'Curriculum.id'),
+//             ).as('curriculum'),
+//           ]
+//         : []),
+//
+//       ...(include?.model
+//         ? [
+//             jsonObjectFrom(
+//               eb
+//                 .selectFrom('Model')
+//                 .selectAll('Model')
+//                 .whereRef('Quiz.modelId', '=', 'Model.id'),
+//             ).as('model'),
+//           ]
+//         : []),
+//
+//       ...(include?.corrector
+//         ? [
+//             jsonObjectFrom(
+//               eb
+//                 .selectFrom('User')
+//                 .selectAll('User')
+//                 .whereRef('Quiz.correctorId', '=', 'User.id'),
+//             ).as('corrector'),
+//           ]
+//         : []),
+//
+//       ...(include?.examinee
+//         ? [
+//             jsonObjectFrom(
+//               eb
+//                 .selectFrom('User')
+//                 .selectAll('User')
+//                 .whereRef('Quiz.examineeId', '=', 'User.id'),
+//             ).as('examinee'),
+//           ]
+//         : []),
+//
+//       ...(include?.systemExam
+//         ? [
+//             jsonObjectFrom(
+//               eb
+//                 .selectFrom('SystemExam')
+//                 .selectAll('SystemExam')
+//                 .whereRef('Quiz.systemExamId', '=', 'SystemExam.id'),
+//             ).as('systemExam'),
+//           ]
+//         : []),
+//     ]
+//   }
+// }
 
 export const quizRouter = createTRPCRouter({
   create: publicProcedure
@@ -369,53 +334,31 @@ export const quizRouter = createTRPCRouter({
       }
     }),
 
-  get: protectedProcedure.input(getQuizSchema).query(async ({ input, ctx }) => {
-    const result = await ctx.db
-      .selectFrom('Quiz')
-      .selectAll('Quiz')
-      .where('id', '=', input.id)
-      .select(applyInclude(input?.include))
-      .executeTakeFirst()
+  // get: protectedProcedure.input(getQuizSchema).query(async ({ input, ctx }) => {
+  //   const result = await ctx.db
+  //     .selectFrom('Quiz')
+  //     .selectAll('Quiz')
+  //     .where('id', '=', input.id)
+  //     // .select(applyInclude(input?.include))
+  //     .executeTakeFirst()
+  //
+  //   const isAbleToRead = await canUserRead(
+  //     ctx.session.user,
+  //     result as Selectable<Quiz>,
+  //   )
+  //   return isAbleToRead ? result : null
+  // }),
 
-    const isAbleToRead = await canUserRead(
-      ctx.session.user,
-      result as Selectable<Quiz>,
-    )
-    return isAbleToRead ? result : null
-  }),
-
-  list: protectedProcedure
+  getTableListForExam: protectedProcedure
     .input(listQuizSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyFilters(input?.filters)
+      return getQuizList({ user: ctx.session.user, ...input }, 'exam-table')
+    }),
 
-      const count = Number(
-        (
-          await ctx.db
-            .selectFrom('Quiz')
-            .select(({ fn }) => fn.count<string>('id').as('count'))
-            .where(where)
-            .where(whereCanReadQuiz(ctx.session))
-            .executeTakeFirstOrThrow()
-        ).count,
-      )
-
-      const query = applyPagination(
-        ctx.db
-          .selectFrom('Quiz')
-          .selectAll()
-          .where(where)
-          .where(whereCanReadQuiz(ctx.session))
-          .select(applyInclude(input?.include)),
-        input?.pagination,
-      )
-
-      const rows = await query.execute()
-
-      return {
-        data: rows,
-        count,
-      }
+  getTableListForStudent: protectedProcedure
+    .input(listQuizSchema.optional())
+    .query(async ({ ctx, input }) => {
+      return getQuizList({ user: ctx.session.user, ...input }, 'student-table')
     }),
 
   submit: publicProcedure

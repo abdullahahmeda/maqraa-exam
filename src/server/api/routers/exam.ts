@@ -1,18 +1,14 @@
 import { TRPCError } from '@trpc/server'
-import { createTRPCRouter, protectedProcedure } from '~/server/api/trpc'
+import { createTRPCRouter, protectedProcedure, adminProcedure } from '~/server/api/trpc'
 import { exportSheet } from '~/services/sheet'
 import { formatDate } from '~/utils/formatDate'
 import { percentage } from '~/utils/percentage'
 import { exportSystemExamsSchema } from '~/validation/exportSystemExamsSchema'
 import { z } from 'zod'
-import { applyPagination } from '~/utils/db'
-import { type ExpressionBuilder, sql } from 'kysely'
-import type { DB } from '~/kysely/types'
+import {  sql } from 'kysely'
 import {
-  applyExamsFilters,
-  applyExamsInclude,
+  getExamList,
   deleteExams,
-  whereCanReadExam,
   addStudentToExam,
 } from '~/services/exam'
 import { listExamsSchema } from '~/validation/backend/queries/exam/list'
@@ -193,45 +189,17 @@ export const examRouter = createTRPCRouter({
       return true
     }),
 
-  addStudentToExam: protectedProcedure.input(addStudentToExamSchema).mutation(async ({ ctx, input }) => {
-    void addStudentToExam(input)
+  addStudentToExam: protectedProcedure.input(addStudentToExamSchema).mutation(async ({  input }) => {
+    return void addStudentToExam(input)
   }),
 
-  list: protectedProcedure
+  getTableList: protectedProcedure
     .input(listExamsSchema.optional())
     .query(async ({ ctx, input }) => {
-      const where = applyExamsFilters(input?.filters)
-
-      const count = Number(
-        (
-          await ctx.db
-            .selectFrom('SystemExam')
-            .select(({ fn }) => fn.count<string>('id').as('count'))
-            .where(where)
-            .where(whereCanReadExam(ctx.session))
-            .executeTakeFirstOrThrow()
-        ).count,
-      )
-
-      const query = applyPagination(
-        ctx.db
-          .selectFrom('SystemExam')
-          .selectAll('SystemExam')
-          .select(applyExamsInclude(input?.include))
-          .where(where)
-          .where(whereCanReadExam(ctx.session)),
-        input?.pagination,
-      )
-
-      const rows = await query.execute()
-
-      return {
-        data: rows,
-        count,
-      }
+      return getExamList({ user: ctx.session.user, ...input }, 'table')
     }),
 
-  export: protectedProcedure
+  export: adminProcedure
     .input(exportSystemExamsSchema)
     .mutation(async ({ input, ctx }) => {
       if (!ctx.session.user.role.includes('ADMIN'))
@@ -284,40 +252,19 @@ export const examRouter = createTRPCRouter({
       }))
     }),
 
-  delete: protectedProcedure
+  delete: adminProcedure
     .input(z.string())
-    .mutation(async ({ ctx, input }) => {
-      if (!ctx.session.user.role.includes('ADMIN'))
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'لا تملك الصلاحيات لهذه العملية',
-        })
-
-      await deleteExams(input)
-      return true
+    .mutation(async ({ input }) => {
+      return void deleteExams(input)
     }),
 
-  bulkDelete: protectedProcedure
+  bulkDelete: adminProcedure
     .input(z.array(z.string().min(1)))
-    .mutation(async ({ ctx, input }) => {
-      if (!ctx.session.user.role.includes('ADMIN'))
-        throw new TRPCError({
-          code: 'FORBIDDEN',
-          message: 'لا تملك الصلاحيات لهذه العملية',
-        })
-
-      await deleteExams(input)
-      return true
+    .mutation(async ({ input }) => {
+      return void deleteExams(input)
     }),
 
-  deleteAll: protectedProcedure.mutation(async ({ ctx }) => {
-    if (!ctx.session.user.role.includes('ADMIN'))
-      throw new TRPCError({
-        code: 'FORBIDDEN',
-        message: 'لا تملك الصلاحيات لهذه العملية',
-      })
-
-    await deleteExams(undefined)
-    return true
+  deleteAll: adminProcedure.mutation(async () => {
+    return void deleteExams(undefined)
   }),
 })

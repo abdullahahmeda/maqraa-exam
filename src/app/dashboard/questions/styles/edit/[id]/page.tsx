@@ -5,7 +5,8 @@ import { ChoiceColumn } from '../../_components/form-fields'
 
 type Params = { id: string }
 
-export async function generateMetadata({ params }: { params: Params }) {
+export async function generateMetadata(props: { params: Promise<Params> }) {
+  const params = await props.params;
   const siteName = await api.setting.getSiteName()
   const questionStyle = await api.questionStyle.get({ id: params.id })
 
@@ -14,11 +15,12 @@ export async function generateMetadata({ params }: { params: Params }) {
   }
 }
 
-export default async function EditQuestionStylePage({
-  params,
-}: {
-  params: Params
-}) {
+export default async function EditQuestionStylePage(
+  props: {
+    params: Promise<Params>
+  }
+) {
+  const params = await props.params;
   const questionStyle = await api.questionStyle.get({ id: params.id })
 
   if (!questionStyle) return notFound()

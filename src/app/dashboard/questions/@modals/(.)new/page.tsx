@@ -8,12 +8,12 @@ import {
 } from '~/components/ui/dialog'
 import { ImportQuestionsForm } from '../../_components/new-form'
 import { useRouter } from 'next/navigation'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 
 export default function NewCourseModal() {
   const router = useRouter()
 
-  const { data: courses } = api.course.list.useQuery()
+  const { data: courses } = api.course.getList.useQuery()
 
   return (
     <Dialog
@@ -26,7 +26,7 @@ export default function NewCourseModal() {
         <DialogHeader>
           <DialogTitle>إضافة أسئلة</DialogTitle>
         </DialogHeader>
-        <ImportQuestionsForm courses={courses?.data ?? []} />
+        <ImportQuestionsForm courses={courses ?? []} />
       </DialogContent>
     </Dialog>
   )

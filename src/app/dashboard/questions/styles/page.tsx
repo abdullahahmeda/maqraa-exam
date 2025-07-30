@@ -1,6 +1,6 @@
 import { buttonVariants } from '~/components/ui/button'
 import { PlusIcon } from 'lucide-react'
-import { api } from '~/trpc/server'
+import { api, HydrateClient } from '~/trpc/server'
 import Link from 'next/link'
 import { QuestionStylesTable } from './_components/table'
 
@@ -12,21 +12,23 @@ export async function generateMetadata() {
   }
 }
 
-export default async function QuestionStylesPage({
-  searchParams,
-}: {
-  searchParams: { page?: string }
-}) {
+export default async function QuestionStylesPage(
+  props: {
+    searchParams: Promise<{ page?: string }>
+  }
+) {
+  const searchParams = await props.searchParams;
   const pageIndex = Math.max((Number(searchParams.page) || 1) - 1, 0)
-  const questionStyles = await api.questionStyle.list({
+  await api.questionStyle.list.prefetch({
     pagination: {
       pageIndex,
       pageSize: 50,
     },
+    filters: {}
   })
 
   return (
-    <>
+    <HydrateClient>
       <div className='mb-4 flex items-center'>
         <h2 className='ml-4 text-2xl font-bold'>أنواع الأسئلة</h2>
         <Link
@@ -38,7 +40,7 @@ export default async function QuestionStylesPage({
           إضافة نوع سؤال
         </Link>
       </div>
-      <QuestionStylesTable initialData={questionStyles} />
-    </>
+      <QuestionStylesTable />
+    </HydrateClient>
   )
 }

@@ -13,7 +13,7 @@ import {
   useReactTable,
   getFilteredRowModel,
   getPaginationRowModel,
-  TableMeta,
+  type TableMeta,
 } from '@tanstack/react-table'
 
 import {
@@ -27,7 +27,6 @@ import {
 } from '~/components/ui/table'
 import {
   Pagination,
-  PaginationButton,
   PaginationContent,
   PaginationItem,
   PaginationNext,
@@ -44,6 +43,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from './tooltip'
+import { Button } from './button'
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -103,12 +103,14 @@ const DataTablePagination = <TData,>({
             <Tooltip>
               <TooltipTrigger asChild>
                 <PaginationItem>
-                  <PaginationButton
+                  <Button
                     disabled={currentPageIndex === 0}
                     onClick={() => table.firstPage()}
+                    variant='outline'
+                    size='icon'
                   >
                     <ChevronLastIcon className='h-4 w-4' />
-                  </PaginationButton>
+                  </Button>
                 </PaginationItem>
               </TooltipTrigger>
               <TooltipContent>
@@ -118,10 +120,7 @@ const DataTablePagination = <TData,>({
             <Tooltip>
               <TooltipTrigger asChild>
                 <PaginationItem>
-                  <PaginationPrevious
-                    disabled={!table.getCanPreviousPage()}
-                    onClick={() => table.previousPage()}
-                  />
+                  <PaginationPrevious onClick={() => table.previousPage()} />
                 </PaginationItem>
               </TooltipTrigger>
               <TooltipContent>
@@ -130,9 +129,13 @@ const DataTablePagination = <TData,>({
             </Tooltip>
             {prevEntries.map((pageIndex) => (
               <PaginationItem key={pageIndex}>
-                <PaginationButton onClick={() => table.setPageIndex(pageIndex)}>
+                <Button
+                  onClick={() => table.setPageIndex(pageIndex)}
+                  variant='outline'
+                  size='icon'
+                >
                   {pageIndex + 1}
-                </PaginationButton>
+                </Button>
               </PaginationItem>
             ))}
             <PaginationItem>
@@ -154,18 +157,19 @@ const DataTablePagination = <TData,>({
             </PaginationItem>
             {nextEntries.map((pageIndex) => (
               <PaginationItem key={pageIndex}>
-                <PaginationButton onClick={() => table.setPageIndex(pageIndex)}>
+                <Button
+                  onClick={() => table.setPageIndex(pageIndex)}
+                  variant='outline'
+                  size='icon'
+                >
                   {pageIndex + 1}
-                </PaginationButton>
+                </Button>
               </PaginationItem>
             ))}
             <Tooltip>
               <TooltipTrigger asChild>
                 <PaginationItem>
-                  <PaginationNext
-                    disabled={!table.getCanNextPage()}
-                    onClick={() => table.nextPage()}
-                  />
+                  <PaginationNext onClick={() => table.nextPage()} />
                 </PaginationItem>
               </TooltipTrigger>
               <TooltipContent>
@@ -175,12 +179,14 @@ const DataTablePagination = <TData,>({
             <Tooltip>
               <TooltipTrigger asChild>
                 <PaginationItem>
-                  <PaginationButton
+                  <Button
                     disabled={currentPageIndex === table.getPageCount() - 1}
                     onClick={() => table.lastPage()}
+                    variant='outline'
+                    size='icon'
                   >
                     <ChevronFirstIcon className='h-4 w-4' />
-                  </PaginationButton>
+                  </Button>
                 </PaginationItem>
               </TooltipTrigger>
               <TooltipContent>

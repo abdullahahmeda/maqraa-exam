@@ -3,23 +3,22 @@
 import { useForm } from 'react-hook-form'
 import { Form } from '~/components/ui/form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { TrackFormFields, type NewTrackFieldValues } from './form-fields'
 import { toast } from 'sonner'
 import { populateFormWithErrors } from '~/utils/errors'
-import { useRouter } from 'next/navigation'
 import { Button } from '~/components/ui/button'
 import { type Course } from '~/kysely/types'
 import { type Selectable } from 'kysely'
 import { createTrackSchema } from '~/validation/backend/mutations/track/create'
 
-export function NewTrackForm({ courses }: { courses: Selectable<Course>[] }) {
-  const router = useRouter()
+export function NewTrackForm({ courses, defaultValues }: { courses: Selectable<Course>[]; defaultValues?: { courseId: string } }) {
+  const utils = api.useUtils()
   const form = useForm<NewTrackFieldValues>({
+    defaultValues,
     resolver: zodResolver(createTrackSchema),
   })
 
-  const utils = api.useUtils()
   const mutation = api.track.create.useMutation({
     onError(error) {
       toast.error(error.message ?? 'حدث خطأ غير متوقع')
@@ -28,9 +27,7 @@ export function NewTrackForm({ courses }: { courses: Selectable<Course>[] }) {
     onSuccess() {
       toast.success('تم إضافة المسار بنجاح')
       void utils.track.invalidate()
-
-      if (history.state === null) router.push('/dashboard/tracks')
-      else router.back()
+      void utils.course.getOneForShow.invalidate()
     },
   })
 

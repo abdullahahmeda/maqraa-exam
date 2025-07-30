@@ -6,6 +6,7 @@ import { CreateCourseSchema } from '~/validation/backend/mutations/course/create
 import { UpdateCourseSchema } from '~/validation/backend/mutations/course/update'
 import { ListCourseSchema } from '~/validation/backend/queries/course/list'
 import { applyPagination } from '~/utils/db'
+import { jsonArrayFrom } from 'kysely/helpers/postgres'
 
 export function applyCoursesFilters(filters: FiltersSchema | undefined) {
   return (eb: ExpressionBuilder<DB, 'Course'>) => {
@@ -27,30 +28,70 @@ export async function getEditCourse(courseId: string) {
     .executeTakeFirst()
 }
 
-export async function getCoursesTableList(input?: ListCourseSchema) {
-  const where = applyCoursesFilters(input?.filters)
-
-  const count = Number(
-    (
-      await db
-        .selectFrom('Course')
-        .select(({ fn }) => fn.count<string>('id').as('count'))
-        .where(where)
-        .executeTakeFirstOrThrow()
-    ).count,
-  )
-
-  const query = applyPagination(
-    db.selectFrom('Course').selectAll().where(where),
-    input?.pagination,
-  )
-
-  const rows = await query.execute()
-
-  return {
-    data: rows,
-    count,
+export async function getCourseData(
+  courseId: string,
+  context: 'show',
+): ReturnType<typeof getCourseDataForShow>
+export async function getCourseData(
+  courseId: string,
+  context: 'edit',
+): ReturnType<typeof getEditCourse>
+export async function getCourseData(
+  courseId: string,
+  context: 'show' | 'edit',
+) {
+  if (context === 'show') {
+    return getCourseDataForShow(courseId)
+  } else if (context === 'edit') {
+    return getEditCourse(courseId)
   }
+}
+
+export async function getCourseDataForShow(courseId: string) {
+  return db
+    .selectFrom('Course')
+    .selectAll('Course')
+    .select((eb) =>
+      jsonArrayFrom(
+        eb
+          .selectFrom('Track')
+          .selectAll('Track')
+          .select((eb) =>
+            jsonArrayFrom(
+              eb
+                .selectFrom('Curriculum')
+                .selectAll('Curriculum')
+                .whereRef('Track.id', '=', 'Curriculum.trackId'),
+            ).as('curricula'),
+          )
+          .whereRef('Track.courseId', '=', 'Course.id'),
+      ).as('tracks'),
+    )
+    .where('Course.id', '=', courseId)
+    .executeTakeFirst()
+}
+
+export async function getCourseList(input: undefined, context: 'grid') : ReturnType<typeof _getCourseGridList>
+export async function getCourseList(input: undefined, context?: 'base') : ReturnType<typeof _getCourseList>
+export async function getCourseList(
+  input: undefined,
+  context: 'grid' | 'base' = 'base',
+) {
+  switch (context) {
+    case 'grid':
+      return _getCourseGridList(input)
+    case 'base':
+    default:
+      return _getCourseList(input)
+  }
+}
+
+async function _getCourseList(input: undefined) {
+  return db.selectFrom('Course').selectAll().execute()
+}
+
+async function _getCourseGridList(input: undefined) {
+  return db.selectFrom('Course').selectAll().execute()
 }
 
 export async function updateCourse(input: UpdateCourseSchema) {

@@ -9,8 +9,9 @@ import {
   FormItem,
 } from '~/components/ui/form'
 import { Input } from '~/components/ui/input'
+import { Textarea } from '~/components/ui/textarea'
 
-export type NewCourseFieldValues = { name: string }
+export type NewCourseFieldValues = { name: string; note: string | null }
 export type EditCourseFieldValues = { id: string } & NewCourseFieldValues
 
 type FormProps<T extends FieldValues> = {
@@ -30,6 +31,19 @@ export const CourseFormFields = <T extends FieldValues>({
             <FormLabel>اسم المقرر</FormLabel>
             <FormControl>
               <Input {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+      <FormField
+        control={control}
+        name={'note' as FieldPath<T>}
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>ملحوظة</FormLabel>
+            <FormControl>
+              <Textarea {...field} />
             </FormControl>
             <FormMessage />
           </FormItem>

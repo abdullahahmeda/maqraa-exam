@@ -2,20 +2,19 @@
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { api } from '~/trpc/react'
+import { api } from '~/utils/api'
 import { toast } from 'sonner'
 import { CourseFormFields, type EditCourseFieldValues } from './form-fields'
 import { Button } from '~/components/ui/button'
 import { Form } from '~/components/ui/form'
 import { type Course } from '~/kysely/types'
 import { populateFormWithErrors } from '~/utils/errors'
-import { useRouter } from 'next/navigation'
 import { type Selectable } from 'kysely'
 import { updateCourseSchema } from '~/validation/backend/mutations/course/update'
 
 export const EditCourseForm = ({ course }: { course: Selectable<Course> }) => {
-  const router = useRouter()
   const form = useForm<EditCourseFieldValues>({
+    // @ts-expect-error Leave me alone please
     resolver: zodResolver(updateCourseSchema),
     defaultValues: course,
   })
@@ -30,9 +29,6 @@ export const EditCourseForm = ({ course }: { course: Selectable<Course> }) => {
     onSuccess() {
       toast.success('تم تعديل المقرر بنجاح')
       void utils.course.invalidate()
-
-      if (history.state === null) router.push('/dashboard/courses')
-      else router.back()
     },
   })
 
