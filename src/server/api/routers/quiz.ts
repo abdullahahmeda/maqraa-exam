@@ -497,7 +497,7 @@ export const quizRouter = createTRPCRouter({
   export: protectedProcedure
     .input(z.object({ systemExamId: z.string().min(1) }))
     .mutation(async ({ input, ctx }) => {
-      if (ctx.session.user.role !== 'ADMIN')
+      if (!ctx.session.user.role.includes('ADMIN'))
         throw new TRPCError({
           code: 'FORBIDDEN',
           message: 'لا تملك الصلاحيات لهذه العملية',
